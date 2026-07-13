@@ -58,12 +58,23 @@ def cargar_tabla(hoja_nombre):
     except Exception as e:
         return pd.DataFrame()
 
+# Escudo protector para evitar que Google Sheets borre los ceros a la izquierda
+def proteger_ceros(val):
+    val_str = str(val).strip()
+    if val_str.isdigit() and val_str.startswith("0"):
+        return "'" + val_str
+    return val_str
+
 def guardar_tabla(hoja_nombre, df):
     try:
         client = get_gsheets_client()
         sheet = client.open_by_url(URL_BD_NUBE).worksheet(hoja_nombre)
         sheet.clear()
         df_str = df.fillna("").astype(str)
+        # Aplicamos el escudo a todas las columnas antes de enviar a la nube
+        for col in df_str.columns:
+            df_str[col] = df_str[col].apply(proteger_ceros)
+            
         datos = [df_str.columns.values.tolist()] + df_str.values.tolist()
         try:
             sheet.update(values=datos, range_name="A1")
@@ -253,10 +264,10 @@ def calcular_edad(fecha_nacimiento):
 @st.dialog("👨‍⚕️ Registrar Nuevo Profesional de Salud")
 def modal_nuevo_profesional(cedula_prof):
     st.markdown(f"La cédula **{cedula_prof}** no figura en la Nube. Ingrese los datos en estricto orden:")
-    p_nom = st.text_input("1. Primer Nombre")
-    s_nom = st.text_input("2. Segundo Nombre")
-    p_ape = st.text_input("3. Primer Apellido")
-    s_ape = st.text_input("4. Segundo Apellido")
+    p_nom = st.text_input("1. Primer Nombre", key="new_prof_pnom")
+    s_nom = st.text_input("2. Segundo Nombre", key="new_prof_snom")
+    p_ape = st.text_input("3. Primer Apellido", key="new_prof_pape")
+    s_ape = st.text_input("4. Segundo Apellido", key="new_prof_sape")
     
     if st.button("💾 Guardar en Base Nube", use_container_width=True):
         if not p_nom or not p_ape:
@@ -301,14 +312,16 @@ def renderizar_campos_paciente(fk, prefill=None, df_global=None):
     if fk.startswith("nuevo") and current_id and id_valida:
         if st.session_state.get("last_checked_id") != current_id:
             match_row = {}
+            current_id_limpio = current_id.lstrip('0') # Quitamos ceros a la izquierda para comparar de forma segura
+            
             # Buscar en la Nube
             df_loc = cargar_tabla(HOJA_PACIENTES)
             if not df_loc.empty and "NÚMERO DE IDENTIFICACION" in df_loc.columns:
-                res_loc = df_loc[df_loc["NÚMERO DE IDENTIFICACION"] == current_id]
+                res_loc = df_loc[df_loc["NÚMERO DE IDENTIFICACION"].astype(str).str.strip().str.replace(".0", "", regex=False).str.lstrip('0') == current_id_limpio]
                 if not res_loc.empty: match_row = res_loc.iloc[-1].to_dict()
 
             if not match_row and df_global is not None and not df_global.empty and "NÚMERO DE IDENTIFICACION" in df_global.columns:
-                res_hist = df_global[df_global["NÚMERO DE IDENTIFICACION"] == current_id]
+                res_hist = df_global[df_global["NÚMERO DE IDENTIFICACION"].astype(str).str.strip().str.replace(".0", "", regex=False).str.lstrip('0') == current_id_limpio]
                 if not res_hist.empty: match_row = res_hist.iloc[-1].to_dict()
 
             st.session_state["prefill_auto"] = match_row
@@ -332,30 +345,30 @@ def renderizar_campos_paciente(fk, prefill=None, df_global=None):
         with st.expander("👤 INGRESO DE NUEVO PACIENTE", expanded=True):
             st.markdown("Complete los datos demográficos. La edad se calculará automáticamente.")
             c_np1, c_np2, c_np3, c_np4 = st.columns(4)
-            np_pa = c_np1.text_input("Primer Apellido", key="np_pa")
-            np_sa = c_np2.text_input("Segundo Apellido", key="np_sa")
-            np_pn = c_np3.text_input("Primer Nombre", key="np_pn")
-            np_sn = c_np4.text_input("Segundo Nombre", key="np_sn")
+            np_pa = c_np1.text_input("Primer Apellido", key=f"np_pa_{fk}")
+            np_sa = c_np2.text_input("Segundo Apellido", key=f"np_sa_{fk}")
+            np_pn = c_np3.text_input("Primer Nombre", key=f"np_pn_{fk}")
+            np_sn = c_np4.text_input("Segundo Nombre", key=f"np_sn_{fk}")
             
             c_np5, c_np6, c_np7 = st.columns(3)
-            np_fn = c_np5.date_input("Fecha de Nacimiento", value=None, min_value=date(1900, 1, 1), max_value=date.today(), format="DD/MM/YYYY", key="np_fn_form")
+            np_fn = c_np5.date_input("Fecha de Nacimiento", value=None, min_value=date(1900, 1, 1), max_value=date.today(), format="DD/MM/YYYY", key=f"np_fn_form_{fk}")
             calc_edad, calc_cond_edad = calcular_edad(np_fn)
-            c_np6.text_input("Edad Calculada", value=str(calc_edad), disabled=True)
-            c_np7.text_input("Condición Calculada", value=calc_cond_edad, disabled=True)
+            c_np6.text_input("Edad Calculada", value=str(calc_edad), disabled=True, key=f"np_edadcalc_{fk}")
+            c_np7.text_input("Condición Calculada", value=calc_cond_edad, disabled=True, key=f"np_condcalc_{fk}")
 
             c_np8, c_np9, c_np10, c_np11 = st.columns(4)
-            np_sexo = c_np8.selectbox("Sexo", SEXO_OPCIONES, key="np_sx")
-            np_nac = c_np9.selectbox("Nacionalidad", NACIONALIDAD, key="np_nc")
-            np_etn = c_np10.selectbox("Etnia", ETNIAS, key="np_et")
-            np_gp = c_np11.selectbox("Grupo Prioritario", GRUPO_PRIORITARIO, key="np_gp")
+            np_sexo = c_np8.selectbox("Sexo", SEXO_OPCIONES, key=f"np_sx_{fk}")
+            np_nac = c_np9.selectbox("Nacionalidad", NACIONALIDAD, key=f"np_nc_{fk}")
+            np_etn = c_np10.selectbox("Etnia", ETNIAS, key=f"np_et_{fk}")
+            np_gp = c_np11.selectbox("Grupo Prioritario", GRUPO_PRIORITARIO, key=f"np_gp_{fk}")
 
             c_np12, c_np13, c_np14, c_np15 = st.columns(4)
-            np_ts = c_np12.selectbox("Tipo de Seguro", TIPO_SEGURO, key="np_ts")
-            np_pr = c_np13.text_input("Provincia de Residencia", key="np_pr")
-            np_cr = c_np14.text_input("Cantón de Residencia", key="np_cr")
-            np_par = c_np15.text_input("Parroquia de Residencia", key="np_par")
+            np_ts = c_np12.selectbox("Tipo de Seguro", TIPO_SEGURO, key=f"np_ts_{fk}")
+            np_pr = c_np13.text_input("Provincia de Residencia", key=f"np_pr_{fk}")
+            np_cr = c_np14.text_input("Cantón de Residencia", key=f"np_cr_{fk}")
+            np_par = c_np15.text_input("Parroquia de Residencia", key=f"np_par_{fk}")
 
-            if st.button("💾 Guardar Paciente en Nube"):
+            if st.button("💾 Guardar Paciente en Nube", key=f"btn_save_pac_{fk}"):
                 if not np_pa or not np_pn or not np_fn:
                     st.error("Debe llenar al menos el Primer Nombre, Primer Apellido y la Fecha de Nacimiento.")
                 else:
@@ -475,7 +488,9 @@ def renderizar_campos_paciente(fk, prefill=None, df_global=None):
         else:
             id_prof_valida = True
             df_profs = cargar_profesionales()
-            match_p = df_profs[df_profs["CEDULA"] == id_profesional.strip()]
+            # Búsqueda a prueba de fallos ignorando los ceros a la izquierda
+            id_prof_limpio = id_profesional.strip().lstrip("0")
+            match_p = df_profs[df_profs["CEDULA"].astype(str).str.strip().str.replace(".0", "", regex=False).str.lstrip("0") == id_prof_limpio]
             
             if not match_p.empty:
                 nombre_prof_auto = match_p.iloc[-1]["NOMBRE_COMPLETO"]
@@ -553,8 +568,6 @@ def formulario_principal():
                 st.info(f"📍 Sesión bloqueada para el establecimiento: **{unicodigo_seleccionado}**")
 
                 if base_est is not None and not base_est.empty and unicodigo_seleccionado:
-                    
-                    # Normalizamos ambos códigos (quitamos '.0' y ceros a la izquierda) para que coincidan siempre
                     def limpiar_cod(cod):
                         return str(cod).strip().replace('.0', '').lstrip('0')
                     
@@ -583,10 +596,10 @@ def formulario_principal():
                 col3.text_input("Nombre del Establecimiento", value=val_nombre, disabled=True, key=f"nom_u_{fk}")
                 col4.text_input("Nivel", value=val_nivel, disabled=True, key=f"niv_u_{fk}")
 
-            datos_nuevo = renderizar_campos_paciente("nuevo", df_global=df_global)
+            datos_nuevo = renderizar_campos_paciente(f"nuevo_{fk}", df_global=df_global)
 
             st.markdown("<br>", unsafe_allow_html=True)
-            if st.button("💾 Guardar Atención Médica", key=f"btn_nuevo_{fk}", use_container_width=True):
+            if st.button("💾 Guardar Atención Médica", key=f"btn_nuevo_g_{fk}", use_container_width=True):
                 if not datos_nuevo["_valido"]:
                     st.error("❌ Hay conflictos o faltan datos obligatorios. Revise las alertas en el formulario.")
                 else:
@@ -601,10 +614,17 @@ def formulario_principal():
                     
                     guardar_tabla(HOJA_ATENCIONES, df_final)
                     
+                    # Limpieza exhaustiva para el reseteo del formulario
                     st.session_state["prefill_auto"] = {}
                     st.session_state["last_checked_id"] = ""
                     st.session_state.registro_exitoso = True
                     st.session_state.form_key += 1
+                    
+                    # Eliminamos cualquier rastro temporal de variables en memoria
+                    for key in list(st.session_state.keys()):
+                        if key.startswith("np_") or key.startswith("ip_"):
+                            del st.session_state[key]
+                            
                     st.rerun()
 
         with tab2:
@@ -631,6 +651,7 @@ def formulario_principal():
                                 guardar_tabla(HOJA_ATENCIONES, df_global)
                                 st.success("✅ ¡Atención editada con éxito en la Nube!")
                                 st.toast("Edición guardada en la nube", icon="🔄")
+                                st.session_state["search_edit_local"] = "" # Limpiamos la búsqueda tras guardar
                                 st.rerun()
 
     # ========================== ROL ADMIN ==========================
