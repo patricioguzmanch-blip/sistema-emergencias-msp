@@ -56,7 +56,6 @@ def cargar_tabla(hoja_nombre):
             return pd.DataFrame()
         return pd.DataFrame(registros, dtype=str)
     except Exception as e:
-        # st.error(f"Error conectando a la hoja '{hoja_nombre}': {e}")
         return pd.DataFrame()
 
 def guardar_tabla(hoja_nombre, df):
@@ -554,19 +553,25 @@ def formulario_principal():
                 st.info(f"📍 Sesión bloqueada para el establecimiento: **{unicodigo_seleccionado}**")
 
                 if base_est is not None and not base_est.empty and unicodigo_seleccionado:
-                    fila_est = base_est[base_est['UNICODIGO'] == unicodigo_seleccionado].iloc[0]
-                    def get_val(f, words, df=""):
-                        for c in f.index:
-                            for w in words:
-                                if w in str(c).upper(): return str(f[c])
-                        return df
-                    val_institucion = get_val(fila_est, ['INSTITUCION', 'SISTEMA'], 'MSP')
-                    val_nombre = get_val(fila_est, ['NOMBRE', 'ESTABLECIMIENTO'], '')
-                    val_nivel = get_val(fila_est, ['NIVEL'], '')
-                    val_zona = get_val(fila_est, ['ZONA'], '')
-                    val_provincia = get_val(fila_est, ['PROVINCIA'], '')
-                    val_canton = get_val(fila_est, ['CANTON'], '')
-                    val_distrito = get_val(fila_est, ['DISTRITO'], '')
+                    # Aplicamos escudo protector contra espacios en blanco y errores de búsqueda
+                    busqueda = base_est[base_est['UNICODIGO'].astype(str).str.strip() == str(unicodigo_seleccionado).strip()]
+                    
+                    if not busqueda.empty:
+                        fila_est = busqueda.iloc[0]
+                        def get_val(f, words, df=""):
+                            for c in f.index:
+                                for w in words:
+                                    if w in str(c).upper(): return str(f[c])
+                            return df
+                        val_institucion = get_val(fila_est, ['INSTITUCION', 'SISTEMA'], 'MSP')
+                        val_nombre = get_val(fila_est, ['NOMBRE', 'ESTABLECIMIENTO'], '')
+                        val_nivel = get_val(fila_est, ['NIVEL'], '')
+                        val_zona = get_val(fila_est, ['ZONA'], '')
+                        val_provincia = get_val(fila_est, ['PROVINCIA'], '')
+                        val_canton = get_val(fila_est, ['CANTON'], '')
+                        val_distrito = get_val(fila_est, ['DISTRITO'], '')
+                    else:
+                        st.warning(f"⚠️ El unicódigo '{unicodigo_seleccionado}' no se encontró en el catálogo de establecimientos.")
 
                 col1, col2, col3, col4 = st.columns(4)
                 col1.text_input("Institución", value=val_institucion, disabled=True, key=f"ins_u_{fk}")
