@@ -37,6 +37,22 @@ st.markdown("""
     """, unsafe_allow_html=True)
 
 # ==============================================================================
+# FUNCIONES DE LIMPIEZA DE TEXTO (NUEVO)
+# ==============================================================================
+def limpiar_texto(texto):
+    """Convierte a mayúsculas y quita todas las tildes de un texto."""
+    if texto is None or pd.isna(texto):
+        return ""
+    t = str(texto).strip().upper()
+    reemplazos = {
+        'Á': 'A', 'É': 'E', 'Í': 'I', 'Ó': 'O', 'Ú': 'U',
+        'Ä': 'A', 'Ë': 'E', 'Ï': 'I', 'Ö': 'O', 'Ü': 'U'
+    }
+    for con_tilde, sin_tilde in reemplazos.items():
+        t = t.replace(con_tilde, sin_tilde)
+    return t
+
+# ==============================================================================
 # MOTOR DE CONEXIÓN A GOOGLE SHEETS
 # ==============================================================================
 @st.cache_resource
@@ -58,14 +74,12 @@ def cargar_tabla(hoja_nombre):
     except Exception as e:
         return pd.DataFrame()
 
-# Escudo protector para evitar que Google Sheets borre los ceros a la izquierda
 def proteger_ceros(val):
     val_str = str(val).strip()
     if val_str.isdigit() and val_str.startswith("0"):
         return "'" + val_str
     return val_str
 
-# TRADUCTOR UNIVERSAL: Elimina apóstrofes, decimales fantasma y ceros para forzar emparejamiento perfecto
 def normalizar_id(val):
     return str(val).replace("'", "").replace(".0", "").strip().lstrip("0")
 
@@ -75,7 +89,6 @@ def guardar_tabla(hoja_nombre, df):
         sheet = client.open_by_url(URL_BD_NUBE).worksheet(hoja_nombre)
         sheet.clear()
         df_str = df.fillna("").astype(str)
-        # Aplicamos el escudo a todas las columnas antes de enviar a la nube
         for col in df_str.columns:
             df_str[col] = df_str[col].apply(proteger_ceros)
             
@@ -84,7 +97,6 @@ def guardar_tabla(hoja_nombre, df):
             sheet.update(values=datos, range_name="A1")
         except TypeError:
             sheet.update("A1", datos)
-        # Limpiamos el caché para obligar a refrescar los datos
         cargar_tabla.clear()
     except Exception as e:
         st.error(f"Error guardando {hoja_nombre}: {e}")
@@ -230,7 +242,7 @@ def validar_cedula_ecuatoriana(cedula):
 def safe_index(lista, valor, default=0):
     try:
         if pd.isna(valor) or str(valor).strip() == "": return default
-        val_clean = str(valor).strip().upper()
+        val_clean = limpiar_texto(valor)
         for i, item in enumerate(lista):
             if str(item).strip().upper() == val_clean or str(item).split(" - ")[0].strip() == val_clean:
                 return i
@@ -277,12 +289,16 @@ def modal_nuevo_profesional(cedula_prof):
         if not p_nom or not p_ape:
             st.error("❌ El Primer Nombre y Primer Apellido son obligatorios.")
         else:
-            nom_completo = f"{p_nom.strip()} {s_nom.strip()} {p_ape.strip()} {s_ape.strip()}".upper()
+            # Aplicamos limpieza profunda a nombres del profesional
+            nom_completo = f"{limpiar_texto(p_nom)} {limpiar_texto(s_nom)} {limpiar_texto(p_ape)} {limpiar_texto(s_ape)}"
             nom_completo = re.sub(r'\s+', ' ', nom_completo).strip()
             df_nuevo_p = pd.DataFrame([{
-                "CEDULA": cedula_prof.strip(), "PRIMER NOMBRE": p_nom.strip().upper(),
-                "SEGUNDO NOMBRE": s_nom.strip().upper(), "PRIMER APELLIDO": p_ape.strip().upper(),
-                "SEGUNDO APELLIDO": s_ape.strip().upper(), "NOMBRE_COMPLETO": nom_completo
+                "CEDULA": cedula_prof.strip(), 
+                "PRIMER NOMBRE": limpiar_texto(p_nom),
+                "SEGUNDO NOMBRE": limpiar_texto(s_nom), 
+                "PRIMER APELLIDO": limpiar_texto(p_ape),
+                "SEGUNDO APELLIDO": limpiar_texto(s_ape), 
+                "NOMBRE_COMPLETO": nom_completo
             }])
             df_profs = cargar_profesionales()
             df_final_profs = pd.concat([df_profs, df_nuevo_p], ignore_index=True) if not df_profs.empty else df_nuevo_p
@@ -318,13 +334,11 @@ def renderizar_campos_paciente(fk, prefill=None, df_global=None):
             match_row = {}
             current_id_norm = normalizar_id(current_id) 
             
-            # Buscar en la Nube de Pacientes con la función universal
             df_loc = cargar_tabla(HOJA_PACIENTES)
             if not df_loc.empty and "NÚMERO DE IDENTIFICACION" in df_loc.columns:
                 res_loc = df_loc[df_loc["NÚMERO DE IDENTIFICACION"].apply(normalizar_id) == current_id_norm]
                 if not res_loc.empty: match_row = res_loc.iloc[-1].to_dict()
 
-            # Buscar en la Nube Histórica
             if not match_row and df_global is not None and not df_global.empty and "NÚMERO DE IDENTIFICACION" in df_global.columns:
                 res_hist = df_global[df_global["NÚMERO DE IDENTIFICACION"].apply(normalizar_id) == current_id_norm]
                 if not res_hist.empty: match_row = res_hist.iloc[-1].to_dict()
@@ -378,10 +392,17 @@ def renderizar_campos_paciente(fk, prefill=None, df_global=None):
                     st.error("Debe llenar al menos el Primer Nombre, Primer Apellido y la Fecha de Nacimiento.")
                 else:
                     payload = {
-                        "NÚMERO DE IDENTIFICACION": current_id, "PRIMER APELLIDO": np_pa.upper(), "SEGUNDO APELLIDO": np_sa.upper(),
-                        "PRIMER NOMBRE": np_pn.upper(), "SEGUNDO NOMBRE": np_sn.upper(), "SEXO": np_sexo, "EDAD": str(calc_edad),
+                        "NÚMERO DE IDENTIFICACION": current_id, 
+                        "PRIMER APELLIDO": limpiar_texto(np_pa), 
+                        "SEGUNDO APELLIDO": limpiar_texto(np_sa),
+                        "PRIMER NOMBRE": limpiar_texto(np_pn), 
+                        "SEGUNDO NOMBRE": limpiar_texto(np_sn), 
+                        "SEXO": np_sexo, "EDAD": str(calc_edad),
                         "CONDICIÓN DE LA EDAD": calc_cond_edad, "NACIONALIDAD": np_nac, "ETNIA": np_etn, "GRUPO PRIORITARIO": np_gp,
-                        "TIPO DE SEGURO": np_ts, "PROV_RES": np_pr.upper(), "CANT_RES": np_cr.upper(), "PARR_RES": np_par.upper(),
+                        "TIPO DE SEGURO": np_ts, 
+                        "PROV_RES": limpiar_texto(np_pr), 
+                        "CANT_RES": limpiar_texto(np_cr), 
+                        "PARR_RES": limpiar_texto(np_par),
                         "FECHA DE NACIMIENTO DEL PACIENTE": np_fn.strftime("%d/%m/%Y")
                     }
                     try:
@@ -414,10 +435,11 @@ def renderizar_campos_paciente(fk, prefill=None, df_global=None):
     fecha_nacimiento = col11.date_input("Fecha de Nacimiento", value=safe_date(fn_val, default_today=False), min_value=date(1900, 1, 1), max_value=date.today(), format="DD/MM/YYYY", key=f"fn_{fk}{dyn_k}", disabled=bloquear_campos)
 
     col14, col15, col16, col17 = st.columns(4)
-    primer_apellido = col14.text_input("Primer Apellido", value=prefill.get("PRIMER APELLIDO", ""), key=f"pa_{fk}{dyn_k}", disabled=bloquear_campos)
-    segundo_apellido = col15.text_input("Segundo Apellido", value=prefill.get("SEGUNDO APELLIDO", ""), key=f"sa_{fk}{dyn_k}", disabled=bloquear_campos)
-    primer_nombre = col16.text_input("Primer Nombre", value=prefill.get("PRIMER NOMBRE", ""), key=f"pn_{fk}{dyn_k}", disabled=bloquear_campos)
-    segundo_nombre = col17.text_input("Segundo Nombre", value=prefill.get("SEGUNDO NOMBRE", ""), key=f"sn_{fk}{dyn_k}", disabled=bloquear_campos)
+    # Mostramos los datos limpios si vienen del historial
+    primer_apellido = col14.text_input("Primer Apellido", value=limpiar_texto(prefill.get("PRIMER APELLIDO", "")), key=f"pa_{fk}{dyn_k}", disabled=bloquear_campos)
+    segundo_apellido = col15.text_input("Segundo Apellido", value=limpiar_texto(prefill.get("SEGUNDO APELLIDO", "")), key=f"sa_{fk}{dyn_k}", disabled=bloquear_campos)
+    primer_nombre = col16.text_input("Primer Nombre", value=limpiar_texto(prefill.get("PRIMER NOMBRE", "")), key=f"pn_{fk}{dyn_k}", disabled=bloquear_campos)
+    segundo_nombre = col17.text_input("Segundo Nombre", value=limpiar_texto(prefill.get("SEGUNDO NOMBRE", "")), key=f"sn_{fk}{dyn_k}", disabled=bloquear_campos)
     
     col18, col19, col20, col21 = st.columns(4)
     sexo = col18.selectbox("Sexo", SEXO_OPCIONES, index=safe_index(SEXO_OPCIONES, prefill.get("SEXO")), key=f"sx_{fk}{dyn_k}", disabled=bloquear_campos)
@@ -436,9 +458,9 @@ def renderizar_campos_paciente(fk, prefill=None, df_global=None):
 
     st.markdown("### 🏠 3. Datos de Residencia")
     col25, col26, col27 = st.columns(3)
-    prov_res = col25.text_input("Provincia de Residencia", value=prefill.get("PROV_RES", ""), key=f"pr_{fk}{dyn_k}", disabled=bloquear_campos)
-    cant_res = col26.text_input("Cantón de Residencia", value=prefill.get("CANT_RES", ""), key=f"cr_{fk}{dyn_k}", disabled=bloquear_campos)
-    parr_res = col27.text_input("Parroquia de Residencia", value=prefill.get("PARR_RES", ""), key=f"par_{fk}{dyn_k}", disabled=bloquear_campos)
+    prov_res = col25.text_input("Provincia de Residencia", value=limpiar_texto(prefill.get("PROV_RES", "ORELLANA")), key=f"pr_{fk}{dyn_k}", disabled=bloquear_campos)
+    cant_res = col26.text_input("Cantón de Residencia", value=limpiar_texto(prefill.get("CANT_RES", "")), key=f"cr_{fk}{dyn_k}", disabled=bloquear_campos)
+    parr_res = col27.text_input("Parroquia de Residencia", value=limpiar_texto(prefill.get("PARR_RES", "")), key=f"par_{fk}{dyn_k}", disabled=bloquear_campos)
 
     st.markdown("### 🩺 4. Diagnóstico y Profesional")
     especialidad = st.selectbox("Especialidad del Profesional", ESPECIALIDADES_PROFESIONAL, index=safe_index(ESPECIALIDADES_PROFESIONAL, prefill.get("ESPECIALIDAD DEL PROFESIONAL")), key=f"esp_{fk}")
@@ -494,7 +516,6 @@ def renderizar_campos_paciente(fk, prefill=None, df_global=None):
             id_prof_valida = True
             df_profs = cargar_profesionales()
             
-            # Búsqueda a prueba de fallos con el traductor universal
             id_prof_norm = normalizar_id(id_profesional)
             match_p = df_profs[df_profs["CEDULA"].apply(normalizar_id) == id_prof_norm]
             
@@ -510,7 +531,7 @@ def renderizar_campos_paciente(fk, prefill=None, df_global=None):
     else:
         if fk.startswith("nuevo") and f"np_{fk}" in st.session_state: st.session_state[f"np_{fk}"] = ""
 
-    nombre_profesional = col38.text_input("Nombres y Apellidos del Profesional", value=nombre_prof_auto, key=f"np_{fk}", disabled=(profesional_encontrado and fk.startswith("nuevo")))
+    nombre_profesional = col38.text_input("Nombres y Apellidos del Profesional", value=limpiar_texto(nombre_prof_auto), key=f"np_{fk}", disabled=(profesional_encontrado and fk.startswith("nuevo")))
 
     val_fecha_nacimiento = fecha_nacimiento.strftime("%d/%m/%Y") if fecha_nacimiento else "N/A"
     val_fecha_atencion = fecha_atencion.strftime("%d/%m/%Y") if fecha_atencion else ""
@@ -518,14 +539,27 @@ def renderizar_campos_paciente(fk, prefill=None, df_global=None):
     return {
         "FECHA DE ATENCIÓN": val_fecha_atencion, "HORA ATENCION": hora_atencion, "FECHA DE NACIMIENTO DEL PACIENTE": val_fecha_nacimiento,
         "TIPO DE DOCUMENTO DE IDENTIFICACIÓN": tipo_doc, "NÚMERO DE IDENTIFICACION": identificacion.strip(),
-        "PRIMER APELLIDO": primer_apellido.upper(), "SEGUNDO APELLIDO": segundo_apellido.upper(), "PRIMER NOMBRE": primer_nombre.upper(), "SEGUNDO NOMBRE": segundo_nombre.upper(),
+        # APLICACIÓN DE LIMPIEZA PROFUNDA AL GUARDAR
+        "PRIMER APELLIDO": limpiar_texto(primer_apellido), 
+        "SEGUNDO APELLIDO": limpiar_texto(segundo_apellido), 
+        "PRIMER NOMBRE": limpiar_texto(primer_nombre), 
+        "SEGUNDO NOMBRE": limpiar_texto(segundo_nombre),
         "SEXO": sexo, "EDAD": str(edad), "CONDICIÓN DE LA EDAD": cond_edad, "NACIONALIDAD": nacionalidad,
         "ETNIA": etnia, "GRUPO PRIORITARIO": grupo_prio, "TIPO DE SEGURO": tipo_seguro,
-        "PROV_RES": prov_res.upper(), "CANT_RES": cant_res.upper(), "PARR_RES": parr_res.upper(), "ESPECIALIDAD DEL PROFESIONAL": especialidad,
-        "CIE-10 (PRINCIPAL)": cod_p, "DIGANÓSTICO 1 (PRINCIPAL)": desc_p.upper(), "CONDICIÓN DEL DIAGNÓSTICO": cond_diag,
-        "CIE-10 (CAUSA EXTERNA)": cod_e, "DIAGNOSTICO (CAUSA EXTERNA)": desc_e.upper(), "CONDICIÓN DEL ALTA": condicion_alta,
-        "REQUIERE HOSPITALIZACIÓN": req_hosp, "NOMBRE DEL HOSPITAL AL QUE FUE REFERIDO PARA LA HOSPITALIZACIÓN": hosp_referido.upper() if req_hosp == "SI" else "",
-        "CAUSA DE ATENCIÓN": causa_atencion, "NÚMERO DE IDENTIFICACIÓN DEL PROFESIONAL DE SALUD": id_profesional, "NOMBRES Y APELLIDOS DEL PROFESIONAL DE SALUD": nombre_profesional.upper(),
+        "PROV_RES": limpiar_texto(prov_res), 
+        "CANT_RES": limpiar_texto(cant_res), 
+        "PARR_RES": limpiar_texto(parr_res), 
+        "ESPECIALIDAD DEL PROFESIONAL": especialidad,
+        "CIE-10 (PRINCIPAL)": cod_p, 
+        "DIGANÓSTICO 1 (PRINCIPAL)": limpiar_texto(desc_p), 
+        "CONDICIÓN DEL DIAGNÓSTICO": cond_diag,
+        "CIE-10 (CAUSA EXTERNA)": cod_e, 
+        "DIAGNOSTICO (CAUSA EXTERNA)": limpiar_texto(desc_e), 
+        "CONDICIÓN DEL ALTA": condicion_alta,
+        "REQUIERE HOSPITALIZACIÓN": req_hosp, 
+        "NOMBRE DEL HOSPITAL AL QUE FUE REFERIDO PARA LA HOSPITALIZACIÓN": limpiar_texto(hosp_referido) if req_hosp == "SI" else "",
+        "CAUSA DE ATENCIÓN": causa_atencion, "NÚMERO DE IDENTIFICACIÓN DEL PROFESIONAL DE SALUD": id_profesional, 
+        "NOMBRES Y APELLIDOS DEL PROFESIONAL DE SALUD": limpiar_texto(nombre_profesional),
         "_valido": hora_valida and id_valida and id_prof_valida and identificacion and primer_apellido and primer_nombre and hora_atencion and (val_fecha_nacimiento != "N/A") and valido_sexo and bool(nombre_profesional.strip())
     }
 
@@ -620,13 +654,11 @@ def formulario_principal():
                     
                     guardar_tabla(HOJA_ATENCIONES, df_final)
                     
-                    # Limpieza exhaustiva para el reseteo del formulario
                     st.session_state["prefill_auto"] = {}
                     st.session_state["last_checked_id"] = ""
                     st.session_state.registro_exitoso = True
                     st.session_state.form_key += 1
                     
-                    # Eliminamos cualquier rastro temporal de variables en memoria
                     for key in list(st.session_state.keys()):
                         if key.startswith("np_") or key.startswith("ip_"):
                             del st.session_state[key]
