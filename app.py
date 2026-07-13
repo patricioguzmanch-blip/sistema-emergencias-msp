@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 import os
 import io
 import re
@@ -37,7 +37,7 @@ st.markdown("""
     """, unsafe_allow_html=True)
 
 # ==============================================================================
-# FUNCIONES DE LIMPIEZA DE TEXTO (NUEVO)
+# FUNCIONES DE LIMPIEZA DE TEXTO
 # ==============================================================================
 def limpiar_texto(texto):
     """Convierte a mayúsculas y quita todas las tildes de un texto."""
@@ -289,7 +289,6 @@ def modal_nuevo_profesional(cedula_prof):
         if not p_nom or not p_ape:
             st.error("❌ El Primer Nombre y Primer Apellido son obligatorios.")
         else:
-            # Aplicamos limpieza profunda a nombres del profesional
             nom_completo = f"{limpiar_texto(p_nom)} {limpiar_texto(s_nom)} {limpiar_texto(p_ape)} {limpiar_texto(s_ape)}"
             nom_completo = re.sub(r'\s+', ' ', nom_completo).strip()
             df_nuevo_p = pd.DataFrame([{
@@ -419,7 +418,21 @@ def renderizar_campos_paciente(fk, prefill=None, df_global=None):
         st.stop()
 
     col9, col10, col11 = st.columns(3)
-    fecha_atencion = col9.date_input("Fecha de Atención", value=safe_date(prefill.get("FECHA DE ATENCIÓN", ""), default_today=True), min_value=date(1900, 1, 1), max_value=date.today(), format="DD/MM/YYYY", key=f"fa_{fk}")
+    
+    # === BLOQUEO DE FECHA A MÁXIMO 2 DÍAS ATRÁS ===
+    fecha_hoy = date.today()
+    limite_inferior = fecha_hoy - timedelta(days=2)
+    valor_fecha_atencion = safe_date(prefill.get("FECHA DE ATENCIÓN", ""), default_today=True)
+    
+    # Ajuste dinámico de seguridad para registros editados que son antiguos
+    if valor_fecha_atencion and valor_fecha_atencion < limite_inferior:
+        min_calendario = valor_fecha_atencion
+    else:
+        min_calendario = limite_inferior
+
+    fecha_atencion = col9.date_input("Fecha de Atención", value=valor_fecha_atencion, min_value=min_calendario, max_value=fecha_hoy, format="DD/MM/YYYY", key=f"fa_{fk}")
+    # ==============================================
+
     hora_atencion = col10.text_input("Hora de Atención (HH:MM)", value=prefill.get("HORA ATENCION", ""), placeholder="Ej: 08:30", key=f"ha_{fk}")
     hora_valida = True
     if hora_atencion and not re.match(r"^(?:[01]\d|2[0-3]):[0-5]\d$", str(hora_atencion)):
@@ -432,10 +445,9 @@ def renderizar_campos_paciente(fk, prefill=None, df_global=None):
             if "NACIMIENTO" in str(k).upper():
                 fn_val = v
                 break
-    fecha_nacimiento = col11.date_input("Fecha de Nacimiento", value=safe_date(fn_val, default_today=False), min_value=date(1900, 1, 1), max_value=date.today(), format="DD/MM/YYYY", key=f"fn_{fk}{dyn_k}", disabled=bloquear_campos)
+    fecha_nacimiento = col11.date_input("Fecha de Nacimiento", value=safe_date(fn_val, default_today=False), min_value=date(1900, 1, 1), max_value=fecha_hoy, format="DD/MM/YYYY", key=f"fn_{fk}{dyn_k}", disabled=bloquear_campos)
 
     col14, col15, col16, col17 = st.columns(4)
-    # Mostramos los datos limpios si vienen del historial
     primer_apellido = col14.text_input("Primer Apellido", value=limpiar_texto(prefill.get("PRIMER APELLIDO", "")), key=f"pa_{fk}{dyn_k}", disabled=bloquear_campos)
     segundo_apellido = col15.text_input("Segundo Apellido", value=limpiar_texto(prefill.get("SEGUNDO APELLIDO", "")), key=f"sa_{fk}{dyn_k}", disabled=bloquear_campos)
     primer_nombre = col16.text_input("Primer Nombre", value=limpiar_texto(prefill.get("PRIMER NOMBRE", "")), key=f"pn_{fk}{dyn_k}", disabled=bloquear_campos)
@@ -539,7 +551,6 @@ def renderizar_campos_paciente(fk, prefill=None, df_global=None):
     return {
         "FECHA DE ATENCIÓN": val_fecha_atencion, "HORA ATENCION": hora_atencion, "FECHA DE NACIMIENTO DEL PACIENTE": val_fecha_nacimiento,
         "TIPO DE DOCUMENTO DE IDENTIFICACIÓN": tipo_doc, "NÚMERO DE IDENTIFICACION": identificacion.strip(),
-        # APLICACIÓN DE LIMPIEZA PROFUNDA AL GUARDAR
         "PRIMER APELLIDO": limpiar_texto(primer_apellido), 
         "SEGUNDO APELLIDO": limpiar_texto(segundo_apellido), 
         "PRIMER NOMBRE": limpiar_texto(primer_nombre), 
