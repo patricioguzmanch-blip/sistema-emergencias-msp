@@ -424,7 +424,6 @@ def renderizar_campos_paciente(fk, prefill=None, df_global=None):
     limite_inferior = fecha_hoy - timedelta(days=2)
     valor_fecha_atencion = safe_date(prefill.get("FECHA DE ATENCIÓN", ""), default_today=True)
     
-    # Ajuste dinámico de seguridad para registros editados que son antiguos
     if valor_fecha_atencion and valor_fecha_atencion < limite_inferior:
         min_calendario = valor_fecha_atencion
     else:
@@ -702,7 +701,7 @@ def formulario_principal():
                                 guardar_tabla(HOJA_ATENCIONES, df_global)
                                 st.success("✅ ¡Atención editada con éxito en la Nube!")
                                 st.toast("Edición guardada en la nube", icon="🔄")
-                                st.session_state["search_edit_local"] = ""
+                                # ELIMINADA LA LÍNEA PROBLEMÁTICA AQUÍ
                                 st.rerun()
 
     # ========================== ROL ADMIN ==========================
