@@ -65,6 +65,10 @@ def proteger_ceros(val):
         return "'" + val_str
     return val_str
 
+# TRADUCTOR UNIVERSAL: Elimina apóstrofes, decimales fantasma y ceros para forzar emparejamiento perfecto
+def normalizar_id(val):
+    return str(val).replace("'", "").replace(".0", "").strip().lstrip("0")
+
 def guardar_tabla(hoja_nombre, df):
     try:
         client = get_gsheets_client()
@@ -312,16 +316,17 @@ def renderizar_campos_paciente(fk, prefill=None, df_global=None):
     if fk.startswith("nuevo") and current_id and id_valida:
         if st.session_state.get("last_checked_id") != current_id:
             match_row = {}
-            current_id_limpio = current_id.lstrip('0') # Quitamos ceros a la izquierda para comparar de forma segura
+            current_id_norm = normalizar_id(current_id) 
             
-            # Buscar en la Nube
+            # Buscar en la Nube de Pacientes con la función universal
             df_loc = cargar_tabla(HOJA_PACIENTES)
             if not df_loc.empty and "NÚMERO DE IDENTIFICACION" in df_loc.columns:
-                res_loc = df_loc[df_loc["NÚMERO DE IDENTIFICACION"].astype(str).str.strip().str.replace(".0", "", regex=False).str.lstrip('0') == current_id_limpio]
+                res_loc = df_loc[df_loc["NÚMERO DE IDENTIFICACION"].apply(normalizar_id) == current_id_norm]
                 if not res_loc.empty: match_row = res_loc.iloc[-1].to_dict()
 
+            # Buscar en la Nube Histórica
             if not match_row and df_global is not None and not df_global.empty and "NÚMERO DE IDENTIFICACION" in df_global.columns:
-                res_hist = df_global[df_global["NÚMERO DE IDENTIFICACION"].astype(str).str.strip().str.replace(".0", "", regex=False).str.lstrip('0') == current_id_limpio]
+                res_hist = df_global[df_global["NÚMERO DE IDENTIFICACION"].apply(normalizar_id) == current_id_norm]
                 if not res_hist.empty: match_row = res_hist.iloc[-1].to_dict()
 
             st.session_state["prefill_auto"] = match_row
@@ -488,9 +493,10 @@ def renderizar_campos_paciente(fk, prefill=None, df_global=None):
         else:
             id_prof_valida = True
             df_profs = cargar_profesionales()
-            # Búsqueda a prueba de fallos ignorando los ceros a la izquierda
-            id_prof_limpio = id_profesional.strip().lstrip("0")
-            match_p = df_profs[df_profs["CEDULA"].astype(str).str.strip().str.replace(".0", "", regex=False).str.lstrip("0") == id_prof_limpio]
+            
+            # Búsqueda a prueba de fallos con el traductor universal
+            id_prof_norm = normalizar_id(id_profesional)
+            match_p = df_profs[df_profs["CEDULA"].apply(normalizar_id) == id_prof_norm]
             
             if not match_p.empty:
                 nombre_prof_auto = match_p.iloc[-1]["NOMBRE_COMPLETO"]
@@ -631,7 +637,9 @@ def formulario_principal():
             st.subheader("🔍 Buscar y Corregir Registro Local")
             busqueda_cedula = st.text_input("Ingrese la Identificación del paciente:", key="search_edit_local")
             if busqueda_cedula and not df_global.empty:
-                df_paciente = df_global[(df_global['NÚMERO DE IDENTIFICACION'] == busqueda_cedula.strip()) & (df_global['UNICODIGO'] == st.session_state.unicodigo_actual)]
+                busqueda_norm = normalizar_id(busqueda_cedula)
+                df_paciente = df_global[(df_global['NÚMERO DE IDENTIFICACION'].apply(normalizar_id) == busqueda_norm) & (df_global['UNICODIGO'] == st.session_state.unicodigo_actual)]
+                
                 if df_paciente.empty:
                     st.warning("⚠️ No se encontraron atenciones de su unidad operativa para este paciente.")
                 else:
@@ -651,7 +659,7 @@ def formulario_principal():
                                 guardar_tabla(HOJA_ATENCIONES, df_global)
                                 st.success("✅ ¡Atención editada con éxito en la Nube!")
                                 st.toast("Edición guardada en la nube", icon="🔄")
-                                st.session_state["search_edit_local"] = "" # Limpiamos la búsqueda tras guardar
+                                st.session_state["search_edit_local"] = ""
                                 st.rerun()
 
     # ========================== ROL ADMIN ==========================
@@ -661,7 +669,8 @@ def formulario_principal():
             cedula_auditoria = st.text_input("Digite la Cédula o Documento del Paciente:")
             
             if cedula_auditoria and not df_global.empty:
-                df_audit = df_global[df_global['NÚMERO DE IDENTIFICACION'] == cedula_auditoria.strip()]
+                ced_audit_norm = normalizar_id(cedula_auditoria)
+                df_audit = df_global[df_global['NÚMERO DE IDENTIFICACION'].apply(normalizar_id) == ced_audit_norm]
                 if df_audit.empty:
                     st.error("❌ No se registra ninguna atención médica en la provincia para la identificación ingresada.")
                 else:
