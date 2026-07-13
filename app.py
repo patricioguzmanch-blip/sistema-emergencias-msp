@@ -553,8 +553,12 @@ def formulario_principal():
                 st.info(f"📍 Sesión bloqueada para el establecimiento: **{unicodigo_seleccionado}**")
 
                 if base_est is not None and not base_est.empty and unicodigo_seleccionado:
-                    # Aplicamos escudo protector contra espacios en blanco y errores de búsqueda
-                    busqueda = base_est[base_est['UNICODIGO'].astype(str).str.strip() == str(unicodigo_seleccionado).strip()]
+                    
+                    # Normalizamos ambos códigos (quitamos '.0' y ceros a la izquierda) para que coincidan siempre
+                    def limpiar_cod(cod):
+                        return str(cod).strip().replace('.0', '').lstrip('0')
+                    
+                    busqueda = base_est[base_est['UNICODIGO'].apply(limpiar_cod) == limpiar_cod(unicodigo_seleccionado)]
                     
                     if not busqueda.empty:
                         fila_est = busqueda.iloc[0]
