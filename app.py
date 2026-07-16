@@ -387,7 +387,6 @@ def renderizar_campos_paciente(fk, prefill=None, df_global=None):
             np_par = c_np15.text_input("Parroquia de Residencia", key=f"np_par_{fk}")
 
             if st.button("💾 Guardar Paciente en Nube", key=f"btn_save_pac_{fk}"):
-                # VALIDACIÓN ESTRICTA DE TODOS LOS DATOS PARA NUEVO PACIENTE
                 if not np_pa.strip() or not np_sa.strip() or not np_pn.strip() or not np_sn.strip() or not np_fn or not np_pr.strip() or not np_cr.strip() or not np_par.strip():
                     st.error("❌ TODOS los campos demográficos son OBLIGATORIOS. (Si el paciente no tiene segundo nombre o apellido, escriba 'N/A').")
                 else:
@@ -420,7 +419,6 @@ def renderizar_campos_paciente(fk, prefill=None, df_global=None):
 
     col9, col10, col11 = st.columns(3)
     
-    # === BLOQUEO DE FECHA A MÁXIMO 2 DÍAS ATRÁS ===
     fecha_hoy = date.today()
     limite_inferior = fecha_hoy - timedelta(days=2)
     valor_fecha_atencion = safe_date(prefill.get("FECHA DE ATENCIÓN", ""), default_today=True)
@@ -431,7 +429,6 @@ def renderizar_campos_paciente(fk, prefill=None, df_global=None):
         min_calendario = limite_inferior
 
     fecha_atencion = col9.date_input("Fecha de Atención", value=valor_fecha_atencion, min_value=min_calendario, max_value=fecha_hoy, format="DD/MM/YYYY", key=f"fa_{fk}")
-    # ==============================================
 
     hora_atencion = col10.text_input("Hora de Atención (HH:MM)", value=prefill.get("HORA ATENCION", ""), placeholder="Ej: 08:30", key=f"ha_{fk}")
     hora_valida = True
@@ -488,22 +485,38 @@ def renderizar_campos_paciente(fk, prefill=None, df_global=None):
         desc_p = prefill.get("DIGANÓSTICO 1 (PRINCIPAL)", "")
     
     col_bus_e, col_cond_e = st.columns([2, 1])
-    buscador_cie10_e = col_bus_e.selectbox("🔍 Buscar Causa Externa", CIE10_SEC_OPCIONES, index=safe_index(CIE10_SEC_OPCIONES, prefill.get("CIE-10 (CAUSA EXTERNA)")), key=f"bus_e_{fk}")
+    
+    # === BLOQUEO AUTOMÁTICO DE CAUSA EXTERNA ===
+    bloquear_causa_externa = not (cod_p.startswith("S") or cod_p.startswith("T"))
+    
+    buscador_cie10_e = col_bus_e.selectbox(
+        "🔍 Buscar Causa Externa", 
+        CIE10_SEC_OPCIONES, 
+        index=safe_index(CIE10_SEC_OPCIONES, prefill.get("CIE-10 (CAUSA EXTERNA)")), 
+        key=f"bus_e_{fk}", 
+        disabled=bloquear_causa_externa
+    )
+    
     condicion_alta = col_cond_e.selectbox("Condición del Alta", CONDICION_ALTA, index=safe_index(CONDICION_ALTA, prefill.get("CONDICIÓN DEL ALTA")), key=f"ca_{fk}")
-    if buscador_cie10_e:
-        cod_e = buscador_cie10_e.split(" - ")[0]
-        desc_e = buscador_cie10_e.split(" - ", 1)[1] if " - " in buscador_cie10_e else ""
+    
+    # Forzamos que la causa externa quede en blanco si está bloqueada
+    if bloquear_causa_externa:
+        cod_e = ""
+        desc_e = ""
     else:
-        cod_e = prefill.get("CIE-10 (CAUSA EXTERNA)", "")
-        desc_e = prefill.get("DIAGNOSTICO (CAUSA EXTERNA)", "")
+        if buscador_cie10_e:
+            cod_e = buscador_cie10_e.split(" - ")[0]
+            desc_e = buscador_cie10_e.split(" - ", 1)[1] if " - " in buscador_cie10_e else ""
+        else:
+            cod_e = prefill.get("CIE-10 (CAUSA EXTERNA)", "")
+            desc_e = prefill.get("DIAGNOSTICO (CAUSA EXTERNA)", "")
+    # ============================================
 
-    # === VALIDACIÓN ESTRICTA CIE-10 (Causas Externas S y T) ===
     valido_diag = True
     if cod_p.startswith("S") or cod_p.startswith("T"):
         if not cod_e:
             col_bus_e.error("❌ Obligatorio ingresar Causa Externa para diagnósticos S y T.")
             valido_diag = False
-    # ==========================================================
 
     valido_sexo = True
     if sexo == "HOMBRE":
@@ -521,12 +534,10 @@ def renderizar_campos_paciente(fk, prefill=None, df_global=None):
     hosp_referido = col35.selectbox("Hospital de Referencia (si aplica)", HOSPITALES_REFERENCIA, index=safe_index(HOSPITALES_REFERENCIA, prefill.get("NOMBRE DEL HOSPITAL AL QUE FUE REFERIDO PARA LA HOSPITALIZACIÓN", "")), disabled=(req_hosp == "NO"), key=f"hr_{fk}")
     causa_atencion = col36.selectbox("Causa de Atención", CAUSA_ATENCION, index=safe_index(CAUSA_ATENCION, prefill.get("CAUSA DE ATENCIÓN")), key=f"cau_{fk}")
     
-    # === VALIDACIÓN ESTRICTA HOSPITALIZACIÓN ===
     valido_hosp = True
     if req_hosp == "SI" and not hosp_referido.strip():
         col35.error("❌ Obligatorio seleccionar el Hospital de Referencia.")
         valido_hosp = False
-    # ===========================================
 
     col37, col38 = st.columns(2)
     id_profesional = col37.text_input("Identificación del Profesional (ENTER para buscar)", value=prefill.get("NÚMERO DE IDENTIFICACIÓN DEL PROFESIONAL DE SALUD", ""), key=f"ip_{fk}")
