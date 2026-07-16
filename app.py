@@ -11,7 +11,7 @@ from google.oauth2.service_account import Credentials
 # ==============================================================================
 # CONFIGURACIÓN DE TU BASE DE DATOS PERMANENTE (GOOGLE SHEETS)
 # ==============================================================================
-URL_BD_NUBE = "https://docs.google.com/spreadsheets/d/1DhPSc6-qqwzaP1UuF_1JaNI9Z8HMx9_2JAHBQxiPAhw/edit?usp=sharing"
+URL_BD_NUBE = "AQUI_PEGA_EL_LINK_DE_TU_GOOGLE_SHEET_VACIO"
 
 HOJA_ATENCIONES = "Atenciones"
 HOJA_USUARIOS = "Usuarios"
@@ -387,8 +387,9 @@ def renderizar_campos_paciente(fk, prefill=None, df_global=None):
             np_par = c_np15.text_input("Parroquia de Residencia", key=f"np_par_{fk}")
 
             if st.button("💾 Guardar Paciente en Nube", key=f"btn_save_pac_{fk}"):
-                if not np_pa or not np_pn or not np_fn:
-                    st.error("Debe llenar al menos el Primer Nombre, Primer Apellido y la Fecha de Nacimiento.")
+                # VALIDACIÓN ESTRICTA DE TODOS LOS DATOS PARA NUEVO PACIENTE
+                if not np_pa.strip() or not np_sa.strip() or not np_pn.strip() or not np_sn.strip() or not np_fn or not np_pr.strip() or not np_cr.strip() or not np_par.strip():
+                    st.error("❌ TODOS los campos demográficos son OBLIGATORIOS. (Si el paciente no tiene segundo nombre o apellido, escriba 'N/A').")
                 else:
                     payload = {
                         "NÚMERO DE IDENTIFICACION": current_id, 
@@ -496,6 +497,14 @@ def renderizar_campos_paciente(fk, prefill=None, df_global=None):
         cod_e = prefill.get("CIE-10 (CAUSA EXTERNA)", "")
         desc_e = prefill.get("DIAGNOSTICO (CAUSA EXTERNA)", "")
 
+    # === VALIDACIÓN ESTRICTA CIE-10 (Causas Externas S y T) ===
+    valido_diag = True
+    if cod_p.startswith("S") or cod_p.startswith("T"):
+        if not cod_e:
+            col_bus_e.error("❌ Obligatorio ingresar Causa Externa para diagnósticos S y T.")
+            valido_diag = False
+    # ==========================================================
+
     valido_sexo = True
     if sexo == "HOMBRE":
         if grupo_prio == "EMBARAZADAS": col23.error("❌ Inválido para hombres."); valido_sexo = False
@@ -512,6 +521,13 @@ def renderizar_campos_paciente(fk, prefill=None, df_global=None):
     hosp_referido = col35.selectbox("Hospital de Referencia (si aplica)", HOSPITALES_REFERENCIA, index=safe_index(HOSPITALES_REFERENCIA, prefill.get("NOMBRE DEL HOSPITAL AL QUE FUE REFERIDO PARA LA HOSPITALIZACIÓN", "")), disabled=(req_hosp == "NO"), key=f"hr_{fk}")
     causa_atencion = col36.selectbox("Causa de Atención", CAUSA_ATENCION, index=safe_index(CAUSA_ATENCION, prefill.get("CAUSA DE ATENCIÓN")), key=f"cau_{fk}")
     
+    # === VALIDACIÓN ESTRICTA HOSPITALIZACIÓN ===
+    valido_hosp = True
+    if req_hosp == "SI" and not hosp_referido.strip():
+        col35.error("❌ Obligatorio seleccionar el Hospital de Referencia.")
+        valido_hosp = False
+    # ===========================================
+
     col37, col38 = st.columns(2)
     id_profesional = col37.text_input("Identificación del Profesional (ENTER para buscar)", value=prefill.get("NÚMERO DE IDENTIFICACIÓN DEL PROFESIONAL DE SALUD", ""), key=f"ip_{fk}")
     
@@ -570,7 +586,7 @@ def renderizar_campos_paciente(fk, prefill=None, df_global=None):
         "NOMBRE DEL HOSPITAL AL QUE FUE REFERIDO PARA LA HOSPITALIZACIÓN": limpiar_texto(hosp_referido) if req_hosp == "SI" else "",
         "CAUSA DE ATENCIÓN": causa_atencion, "NÚMERO DE IDENTIFICACIÓN DEL PROFESIONAL DE SALUD": id_profesional, 
         "NOMBRES Y APELLIDOS DEL PROFESIONAL DE SALUD": limpiar_texto(nombre_profesional),
-        "_valido": hora_valida and id_valida and id_prof_valida and identificacion and primer_apellido and primer_nombre and hora_atencion and (val_fecha_nacimiento != "N/A") and valido_sexo and bool(nombre_profesional.strip())
+        "_valido": hora_valida and id_valida and id_prof_valida and identificacion and primer_apellido and primer_nombre and hora_atencion and (val_fecha_nacimiento != "N/A") and valido_sexo and bool(nombre_profesional.strip()) and valido_diag and valido_hosp
     }
 
 # ==============================================================================
@@ -651,7 +667,7 @@ def formulario_principal():
             st.markdown("<br>", unsafe_allow_html=True)
             if st.button("💾 Guardar Atención Médica", key=f"btn_nuevo_g_{fk}", use_container_width=True):
                 if not datos_nuevo["_valido"]:
-                    st.error("❌ Hay conflictos o faltan datos obligatorios. Revise las alertas en el formulario.")
+                    st.error("❌ Hay conflictos o faltan datos obligatorios. Revise las alertas en el formulario antes de guardar.")
                 else:
                     del datos_nuevo["_valido"]
                     datos_nuevo.update({
@@ -701,7 +717,6 @@ def formulario_principal():
                                 guardar_tabla(HOJA_ATENCIONES, df_global)
                                 st.success("✅ ¡Atención editada con éxito en la Nube!")
                                 st.toast("Edición guardada en la nube", icon="🔄")
-                                # ELIMINADA LA LÍNEA PROBLEMÁTICA AQUÍ
                                 st.rerun()
 
     # ========================== ROL ADMIN ==========================
