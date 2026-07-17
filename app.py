@@ -11,7 +11,7 @@ from google.oauth2.service_account import Credentials
 # ==============================================================================
 # CONFIGURACIÓN DE TU BASE DE DATOS PERMANENTE (GOOGLE SHEETS)
 # ==============================================================================
-URL_BD_NUBE = "AQUI_PEGA_EL_LINK_DE_TU_GOOGLE_SHEET_VACIO"
+URL_BD_NUBE = "https://docs.google.com/spreadsheets/d/1DhPSc6-qqwzaP1UuF_1JaNI9Z8HMx9_2JAHBQxiPAhw/edit?usp=sharing"
 
 HOJA_ATENCIONES = "Atenciones"
 HOJA_USUARIOS = "Usuarios"
