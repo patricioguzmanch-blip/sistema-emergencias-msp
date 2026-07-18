@@ -165,7 +165,7 @@ CONDICION_DIAGNOSTICO = ["PRESUNTIVO", "DEFINITIVO INICIAL", "DEFINITIVO INICIAL
 CONDICION_ALTA = ["VIVO/A", "FALLECIDO/A"]
 CAUSA_ATENCION = ["ATENCIÓN NORMAL", "ATENCIONES POR MANIFESTACIÓN"]
 ESPECIALIDADES_PROFESIONAL = ["MEDICO", "OBSTETRIZ"]
-NACIONALIDAD = ["ECUATORIANO/A", "COLOMBIANO/A", "CUBANO/A", "VENEZOLANO/A", "PERUANO/A", "OTRO"]
+NACIONALIDAD = ["ECUATORIANO/A", "COLOMBIANO/A", "VENEZOLANO/A", "PERUANO/A", "OTRO"]
 
 HOSPITALES_REFERENCIA = [
     "", "002045 HOSPITAL GENERAL FRANCISCO DE ORELLANA", "001548 HOSPITAL GENERAL JOSE MARIA VELASCO IBARRA",
@@ -230,8 +230,11 @@ def validar_cedula_ecuatoriana(cedula):
     if len(cedula) != 10 or not cedula.isdigit(): return False
     provincia = int(cedula[0:2])
     if provincia < 1 or (provincia > 24 and provincia != 30): return False
+    
+    # El Registro Civil ahora emite cédulas con tercer dígito 6
     tercer_digito = int(cedula[2])
-    if tercer_digito >= 6: return False
+    if tercer_digito > 6: return False 
+    
     coeficientes = [2, 1, 2, 1, 2, 1, 2, 1, 2]
     total = sum(int(cedula[i]) * coeficientes[i] - 9 if int(cedula[i]) * coeficientes[i] > 9 else int(cedula[i]) * coeficientes[i] for i in range(9))
     digito_verificador = int(cedula[9])
