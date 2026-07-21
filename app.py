@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 import os
 import io
 import re
@@ -9,9 +9,15 @@ import gspread
 from google.oauth2.service_account import Credentials
 
 # ==============================================================================
-# CONFIGURACIÓN DE TU BASE DE DATOS PERMANENTE (GOOGLE SHEETS)
+# CONFIGURACIÓN DEL RELOJ ECUATORIANO Y BASE DE DATOS
 # ==============================================================================
-URL_BD_NUBE = "https://docs.google.com/spreadsheets/d/1DhPSc6-qqwzaP1UuF_1JaNI9Z8HMx9_2JAHBQxiPAhw/edit?usp=sharing"
+ZONA_HORARIA_ECUADOR = timezone(timedelta(hours=-5))
+
+def obtener_fecha_actual():
+    """Fuerza al sistema a usar SIEMPRE la fecha de Ecuador (UTC-5), ignorando la hora del servidor."""
+    return datetime.now(ZONA_HORARIA_ECUADOR).date()
+
+URL_BD_NUBE = "AQUI_PEGA_EL_LINK_DE_TU_GOOGLE_SHEET_VACIO"
 
 HOJA_ATENCIONES = "Atenciones"
 HOJA_USUARIOS = "Usuarios"
@@ -40,7 +46,6 @@ st.markdown("""
 # FUNCIONES DE LIMPIEZA DE TEXTO
 # ==============================================================================
 def limpiar_texto(texto):
-    """Convierte a mayúsculas y quita todas las tildes de un texto."""
     if texto is None or pd.isna(texto):
         return ""
     t = str(texto).strip().upper()
@@ -105,11 +110,9 @@ def guardar_tabla(hoja_nombre, df):
 # GESTIÓN DE SESIÓN Y CATÁLOGOS
 # ==============================================================================
 def cargar_usuarios():
-    df = cargar_tabla(HOJA_USUARIOS)
-    if df.empty:
-        df = pd.DataFrame([{"USUARIO": "admin", "CONTRASENA": "orellana2026", "ROL": "ADMIN", "UNICODIGO": "TODOS"}])
-        guardar_tabla(HOJA_USUARIOS, df)
-    return df
+    # Eliminado el bloque de auto-creación. Ahora el sistema SOLO lee la matriz.
+    # Si hay un error de internet, devuelve vacío pero NO sobreescribe tus usuarios.
+    return cargar_tabla(HOJA_USUARIOS)
 
 def cargar_profesionales():
     df = cargar_tabla(HOJA_PROFESIONALES)
@@ -143,17 +146,20 @@ def login():
             st.markdown("<br>", unsafe_allow_html=True)
             if st.button("Ingresar al Sistema", use_container_width=True):
                 df_usuarios = cargar_usuarios()
-                user_match = df_usuarios[(df_usuarios['USUARIO'] == usuario) & (df_usuarios['CONTRASENA'] == contrasena)]
-                if not user_match.empty:
-                    st.session_state.autenticado = True
-                    st.session_state.usuario_actual = user_match.iloc[0]['USUARIO']
-                    st.session_state.rol_actual = user_match.iloc[0]['ROL']
-                    st.session_state.unicodigo_actual = user_match.iloc[0]['UNICODIGO']
-                    st.session_state.prefill_auto = {}
-                    st.session_state.last_checked_id = ""
-                    st.rerun()
+                if not df_usuarios.empty and "USUARIO" in df_usuarios.columns:
+                    user_match = df_usuarios[(df_usuarios['USUARIO'] == usuario) & (df_usuarios['CONTRASENA'] == contrasena)]
+                    if not user_match.empty:
+                        st.session_state.autenticado = True
+                        st.session_state.usuario_actual = user_match.iloc[0]['USUARIO']
+                        st.session_state.rol_actual = user_match.iloc[0]['ROL']
+                        st.session_state.unicodigo_actual = user_match.iloc[0]['UNICODIGO']
+                        st.session_state.prefill_auto = {}
+                        st.session_state.last_checked_id = ""
+                        st.rerun()
+                    else:
+                        st.error("❌ Credenciales incorrectas. Verifique e intente nuevamente.")
                 else:
-                    st.error("❌ Credenciales incorrectas. Verifique e intente nuevamente.")
+                    st.error("⚠️ Error de conexión con la base de datos o base vacía. Reintente en unos segundos.")
 
 TIPOS_DOCUMENTO = ["CEDULA DE IDENTIDAD O CIUDADANÍA", "PASAPORTE", "VISA", "CARNE DE REFUGIADO", "SIN DOCUMENTO DE IDENTIFICACION"]
 SEXO_OPCIONES = ["HOMBRE", "MUJER", "INTERSEXUAL"]
@@ -231,7 +237,6 @@ def validar_cedula_ecuatoriana(cedula):
     provincia = int(cedula[0:2])
     if provincia < 1 or (provincia > 24 and provincia != 30): return False
     
-    # El Registro Civil ahora emite cédulas con tercer dígito 6
     tercer_digito = int(cedula[2])
     if tercer_digito > 6: return False 
     
@@ -254,7 +259,7 @@ def safe_index(lista, valor, default=0):
 
 def safe_date(date_str, default_today=False):
     if pd.isna(date_str) or str(date_str).strip() == "" or str(date_str).strip().upper() in ["N/A", "NAN", "NAT", "NONE"]:
-        return date.today() if default_today else None
+        return obtener_fecha_actual() if default_today else None
     d_str = str(date_str).strip().split(" ")[0].split("T")[0]
     try:
         parsed = pd.to_datetime(d_str, errors='coerce', dayfirst=True)
@@ -264,10 +269,10 @@ def safe_date(date_str, default_today=False):
     for fmt in formats:
         try: return datetime.strptime(d_str, fmt).date()
         except ValueError: pass
-    return date.today() if default_today else None
+    return obtener_fecha_actual() if default_today else None
 
 def calcular_edad(fecha_nacimiento):
-    hoy = date.today()
+    hoy = obtener_fecha_actual()
     if not fecha_nacimiento: return 0, "AÑO/S"
     anios = hoy.year - fecha_nacimiento.year - ((hoy.month, hoy.day) < (fecha_nacimiento.month, fecha_nacimiento.day))
     meses = (hoy.year - fecha_nacimiento.year) * 12 + hoy.month - fecha_nacimiento.month
@@ -372,7 +377,7 @@ def renderizar_campos_paciente(fk, prefill=None, df_global=None):
             np_sn = c_np4.text_input("Segundo Nombre", key=f"np_sn_{fk}")
             
             c_np5, c_np6, c_np7 = st.columns(3)
-            np_fn = c_np5.date_input("Fecha de Nacimiento", value=None, min_value=date(1900, 1, 1), max_value=date.today(), format="DD/MM/YYYY", key=f"np_fn_form_{fk}")
+            np_fn = c_np5.date_input("Fecha de Nacimiento", value=None, min_value=date(1900, 1, 1), max_value=obtener_fecha_actual(), format="DD/MM/YYYY", key=f"np_fn_form_{fk}")
             calc_edad, calc_cond_edad = calcular_edad(np_fn)
             c_np6.text_input("Edad Calculada", value=str(calc_edad), disabled=True, key=f"np_edadcalc_{fk}")
             c_np7.text_input("Condición Calculada", value=calc_cond_edad, disabled=True, key=f"np_condcalc_{fk}")
@@ -422,7 +427,7 @@ def renderizar_campos_paciente(fk, prefill=None, df_global=None):
 
     col9, col10, col11 = st.columns(3)
     
-    fecha_hoy = date.today()
+    fecha_hoy = obtener_fecha_actual()
     limite_inferior = fecha_hoy - timedelta(days=2)
     valor_fecha_atencion = safe_date(prefill.get("FECHA DE ATENCIÓN", ""), default_today=True)
     
@@ -489,7 +494,6 @@ def renderizar_campos_paciente(fk, prefill=None, df_global=None):
     
     col_bus_e, col_cond_e = st.columns([2, 1])
     
-    # === BLOQUEO AUTOMÁTICO DE CAUSA EXTERNA ===
     bloquear_causa_externa = not (cod_p.startswith("S") or cod_p.startswith("T"))
     
     buscador_cie10_e = col_bus_e.selectbox(
@@ -502,7 +506,6 @@ def renderizar_campos_paciente(fk, prefill=None, df_global=None):
     
     condicion_alta = col_cond_e.selectbox("Condición del Alta", CONDICION_ALTA, index=safe_index(CONDICION_ALTA, prefill.get("CONDICIÓN DEL ALTA")), key=f"ca_{fk}")
     
-    # Forzamos que la causa externa quede en blanco si está bloqueada
     if bloquear_causa_externa:
         cod_e = ""
         desc_e = ""
@@ -513,7 +516,6 @@ def renderizar_campos_paciente(fk, prefill=None, df_global=None):
         else:
             cod_e = prefill.get("CIE-10 (CAUSA EXTERNA)", "")
             desc_e = prefill.get("DIAGNOSTICO (CAUSA EXTERNA)", "")
-    # ============================================
 
     valido_diag = True
     if cod_p.startswith("S") or cod_p.startswith("T"):
