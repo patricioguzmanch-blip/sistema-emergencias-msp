@@ -25,7 +25,7 @@ HOJA_PACIENTES = "Pacientes"
 HOJA_PROFESIONALES = "Profesionales"
 
 # ==============================================================================
-# CONFIGURACIÓN GENERAL Y ESTILOS VISUALES (UI/UX REDISEÑADO)
+# CONFIGURACIÓN GENERAL Y ESTILOS VISUALES (UI/UX INSTITUCIONAL REDISEÑADO)
 # ==============================================================================
 st.set_page_config(
     page_title="SIEM - Emergencias MSP Orellana",
@@ -37,7 +37,7 @@ st.set_page_config(
 st.markdown("""
     <style>
     /* Importación de tipografía moderna y limpia */
-    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
     
     html, body, [class*="css"] {
         font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
@@ -62,7 +62,7 @@ st.markdown("""
         color: #ffffff !important;
         border: none;
         border-radius: 10px;
-        padding: 0.6rem 1.4rem;
+        padding: 0.65rem 1.4rem;
         font-weight: 600;
         font-size: 0.95rem;
         box-shadow: 0 4px 12px rgba(10, 77, 104, 0.18);
@@ -131,18 +131,22 @@ st.markdown("""
         color: #166534 !important;
     }
     
-    /* Encabezados de Sección Interiores */
+    /* Encabezados de Sección Interiores con Acento Médico */
     .section-title {
         color: #0f172a;
         font-size: 1.15rem;
         font-weight: 700;
-        margin-top: 1rem;
+        margin-top: 1.2rem;
         margin-bottom: 0.8rem;
         display: flex;
         align-items: center;
-        gap: 8px;
-        border-bottom: 2px solid #e2e8f0;
+        gap: 10px;
+        border-left: 4px solid #0A4D68;
+        padding-left: 10px;
+        background: linear-gradient(90deg, #f1f5f9 0%, rgba(255,255,255,0) 100%);
+        padding-top: 6px;
         padding-bottom: 6px;
+        border-radius: 0 8px 8px 0;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -238,16 +242,17 @@ def login():
     st.markdown("<br>", unsafe_allow_html=True)
     col1, col2, col3 = st.columns([1.1, 1.3, 1.1])
     with col2:
+        # Encabezado Ejecutivo Institucional
         st.markdown("""
             <div style='text-align: center; margin-bottom: 1.8rem;'>
                 <div style='background: #e0f2fe; color: #0369a1; display: inline-block; padding: 4px 14px; border-radius: 20px; font-size: 0.78rem; font-weight: 700; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 1px;'>
                     Ministerio de Salud Pública del Ecuador
                 </div>
                 <h1 style='color: #0f172a; font-size: 1.95rem; font-weight: 800; margin-bottom: 0.2rem; line-height: 1.2;'>
-                    Dirección Provincial de Orellana
+                    Dirección Provincial de Salud de Orellana
                 </h1>
                 <p style='color: #64748b; font-size: 1rem; margin-top: 5px; font-weight: 500;'>
-                    Sistema Integrado de Registro de Emergencias Hospitalarias (Nube)
+                    Sistema Integrado de Registro de Emergencias Hospitalarias
                 </p>
             </div>
         """, unsafe_allow_html=True)
@@ -279,7 +284,7 @@ def login():
                     else:
                         st.error("❌ Credenciales incorrectas. Verifique el usuario o la contraseña asignada.")
                 else:
-                    st.error("⚠️ Error temporal al sincronizar con la base en la Nube. Por favor reintente en unos segundos.")
+                    st.error("⚠️ Error temporal al sincronizar con el servidor institucional. Por favor reintente en unos segundos.")
 
         st.markdown("""
             <div style='text-align: center; margin-top: 1.5rem; color: #94a3b8; font-size: 0.8rem;'>
@@ -413,7 +418,7 @@ def calcular_edad(fecha_nacimiento):
 # ==========================================
 @st.dialog("👨‍⚕️ Registro de Nuevo Profesional de Salud")
 def modal_nuevo_profesional(cedula_prof):
-    st.markdown(f"La cédula **{cedula_prof}** no figura en el catálogo de la Nube. Ingrese los datos oficiales:")
+    st.markdown(f"La cédula **{cedula_prof}** no figura en el catálogo general. Ingrese los datos oficiales:")
     p_nom = st.text_input("1. Primer Nombre", key="new_prof_pnom")
     s_nom = st.text_input("2. Segundo Nombre", key="new_prof_snom")
     p_ape = st.text_input("3. Primer Apellido", key="new_prof_pape")
@@ -447,7 +452,7 @@ def renderizar_campos_paciente(fk, prefill=None, df_global=None):
     
     col_doc1, col_doc2 = st.columns(2)
     tipo_doc = col_doc1.selectbox("Tipo de Documento", TIPOS_DOCUMENTO, index=safe_index(TIPOS_DOCUMENTO, prefill.get("TIPO DE DOCUMENTO DE IDENTIFICACIÓN")), key=f"td_{fk}")
-    identificacion = col_doc2.text_input("Número de Identificación (Presione ENTER para verificar en Nube)", value=prefill.get("NÚMERO DE IDENTIFICACION", ""), key=f"id_{fk}")
+    identificacion = col_doc2.text_input("Número de Identificación (Presione ENTER para verificar en el sistema)", value=prefill.get("NÚMERO DE IDENTIFICACION", ""), key=f"id_{fk}")
     
     id_valida = False
     if identificacion:
@@ -455,7 +460,7 @@ def renderizar_campos_paciente(fk, prefill=None, df_global=None):
             if not validar_cedula_ecuatoriana(identificacion): col_doc2.error("❌ Cédula ecuatoriana inválida según algoritmo oficial.")
             else: id_valida = True
         elif tipo_doc == "SIN DOCUMENTO DE IDENTIFICACION":
-            if len(identificacion) != 17: col_doc2.error("❌ El código temporal debe contener exactamente 17 caracteres.")
+            if len(identificacion) != 17: col_doc2.error("❌ El código temporal debe contener exactly 17 caracteres.")
             else: id_valida = True
         else:
             id_valida = True
@@ -490,7 +495,7 @@ def renderizar_campos_paciente(fk, prefill=None, df_global=None):
     bloquear_campos = paciente_encontrado if (fk.startswith("nuevo") and st.session_state.rol_actual == "USUARIO") else False
 
     if identificacion and id_valida and fk.startswith("nuevo") and paciente_encontrado:
-        st.success("✅ **Paciente verificado:** Los datos demográficos han sido cargados desde el historial en la Nube.")
+        st.success("✅ **Paciente verificado:** Los datos demográficos han sido cargados desde el historial provincial.")
 
     if identificacion and id_valida and fk.startswith("nuevo") and not paciente_encontrado:
         st.warning("⚠️ Ciudadano no registrado en el sistema provincial. Por favor complete su ficha demográfica:")
@@ -520,7 +525,7 @@ def renderizar_campos_paciente(fk, prefill=None, df_global=None):
             np_cr = c_np14.text_input("Cantón de Residencia", key=f"np_cr_{fk}")
             np_par = c_np15.text_input("Parroquia de Residencia", key=f"np_par_{fk}")
 
-            if st.button("💾 Grabar Nueva Ficha en la Nube", key=f"btn_save_pac_{fk}"):
+            if st.button("💾 Grabar Nueva Ficha en el Sistema", key=f"btn_save_pac_{fk}"):
                 if not np_pa.strip() or not np_sa.strip() or not np_pn.strip() or not np_sn.strip() or not np_fn or not np_pr.strip() or not np_cr.strip() or not np_par.strip():
                     st.error("❌ TODOS los campos demográficos son OBLIGATORIOS. (Si no posee segundo nombre/apellido, escriba 'N/A').")
                 else:
@@ -554,9 +559,9 @@ def renderizar_campos_paciente(fk, prefill=None, df_global=None):
     col9, col10, col11 = st.columns(3)
     
     fecha_hoy = obtener_fecha_actual()
-    # === CAMBIO SOLICITADO: 4 DÍAS ATRÁS ===
     limite_inferior = fecha_hoy - timedelta(days=4)
-    valor_fecha_atencion = safe_date(prefill.get("FECHA DE ATENCIÓN", ""), default_today=True)
+    # === CAMBIO SOLICITADO: CAMPO FECHA VACÍO POR DEFECTO PARA NUEVOS REGISTROS ===
+    valor_fecha_atencion = safe_date(prefill.get("FECHA DE ATENCIÓN", ""), default_today=False)
     
     if valor_fecha_atencion and valor_fecha_atencion < limite_inferior:
         min_calendario = valor_fecha_atencion
@@ -696,7 +701,7 @@ def renderizar_campos_paciente(fk, prefill=None, df_global=None):
             elif fk.startswith("nuevo"):
                 if f"np_{fk}" in st.session_state: st.session_state[f"np_{fk}"] = ""
                 col37.warning("⚠️ Profesional de salud no registrado.")
-                if col37.button("➕ Registrar Profesional en Nube", key=f"btn_add_p_{fk}"):
+                if col37.button("➕ Registrar Profesional en el Catálogo", key=f"btn_add_p_{fk}"):
                     modal_nuevo_profesional(id_profesional.strip())
     else:
         if fk.startswith("nuevo") and f"np_{fk}" in st.session_state: st.session_state[f"np_{fk}"] = ""
@@ -705,6 +710,11 @@ def renderizar_campos_paciente(fk, prefill=None, df_global=None):
 
     val_fecha_nacimiento = fecha_nacimiento.strftime("%d/%m/%Y") if fecha_nacimiento else "N/A"
     val_fecha_atencion = fecha_atencion.strftime("%d/%m/%Y") if fecha_atencion else ""
+
+    # === ALERTA OBLIGATORIA SI EL MÉDICO OLVIDA SELECCIONAR LA FECHA ===
+    valido_fecha = bool(fecha_atencion is not None)
+    if not valido_fecha:
+        col9.error("❌ Seleccione la Fecha de Atención en el calendario.")
 
     return {
         "FECHA DE ATENCIÓN": val_fecha_atencion, "HORA ATENCION": hora_atencion, "FECHA DE NACIMIENTO DEL PACIENTE": val_fecha_nacimiento,
@@ -729,7 +739,7 @@ def renderizar_campos_paciente(fk, prefill=None, df_global=None):
         "NOMBRE DEL HOSPITAL AL QUE FUE REFERIDO PARA LA HOSPITALIZACIÓN": limpiar_texto(hosp_referido) if req_hosp == "SI" else "",
         "CAUSA DE ATENCIÓN": causa_atencion, "NÚMERO DE IDENTIFICACIÓN DEL PROFESIONAL DE SALUD": id_profesional, 
         "NOMBRES Y APELLIDOS DEL PROFESIONAL DE SALUD": limpiar_texto(nombre_profesional),
-        "_valido": hora_valida and id_valida and id_prof_valida and identificacion and primer_apellido and primer_nombre and hora_atencion and (val_fecha_nacimiento != "N/A") and valido_sexo and bool(nombre_profesional.strip()) and valido_diag and valido_hosp
+        "_valido": valido_fecha and hora_valida and id_valida and id_prof_valida and identificacion and primer_apellido and primer_nombre and hora_atencion and (val_fecha_nacimiento != "N/A") and valido_sexo and bool(nombre_profesional.strip()) and valido_diag and valido_hosp
     }
 
 # ==============================================================================
@@ -737,10 +747,12 @@ def renderizar_campos_paciente(fk, prefill=None, df_global=None):
 # ==============================================================================
 def formulario_principal():
     with st.sidebar:
-        # === CAMBIO SOLICITADO: ELIMINADO 'Gestión Provincial en Nube' ===
+        # === CAMBIO SOLICITADO: TÍTULO DEL PANEL DE CONTROL ===
         st.markdown("""
             <div style='text-align: center; margin-bottom: 1rem;'>
-                <h3 style='color: #0A4D68; margin-bottom: 0px;'>MSP ORELLANA</h3>
+                <h3 style='color: #0A4D68; font-weight: 800; font-size: 1.25rem; line-height: 1.3; margin-bottom: 0px;'>
+                    Dirección Provincial de Salud de Orellana
+                </h3>
             </div>
         """, unsafe_allow_html=True)
         
@@ -749,6 +761,28 @@ def formulario_principal():
         st.markdown(f"**🛡️ Rol Asignado:** `{st.session_state.rol_actual}`")
         if st.session_state.rol_actual == "USUARIO":
             st.markdown(f"**📍 Unicódigo:** `{st.session_state.unicodigo_actual}`")
+            
+            # === CAMBIO SOLICITADO: BUSCAR Y MOSTRAR NOMBRE DEL ESTABLECIMIENTO EN SIDEBAR ===
+            nom_est_sidebar = ""
+            if base_est is not None and not base_est.empty and st.session_state.unicodigo_actual:
+                def limpiar_cod_sub(cod):
+                    return str(cod).strip().replace('.0', '').lstrip('0')
+                bus_s = base_est[base_est['UNICODIGO'].apply(limpiar_cod_sub) == limpiar_cod_sub(st.session_state.unicodigo_actual)]
+                if not bus_s.empty:
+                    fila_est_s = bus_s.iloc[0]
+                    for col_name in fila_est_s.index:
+                        if 'NOMBRE' in str(col_name).upper() and 'ESTABLECIMIENTO' in str(col_name).upper():
+                            nom_est_sidebar = str(fila_est_s[col_name])
+                            break
+                    if not nom_est_sidebar:
+                        for col_name in fila_est_s.index:
+                            if 'NOMBRE' in str(col_name).upper():
+                                nom_est_sidebar = str(fila_est_s[col_name])
+                                break
+            if nom_est_sidebar:
+                st.markdown(f"**🏥 Establecimiento:** `{nom_est_sidebar}`")
+            # ===================================================================================
+
         st.markdown("---")
         
         if st.button("🚪 Finalizar Sesión", use_container_width=True):
@@ -774,7 +808,7 @@ def formulario_principal():
             fk = st.session_state.form_key
 
             if st.session_state.get('registro_exitoso', False):
-                st.success("✅ ¡Registro médico almacenado exitosamente en la base provincial de la Nube!")
+                st.success("✅ ¡Registro médico almacenado exitosamente en la base provincial!")
                 st.toast("Ficha guardada con éxito", icon="💾")
                 st.session_state.registro_exitoso = False
 
@@ -782,7 +816,6 @@ def formulario_principal():
             with st.container(border=True):
                 val_institucion, val_nombre, val_nivel, val_zona, val_provincia, val_canton, val_distrito = "MSP", "", "", "", "", "", ""
                 unicodigo_seleccionado = st.session_state.unicodigo_actual
-                # === CAMBIO SOLICITADO: ELIMINADO EL st.info CON EL MENSAJE DE AUTENTICACIÓN ===
 
                 if base_est is not None and not base_est.empty and unicodigo_seleccionado:
                     def limpiar_cod(cod):
@@ -816,7 +849,7 @@ def formulario_principal():
             datos_nuevo = renderizar_campos_paciente(f"nuevo_{fk}", df_global=df_global)
 
             st.markdown("<br>", unsafe_allow_html=True)
-            if st.button("💾 Grabar Atención en la Base Provincial", key=f"btn_nuevo_g_{fk}", use_container_width=True):
+            if st.button("💾 Grabar Atención en el Sistema Provincial", key=f"btn_nuevo_g_{fk}", use_container_width=True):
                 if not datos_nuevo["_valido"]:
                     st.error("❌ Se encontraron inconsistencias en la ficha. Verifique los avisos en color rojo antes de guardar.")
                 else:
@@ -859,7 +892,7 @@ def formulario_principal():
 
                     with st.container(border=True):
                         datos_editados = renderizar_campos_paciente(f"edit_{idx_original}", prefill=fila_editar, df_global=df_global)
-                        if st.button("🔄 Sobreescribir Ficha Actualizada en Nube", use_container_width=True):
+                        if st.button("🔄 Sobreescribir Ficha Actualizada", use_container_width=True):
                             if not datos_editados["_valido"]:
                                 st.error("❌ Resuelva los campos erróneos en rojo antes de sobreescribir la ficha.")
                             else:
@@ -867,14 +900,14 @@ def formulario_principal():
                                 for k, v in datos_editados.items(): df_global.loc[idx_original, k] = str(v)
                                 guardar_tabla(HOJA_ATENCIONES, df_global)
                                 st.success("✅ ¡Registro médico enmendado exitosamente!")
-                                st.toast("Ficha actualizada en la nube", icon="🔄")
+                                st.toast("Ficha actualizada en el servidor", icon="🔄")
                                 st.rerun()
 
     # ========================== ROL ADMIN ==========================
     if st.session_state.rol_actual == "ADMIN":
         with tab1:
             st.markdown("<div class='section-title'>🔍 Explorador Histórico Provincial (Auditoría Médica)</div>", unsafe_allow_html=True)
-            cedula_auditoria = st.text_input("Ingrese Cédula / Documento del Ciudadano para consulta en Nube:")
+            cedula_auditoria = st.text_input("Ingrese Cédula / Documento del Ciudadano para consulta institucional:")
             
             if cedula_auditoria and not df_global.empty:
                 ced_audit_norm = normalizar_id(cedula_auditoria)
@@ -910,7 +943,7 @@ def formulario_principal():
                 lista_unis = [str(x) for x in base_est['UNICODIGO'].tolist() if str(x).strip() != "" and str(x).lower() != "nan"] if base_est is not None else []
                 n_uni = c_nu4.selectbox("Unicódigo Asignado", lista_unis)
                 
-            if st.button("Crear Acceso en la Nube", use_container_width=True):
+            if st.button("Crear Acceso Institucional", use_container_width=True):
                 if not n_usr or not n_pwd: st.error("El usuario y la contraseña son requeridos.")
                 elif "USUARIO" in df_usuarios.columns and n_usr in df_usuarios['USUARIO'].values: st.error("⚠️ El usuario ya existe en el sistema.")
                 else:
@@ -934,17 +967,17 @@ def formulario_principal():
                 if st.button("Revocar Acceso Permanentemente", use_container_width=True):
                     df_usuarios = df_usuarios[df_usuarios['USUARIO'] != usr_a_eliminar]
                     guardar_tabla(HOJA_USUARIOS, df_usuarios)
-                    st.success(f"Credencial '{usr_a_eliminar}' eliminada de la Nube.")
+                    st.success(f"Credencial '{usr_a_eliminar}' eliminada del sistema.")
                     st.rerun()
             else:
                 st.info("No existen usuarios adicionales para revocar.")
 
         with tab3:
             st.markdown("<div class='section-title'>⚙️ Panel de Control y Mantenimiento de Bases</div>", unsafe_allow_html=True)
-            st.warning("⚠️ **ATENCIÓN - ZONA DE AUDITORÍA:** Las acciones ejecutadas aquí modifican o purgan registros directamente sobre el Google Sheets provincial.")
+            st.warning("⚠️ **ATENCIÓN - ZONA DE AUDITORÍA:** Las acciones ejecutadas aquí modifican o purgan registros directamente sobre el servidor institucional.")
 
             with st.expander("🧹 Purga Selectiva por Período / Cierre Estadístico Mensual", expanded=False):
-                st.write("Seleccione el intervalo de fechas para la depuración de registros en la Nube. **Los registros fuera del período seleccionado se conservarán intactos.**")
+                st.write("Seleccione el intervalo de fechas para la depuración de registros institucionales. **Los registros fuera del período seleccionado se conservarán intactos.**")
                 
                 col_f1, col_f2 = st.columns(2)
                 f_inicio_del = col_f1.date_input("📅 Fecha Inicial (Desde)", value=obtener_fecha_actual().replace(day=1), format="DD/MM/YYYY", key="f_del_ini")
@@ -975,12 +1008,12 @@ def formulario_principal():
                             st.toast("Período depurado con éxito", icon="🗑️")
                             st.rerun()
                         else:
-                            st.info("La matriz en Nube no contiene registros para depurar.")
+                            st.info("La matriz no contiene registros para depurar.")
 
             with st.expander("Encerar Catálogos Temporales (Pacientes y Médicos)", expanded=False):
                 st.write("Esta operación vaciará las listas en línea de ciudadanos y médicos para reiniciar catálogos desde cero.")
-                confirmar_pac_prof = st.checkbox("Confirmo el encerado de catálogos demográficos en la Nube.", key="chk_pac_prof")
-                if st.button("🗑️ Reiniciar Catálogos en Nube", disabled=not confirmar_pac_prof, use_container_width=True):
+                confirmar_pac_prof = st.checkbox("Confirmo el encerado de catálogos demográficos en el sistema.", key="chk_pac_prof")
+                if st.button("🗑️ Reiniciar Catálogos", disabled=not confirmar_pac_prof, use_container_width=True):
                     payload_keys = ["NÚMERO DE IDENTIFICACION", "PRIMER APELLIDO", "SEGUNDO APELLIDO", "PRIMER NOMBRE", "SEGUNDO NOMBRE", "SEXO", "EDAD", "CONDICIÓN DE LA EDAD", "NACIONALIDAD", "ETNIA", "GRUPO PRIORITARIO", "TIPO DE SEGURO", "PROV_RES", "CANT_RES", "PARR_RES", "FECHA DE NACIMIENTO DEL PACIENTE"]
                     guardar_tabla(HOJA_PACIENTES, pd.DataFrame(columns=payload_keys))
                     guardar_tabla(HOJA_PROFESIONALES, pd.DataFrame(columns=["CEDULA", "PRIMER NOMBRE", "SEGUNDO NOMBRE", "PRIMER APELLIDO", "SEGUNDO APELLIDO", "NOMBRE_COMPLETO"]))
@@ -1069,7 +1102,7 @@ def formulario_principal():
                     else:
                         st.info("Su unidad operativa no cuenta con registros dentro del intervalo seleccionado.")
     else:
-        st.info("El sistema aún no almacena registros en la Nube.")
+        st.info("El sistema aún no almacena registros en la base central.")
 
 if __name__ == "__main__":
     if not st.session_state.autenticado:
