@@ -17,7 +17,7 @@ def obtener_fecha_actual():
     """Fuerza al sistema a usar SIEMPRE la fecha de Ecuador (UTC-5), ignorando la hora del servidor."""
     return datetime.now(ZONA_HORARIA_ECUADOR).date()
 
-URL_BD_NUBE = "AQUI_PEGA_EL_LINK_DE_TU_GOOGLE_SHEET_VACIO"
+URL_BD_NUBE = "https://docs.google.com/spreadsheets/d/1DhPSc6-qqwzaP1UuF_1JaNI9Z8HMx9_2JAHBQxiPAhw/edit?usp=sharing"
 
 HOJA_ATENCIONES = "Atenciones"
 HOJA_USUARIOS = "Usuarios"
@@ -108,11 +108,14 @@ def guardar_tabla(hoja_nombre, df):
         st.error(f"Error guardando {hoja_nombre}: {e}")
 
 # ==============================================================================
-# GESTIÓN DE SESIÓN Y CATÁLOGOS
+# GESTIÓN DE SESIÓN Y CATÁLOGOS (BLINDADOS CONTRA KEYERROR)
 # ==============================================================================
 def cargar_usuarios():
-    # Carga usuarios de la nube sin sobreescribir la hoja si ocurre un fallo
-    return cargar_tabla(HOJA_USUARIOS)
+    df = cargar_tabla(HOJA_USUARIOS)
+    # Si la tabla viene vacía, retornamos un DataFrame con las columnas oficiales para evitar errores de clave
+    if df.empty or "USUARIO" not in df.columns:
+        return pd.DataFrame(columns=["USUARIO", "CONTRASENA", "ROL", "UNICODIGO"])
+    return df
 
 def cargar_profesionales():
     df = cargar_tabla(HOJA_PROFESIONALES)
@@ -495,7 +498,6 @@ def renderizar_campos_paciente(fk, prefill=None, df_global=None):
     
     col_bus_e, col_cond_e = st.columns([2, 1])
     
-    # === BLOQUEO AUTOMÁTICO DE CAUSA EXTERNA ===
     bloquear_causa_externa = not (cod_p.startswith("S") or cod_p.startswith("T"))
     
     buscador_cie10_e = col_bus_e.selectbox(
@@ -518,7 +520,6 @@ def renderizar_campos_paciente(fk, prefill=None, df_global=None):
         else:
             cod_e = prefill.get("CIE-10 (CAUSA EXTERNA)", "")
             desc_e = prefill.get("DIAGNOSTICO (CAUSA EXTERNA)", "")
-    # ============================================
 
     valido_diag = True
     if cod_p.startswith("S") or cod_p.startswith("T"):
@@ -780,7 +781,7 @@ def formulario_principal():
                 
             if st.button("Crear Usuario", use_container_width=True):
                 if not n_usr or not n_pwd: st.error("Usuario y Contraseña son obligatorios.")
-                elif n_usr in df_usuarios['USUARIO'].values: st.error("⚠️ El usuario ya existe.")
+                elif "USUARIO" in df_usuarios.columns and n_usr in df_usuarios['USUARIO'].values: st.error("⚠️ El usuario ya existe.")
                 else:
                     nuevo_u = pd.DataFrame([{"USUARIO": n_usr.strip(), "CONTRASENA": n_pwd.strip(), "ROL": n_rol, "UNICODIGO": "TODOS" if n_rol=="ADMIN" else n_uni}])
                     df_final_u = pd.concat([df_usuarios, nuevo_u], ignore_index=True)
@@ -790,7 +791,15 @@ def formulario_principal():
 
             st.markdown("---")
             st.markdown("#### 🗑️ Eliminar Usuario")
-            usuarios_borrables = df_usuarios[df_usuarios['USUARIO'] != 'admin']['USUARIO'].tolist()
+            
+            # === BLINDAJE ANTI-KEYERROR EN GESTIÓN DE USUARIOS ===
+            usuarios_borrables = (
+                df_usuarios[df_usuarios['USUARIO'] != 'admin']['USUARIO'].tolist()
+                if not df_usuarios.empty and 'USUARIO' in df_usuarios.columns
+                else []
+            )
+            # =====================================================
+
             if usuarios_borrables:
                 usr_a_eliminar = st.selectbox("Seleccione el usuario que desea eliminar", usuarios_borrables)
                 if st.button("Eliminar Acceso", use_container_width=True):
