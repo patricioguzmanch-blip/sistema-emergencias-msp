@@ -17,7 +17,7 @@ def obtener_fecha_actual():
     """Fuerza al sistema a usar SIEMPRE la fecha de Ecuador (UTC-5), ignorando la hora del servidor."""
     return datetime.now(ZONA_HORARIA_ECUADOR).date()
 
-URL_BD_NUBE = "https://docs.google.com/spreadsheets/d/1DhPSc6-qqwzaP1UuF_1JaNI9Z8HMx9_2JAHBQxiPAhw/edit?usp=sharing"
+URL_BD_NUBE = "AQUI_PEGA_EL_LINK_DE_TU_GOOGLE_SHEET_VACIO"
 
 HOJA_ATENCIONES = "Atenciones"
 HOJA_USUARIOS = "Usuarios"
@@ -46,6 +46,7 @@ st.markdown("""
 # FUNCIONES DE LIMPIEZA DE TEXTO
 # ==============================================================================
 def limpiar_texto(texto):
+    """Convierte a mayúsculas y quita todas las tildes de un texto."""
     if texto is None or pd.isna(texto):
         return ""
     t = str(texto).strip().upper()
@@ -110,8 +111,7 @@ def guardar_tabla(hoja_nombre, df):
 # GESTIÓN DE SESIÓN Y CATÁLOGOS
 # ==============================================================================
 def cargar_usuarios():
-    # Eliminado el bloque de auto-creación. Ahora el sistema SOLO lee la matriz.
-    # Si hay un error de internet, devuelve vacío pero NO sobreescribe tus usuarios.
+    # Carga usuarios de la nube sin sobreescribir la hoja si ocurre un fallo
     return cargar_tabla(HOJA_USUARIOS)
 
 def cargar_profesionales():
@@ -237,6 +237,7 @@ def validar_cedula_ecuatoriana(cedula):
     provincia = int(cedula[0:2])
     if provincia < 1 or (provincia > 24 and provincia != 30): return False
     
+    # El Registro Civil ahora emite cédulas con tercer dígito 6
     tercer_digito = int(cedula[2])
     if tercer_digito > 6: return False 
     
@@ -494,6 +495,7 @@ def renderizar_campos_paciente(fk, prefill=None, df_global=None):
     
     col_bus_e, col_cond_e = st.columns([2, 1])
     
+    # === BLOQUEO AUTOMÁTICO DE CAUSA EXTERNA ===
     bloquear_causa_externa = not (cod_p.startswith("S") or cod_p.startswith("T"))
     
     buscador_cie10_e = col_bus_e.selectbox(
@@ -516,6 +518,7 @@ def renderizar_campos_paciente(fk, prefill=None, df_global=None):
         else:
             cod_e = prefill.get("CIE-10 (CAUSA EXTERNA)", "")
             desc_e = prefill.get("DIAGNOSTICO (CAUSA EXTERNA)", "")
+    # ============================================
 
     valido_diag = True
     if cod_p.startswith("S") or cod_p.startswith("T"):
@@ -802,14 +805,39 @@ def formulario_principal():
             st.subheader("🧹 Mantenimiento del Sistema (Bases de Nube)")
             st.warning("⚠️ **¡ZONA DE PELIGRO!** Las acciones aquí borrarán los datos permanentemente del Google Sheet.")
 
-            with st.expander("Limpiar Base de Datos de Atenciones (Cierre de Mes)", expanded=False):
-                st.write("Esta acción eliminará todas las atenciones médicas del Google Sheet para iniciar un nuevo mes en blanco.")
-                confirmar_atenciones = st.checkbox("Confirmo que deseo eliminar todas las atenciones médicas.", key="chk_atenciones")
-                if st.button("🗑️ Encerar Base de Atenciones en la Nube", disabled=not confirmar_atenciones, use_container_width=True):
-                    guardar_tabla(HOJA_ATENCIONES, pd.DataFrame(columns=COLUMNAS_OFICIALES))
-                    st.success("✅ Base de atenciones encerada en la Nube.")
-                    st.toast("Matriz de Nube limpia", icon="🧹")
-                    st.rerun()
+            with st.expander("🧹 Eliminación Selectiva por Rango de Fechas (Cierre de Periodo)", expanded=False):
+                st.write("Seleccione el rango de fechas de las atenciones que desea eliminar del Google Sheet. **Los registros fuera de este rango se conservarán intactos.**")
+                
+                col_f1, col_f2 = st.columns(2)
+                f_inicio_del = col_f1.date_input("📅 Fecha Inicial (Desde)", value=obtener_fecha_actual().replace(day=1), format="DD/MM/YYYY", key="f_del_ini")
+                f_fin_del = col_f2.date_input("📅 Fecha Final (Hasta)", value=obtener_fecha_actual(), format="DD/MM/YYYY", key="f_del_fin")
+                
+                if f_inicio_del > f_fin_del:
+                    st.error("❌ La Fecha Inicial no puede ser posterior a la Fecha Final.")
+                else:
+                    st.warning(f"⚠️ Se eliminarán permanentemente todas las atenciones registradas entre el **{f_inicio_del.strftime('%d/%m/%Y')}** y el **{f_fin_del.strftime('%d/%m/%Y')}**.")
+                    confirmar_rango = st.checkbox("Confirmo que deseo eliminar las atenciones de este rango de fechas.", key="chk_rango_atenciones")
+                    
+                    if st.button("🗑️ Eliminar Atenciones del Rango Seleccionado", disabled=not confirmar_rango, use_container_width=True):
+                        if not df_global.empty and "FECHA DE ATENCIÓN" in df_global.columns:
+                            def parse_fecha_row(f_str):
+                                try:
+                                    return datetime.strptime(str(f_str).strip(), "%d/%m/%Y").date()
+                                except:
+                                    return None
+                            
+                            fechas_parseadas = df_global["FECHA DE ATENCIÓN"].apply(parse_fecha_row)
+                            condicion_conservar = (fechas_parseadas.isna()) | (fechas_parseadas < f_inicio_del) | (fechas_parseadas > f_fin_del)
+                            
+                            df_conservado = df_global[condicion_conservar]
+                            eliminados = len(df_global) - len(df_conservado)
+                            
+                            guardar_tabla(HOJA_ATENCIONES, df_conservado)
+                            st.success(f"✅ ¡Listo! Se eliminaron {eliminados} registros del periodo seleccionado. Se conservaron {len(df_conservado)} atenciones intactas.")
+                            st.toast("Rango eliminado correctamente", icon="🗑️")
+                            st.rerun()
+                        else:
+                            st.info("La base de datos ya está vacía o no tiene registros para filtrar.")
 
             with st.expander("Limpiar Base de Pacientes y Profesionales", expanded=False):
                 st.write("Esta acción vaciará los catálogos en línea de pacientes y profesionales.")
@@ -824,37 +852,84 @@ def formulario_principal():
                     st.rerun()
 
     # ==========================================
-    # DESCARGAR MATRIZ GLOBAL
+    # DESCARGAR MATRIZ GLOBAL POR RANGO DE FECHAS
     # ==========================================
     st.markdown("---")
     st.subheader("📥 Centro de Descarga de Datos (Sincronizado con Google Sheets)")
-    if not df_global.empty:
-        if st.session_state.rol_actual == "ADMIN":
-            c_des1, c_des2 = st.columns(2)
-            with c_des1:
-                st.markdown("##### 📁 Matriz Consolidada Total")
-                buf1 = io.BytesIO()
-                with pd.ExcelWriter(buf1, engine='openpyxl') as w: df_global.to_excel(w, index=False, sheet_name='Consolidado_Provincial')
-                st.download_button(label="Descargar Consolidado Distrital (.xlsx)", data=buf1.getvalue(), file_name="Matriz_Consolidada_Orellana.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", use_container_width=True)
-            
-            with c_des2:
-                st.markdown("##### 🏢 Matriz por Establecimiento")
-                lista_unidades = df_global['NOMBRE DEL ESTABLECIMIENTO DE SALUD'].dropna().unique().tolist()
-                unidad_sel = st.selectbox("Seleccione la Unidad Operativa:", lista_unidades)
-                df_filtrado_adm = df_global[df_global['NOMBRE DEL ESTABLECIMIENTO DE SALUD'] == unidad_sel]
-                
-                buf2 = io.BytesIO()
-                with pd.ExcelWriter(buf2, engine='openpyxl') as w: df_filtrado_adm.to_excel(w, index=False, sheet_name='Produccion_Unidad')
-                st.download_button(label=f"Descargar Excel de la Unidad", data=buf2.getvalue(), file_name=f"Matriz_{str(unidad_sel).replace(' ','_')}.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", use_container_width=True)
+    
+    if not df_global.empty and "FECHA DE ATENCIÓN" in df_global.columns:
+        st.write("Seleccione el rango de fechas para generar el reporte descargable:")
+        c_r1, c_r2 = st.columns(2)
+        f_desc_ini = c_r1.date_input("📅 Fecha Inicial (Desde)", value=obtener_fecha_actual().replace(day=1), format="DD/MM/YYYY", key="f_desc_ini")
+        f_desc_fin = c_r2.date_input("📅 Fecha Final (Hasta)", value=obtener_fecha_actual(), format="DD/MM/YYYY", key="f_desc_fin")
+        
+        if f_desc_ini > f_desc_fin:
+            st.error("❌ La Fecha Inicial no puede ser posterior a la Fecha Final.")
         else:
-            df_usuario_final = df_global[df_global['UNICODIGO'] == st.session_state.unicodigo_actual]
-            if not df_usuario_final.empty:
-                st.dataframe(df_usuario_final.tail(3), use_container_width=True)
-                buf3 = io.BytesIO()
-                with pd.ExcelWriter(buf3, engine='openpyxl') as w: df_usuario_final.to_excel(w, index=False, sheet_name='Mi_Produccion')
-                st.download_button(label="Descargar Mi Matriz de Producción (.xlsx)", data=buf3.getvalue(), file_name=f"Matriz_Produccion_{st.session_state.unicodigo_actual}.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", use_container_width=True)
+            def es_fecha_en_rango(f_str):
+                try:
+                    f_val = datetime.strptime(str(f_str).strip(), "%d/%m/%Y").date()
+                    return f_desc_ini <= f_val <= f_desc_fin
+                except:
+                    return False
+            
+            df_descarga = df_global[df_global["FECHA DE ATENCIÓN"].apply(es_fecha_en_rango)]
+            
+            if df_descarga.empty:
+                st.warning(f"⚠️ No se encontraron atenciones registradas entre el **{f_desc_ini.strftime('%d/%m/%Y')}** y el **{f_desc_fin.strftime('%d/%m/%Y')}**.")
             else:
-                st.info("Su unidad aún no registra atenciones médicas este mes.")
+                st.success(f"✅ Se encontraron **{len(df_descarga)}** registros para el periodo seleccionado.")
+                
+                if st.session_state.rol_actual == "ADMIN":
+                    c_des1, c_des2 = st.columns(2)
+                    with c_des1:
+                        st.markdown("##### 📁 Matriz Consolidada Total (Periodo)")
+                        buf1 = io.BytesIO()
+                        with pd.ExcelWriter(buf1, engine='openpyxl') as w: 
+                            df_descarga.to_excel(w, index=False, sheet_name='Consolidado_Provincial')
+                        st.download_button(
+                            label=f"📥 Descargar Consolidado ({f_desc_ini.strftime('%d/%m')} al {f_desc_fin.strftime('%d/%m')})", 
+                            data=buf1.getvalue(), 
+                            file_name=f"Matriz_Orellana_{f_desc_ini.strftime('%Y%m%d')}_{f_desc_fin.strftime('%Y%m%d')}.xlsx", 
+                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", 
+                            use_container_width=True
+                        )
+                    
+                    with c_des2:
+                        st.markdown("##### 🏢 Matriz por Establecimiento (Periodo)")
+                        lista_unidades = df_descarga['NOMBRE DEL ESTABLECIMIENTO DE SALUD'].dropna().unique().tolist()
+                        if lista_unidades:
+                            unidad_sel = st.selectbox("Seleccione la Unidad Operativa:", lista_unidades, key="sel_unit_desc")
+                            df_filtrado_unit = df_descarga[df_descarga['NOMBRE DEL ESTABLECIMIENTO DE SALUD'] == unidad_sel]
+                            
+                            buf2 = io.BytesIO()
+                            with pd.ExcelWriter(buf2, engine='openpyxl') as w: 
+                                df_filtrado_unit.to_excel(w, index=False, sheet_name='Produccion_Unidad')
+                            st.download_button(
+                                label=f"📥 Descargar Excel de la Unidad ({len(df_filtrado_unit)} reg.)", 
+                                data=buf2.getvalue(), 
+                                file_name=f"Matriz_{str(unidad_sel).replace(' ','_')}_{f_desc_ini.strftime('%d%m')}_{f_desc_fin.strftime('%d%m')}.xlsx", 
+                                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", 
+                                use_container_width=True
+                            )
+                        else:
+                            st.info("No hay unidades con registros en este periodo.")
+                else:
+                    df_usuario_final = df_descarga[df_descarga['UNICODIGO'] == st.session_state.unicodigo_actual]
+                    if not df_usuario_final.empty:
+                        st.dataframe(df_usuario_final.tail(3), use_container_width=True)
+                        buf3 = io.BytesIO()
+                        with pd.ExcelWriter(buf3, engine='openpyxl') as w: 
+                            df_usuario_final.to_excel(w, index=False, sheet_name='Mi_Produccion')
+                        st.download_button(
+                            label=f"📥 Descargar Mi Producción ({f_desc_ini.strftime('%d/%m')} al {f_desc_fin.strftime('%d/%m')})", 
+                            data=buf3.getvalue(), 
+                            file_name=f"Matriz_{st.session_state.unicodigo_actual}_{f_desc_ini.strftime('%Y%m%d')}_{f_desc_fin.strftime('%Y%m%d')}.xlsx", 
+                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", 
+                            use_container_width=True
+                        )
+                    else:
+                        st.info("Su unidad no registra atenciones en el periodo seleccionado.")
     else:
         st.info("No existen registros grabados en el sistema actualmente.")
 
