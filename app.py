@@ -238,7 +238,6 @@ def login():
     st.markdown("<br>", unsafe_allow_html=True)
     col1, col2, col3 = st.columns([1.1, 1.3, 1.1])
     with col2:
-        # Encabezado Ejecutivo Institucional
         st.markdown("""
             <div style='text-align: center; margin-bottom: 1.8rem;'>
                 <div style='background: #e0f2fe; color: #0369a1; display: inline-block; padding: 4px 14px; border-radius: 20px; font-size: 0.78rem; font-weight: 700; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 1px;'>
@@ -555,7 +554,8 @@ def renderizar_campos_paciente(fk, prefill=None, df_global=None):
     col9, col10, col11 = st.columns(3)
     
     fecha_hoy = obtener_fecha_actual()
-    limite_inferior = fecha_hoy - timedelta(days=2)
+    # === CAMBIO SOLICITADO: 4 DÍAS ATRÁS ===
+    limite_inferior = fecha_hoy - timedelta(days=4)
     valor_fecha_atencion = safe_date(prefill.get("FECHA DE ATENCIÓN", ""), default_today=True)
     
     if valor_fecha_atencion and valor_fecha_atencion < limite_inferior:
@@ -737,10 +737,10 @@ def renderizar_campos_paciente(fk, prefill=None, df_global=None):
 # ==============================================================================
 def formulario_principal():
     with st.sidebar:
+        # === CAMBIO SOLICITADO: ELIMINADO 'Gestión Provincial en Nube' ===
         st.markdown("""
             <div style='text-align: center; margin-bottom: 1rem;'>
                 <h3 style='color: #0A4D68; margin-bottom: 0px;'>MSP ORELLANA</h3>
-                <span style='font-size: 0.78rem; color: #64748b;'>Gestión Provincial en Nube</span>
             </div>
         """, unsafe_allow_html=True)
         
@@ -782,7 +782,7 @@ def formulario_principal():
             with st.container(border=True):
                 val_institucion, val_nombre, val_nivel, val_zona, val_provincia, val_canton, val_distrito = "MSP", "", "", "", "", "", ""
                 unicodigo_seleccionado = st.session_state.unicodigo_actual
-                st.info(f"📍 Sesión institucional autenticada para el establecimiento: **{unicodigo_seleccionado}**")
+                # === CAMBIO SOLICITADO: ELIMINADO EL st.info CON EL MENSAJE DE AUTENTICACIÓN ===
 
                 if base_est is not None and not base_est.empty and unicodigo_seleccionado:
                     def limpiar_cod(cod):
