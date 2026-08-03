@@ -560,7 +560,6 @@ def renderizar_campos_paciente(fk, prefill=None, df_global=None):
     
     fecha_hoy = obtener_fecha_actual()
     limite_inferior = fecha_hoy - timedelta(days=4)
-    # === CAMBIO SOLICITADO: CAMPO FECHA VACÍO POR DEFECTO PARA NUEVOS REGISTROS ===
     valor_fecha_atencion = safe_date(prefill.get("FECHA DE ATENCIÓN", ""), default_today=False)
     
     if valor_fecha_atencion and valor_fecha_atencion < limite_inferior:
@@ -649,11 +648,16 @@ def renderizar_campos_paciente(fk, prefill=None, df_global=None):
             cod_e = prefill.get("CIE-10 (CAUSA EXTERNA)", "")
             desc_e = prefill.get("DIAGNOSTICO (CAUSA EXTERNA)", "")
 
+    # === CORRECCIÓN CRÍTICA: VALIDAR QUE EL CIE-10 PRINCIPAL NO ESTÉ VACÍO ===
     valido_diag = True
-    if cod_p.startswith("S") or cod_p.startswith("T"):
+    if not cod_p.strip():
+        col_bus_p.error("❌ Obligatorio seleccionar el Diagnóstico Principal (CIE-10).")
+        valido_diag = False
+    elif cod_p.startswith("S") or cod_p.startswith("T"):
         if not cod_e:
             col_bus_e.error("❌ Obligatorio indicar la Causa Externa para códigos de traumatismo (S/T).")
             valido_diag = False
+    # =========================================================================
 
     valido_sexo = True
     if sexo == "HOMBRE":
@@ -711,7 +715,6 @@ def renderizar_campos_paciente(fk, prefill=None, df_global=None):
     val_fecha_nacimiento = fecha_nacimiento.strftime("%d/%m/%Y") if fecha_nacimiento else "N/A"
     val_fecha_atencion = fecha_atencion.strftime("%d/%m/%Y") if fecha_atencion else ""
 
-    # === ALERTA OBLIGATORIA SI EL MÉDICO OLVIDA SELECCIONAR LA FECHA ===
     valido_fecha = bool(fecha_atencion is not None)
     if not valido_fecha:
         col9.error("❌ Seleccione la Fecha de Atención en el calendario.")
@@ -739,7 +742,7 @@ def renderizar_campos_paciente(fk, prefill=None, df_global=None):
         "NOMBRE DEL HOSPITAL AL QUE FUE REFERIDO PARA LA HOSPITALIZACIÓN": limpiar_texto(hosp_referido) if req_hosp == "SI" else "",
         "CAUSA DE ATENCIÓN": causa_atencion, "NÚMERO DE IDENTIFICACIÓN DEL PROFESIONAL DE SALUD": id_profesional, 
         "NOMBRES Y APELLIDOS DEL PROFESIONAL DE SALUD": limpiar_texto(nombre_profesional),
-        "_valido": valido_fecha and hora_valida and id_valida and id_prof_valida and identificacion and primer_apellido and primer_nombre and hora_atencion and (val_fecha_nacimiento != "N/A") and valido_sexo and bool(nombre_profesional.strip()) and valido_diag and valido_hosp
+        "_valido": valido_fecha and hora_valida and id_valida and id_prof_valida and identificacion and primer_apellido and primer_nombre and hora_atencion and (val_fecha_nacimiento != "N/A") and valido_sexo and bool(nombre_profesional.strip()) and bool(cod_p.strip()) and valido_diag and valido_hosp
     }
 
 # ==============================================================================
@@ -747,7 +750,6 @@ def renderizar_campos_paciente(fk, prefill=None, df_global=None):
 # ==============================================================================
 def formulario_principal():
     with st.sidebar:
-        # === CAMBIO SOLICITADO: TÍTULO DEL PANEL DE CONTROL ===
         st.markdown("""
             <div style='text-align: center; margin-bottom: 1rem;'>
                 <h3 style='color: #0A4D68; font-weight: 800; font-size: 1.25rem; line-height: 1.3; margin-bottom: 0px;'>
@@ -762,7 +764,6 @@ def formulario_principal():
         if st.session_state.rol_actual == "USUARIO":
             st.markdown(f"**📍 Unicódigo:** `{st.session_state.unicodigo_actual}`")
             
-            # === CAMBIO SOLICITADO: BUSCAR Y MOSTRAR NOMBRE DEL ESTABLECIMIENTO EN SIDEBAR ===
             nom_est_sidebar = ""
             if base_est is not None and not base_est.empty and st.session_state.unicodigo_actual:
                 def limpiar_cod_sub(cod):
@@ -781,7 +782,6 @@ def formulario_principal():
                                 break
             if nom_est_sidebar:
                 st.markdown(f"**🏥 Establecimiento:** `{nom_est_sidebar}`")
-            # ===================================================================================
 
         st.markdown("---")
         
