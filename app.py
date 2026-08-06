@@ -117,66 +117,65 @@ st.markdown("""
         padding: 1.1rem !important;
     }
     
-    /* 5. ESTILO UNIVERSAL Y SUAVE PARA TODOS LOS CUADROS DE TEXTO (INCLUYENDO NÚMERO DE IDENTIFICACIÓN / CÉDULA) */
-    /* Borde azul suave institucional (#60a5fa, 1.5px) y fondo celeste hielo tenue (#f0f8ff) */
+    /* ==========================================================================
+       5. REGLA UNIVERSAL INFALIBLE PARA BORDE AZUL EN ABSOLUTAMENTE TODOS LOS INPUTS
+       Cubre Cédula, Textos, Combo Boxes (Selects), Horas, Fechas y Números por igual
+       ========================================================================== */
     div[data-testid="stTextInput"] div[data-baseweb="input"],
-    div[data-testid="stTextInput"] div[data-baseweb="input"] > div,
+    div[data-testid="stTextInput"] div[data-baseweb="base-input"],
     div[data-testid="stNumberInput"] div[data-baseweb="input"],
-    div[data-testid="stNumberInput"] div[data-baseweb="input"] > div,
     div[data-testid="stDateInput"] div[data-baseweb="input"],
-    div[data-testid="stDateInput"] div[data-baseweb="input"] > div,
     div[data-testid="stPasswordInput"] div[data-baseweb="input"],
-    div[data-testid="stPasswordInput"] div[data-baseweb="input"] > div,
-    div[data-testid="stSelectbox"] div[data-baseweb="select"],
     div[data-testid="stSelectbox"] div[data-baseweb="select"] > div,
-    div[data-baseweb="input"] > div,
-    div[data-baseweb="base-input"],
-    div[role="combobox"] {
+    div[data-testid="stSelectbox"] div[role="combobox"],
+    div[data-baseweb="select"] > div,
+    div[data-baseweb="input"] {
         background-color: #f0f8ff !important;
-        border: 1.5px solid #60a5fa !important;
+        border: 1.5px solid #3b82f6 !important;
         border-radius: 6px !important;
         min-height: 38px !important;
         box-shadow: none !important;
         transition: all 0.15s ease-in-out !important;
     }
     
-    /* Evitar borde o fondo duplicado en contenedores anidados */
-    div[data-baseweb="input"] > div > div,
-    div[data-baseweb="base-input"] > div {
+    /* Quitar cualquier segundo borde interno que Streamlit dibuje por defecto */
+    div[data-testid="stTextInput"] div[data-baseweb="input"] > div,
+    div[data-testid="stNumberInput"] div[data-baseweb="input"] > div,
+    div[data-testid="stDateInput"] div[data-baseweb="input"] > div,
+    div[data-baseweb="input"] > div {
         border: none !important;
         background-color: transparent !important;
+        box-shadow: none !important;
     }
     
-    /* Input interior transparente y con letra legible */
+    /* El campo donde se escribe (input real) debe ser transparente para dejar ver el celeste */
     div[data-testid="stTextInput"] input,
     div[data-testid="stNumberInput"] input,
     div[data-testid="stDateInput"] input,
     div[data-testid="stPasswordInput"] input,
     div[data-baseweb="input"] input,
-    div[data-baseweb="base-input"] input,
-    div[data-testid="stSelectbox"] span,
-    div[data-testid="stSelectbox"] div {
+    div[data-baseweb="select"] span,
+    div[data-baseweb="select"] div {
         background-color: transparent !important;
         color: #0f172a !important;
         font-weight: 600 !important;
     }
     
-    /* Estado activo al hacer clic para escribir o seleccionar (ilumina en azul medio suave #3b82f6) */
+    /* Resplandor y cambio a blanco al hacer clic en cualquier campo para escribir o elegir */
     div[data-testid="stTextInput"] div[data-baseweb="input"]:focus-within,
     div[data-testid="stNumberInput"] div[data-baseweb="input"]:focus-within,
     div[data-testid="stDateInput"] div[data-baseweb="input"]:focus-within,
-    div[data-testid="stSelectbox"] div[data-baseweb="select"]:focus-within,
     div[data-testid="stSelectbox"] div[data-baseweb="select"] > div:focus-within,
     div[data-baseweb="input"]:focus-within,
-    div[data-baseweb="base-input"]:focus-within {
+    div[data-baseweb="select"] > div:focus-within {
         background-color: #ffffff !important;
-        border-color: #3b82f6 !important;
-        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.18) !important;
+        border-color: #1d4ed8 !important;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.22) !important;
     }
     
-    /* Estilo nítido para textos guía (placeholder sin ejemplos) */
+    /* Textos guía (placeholder) nítidos y sin ejemplos */
     input::placeholder {
-        color: #475569 !important;
+        color: #64748b !important;
         opacity: 0.95 !important;
         font-style: normal !important;
         font-weight: 400 !important;
@@ -727,7 +726,8 @@ def renderizar_campos_paciente(fk, prefill=None, df_global=None):
                                 st.error(f"Error al guardar ficha: {e}")
             st.stop()
 
-        col9, col10, col11, col12_vacia = st.columns([1.2, 0.8, 1.2, 1.8])
+        # [Ajuste de proporciones: 1.3 para Fecha Atención, 1.0 para Hora (evita compresión), 1.3 para Nacimiento, 1.4 de relleno]
+        col9, col10, col11, col12_vacia = st.columns([1.3, 1.0, 1.3, 1.4])
         
         fecha_hoy = obtener_fecha_actual()
         limite_inferior = fecha_hoy - timedelta(days=4)
@@ -740,7 +740,8 @@ def renderizar_campos_paciente(fk, prefill=None, df_global=None):
 
         fecha_atencion = col9.date_input("Fecha de Atención", value=valor_fecha_atencion, min_value=min_calendario, max_value=fecha_hoy, format="DD/MM/YYYY", key=f"fa_{fk}", disabled=es_edicion_usuario)
 
-        hora_atencion = col10.text_input("Hora de Atención (HH:MM - formato 24h)", value=prefill.get("HORA ATENCION", ""), placeholder="Ingrese la hora en formato HH:MM", key=f"ha_{fk}", disabled=es_edicion_usuario)
+        # Placeholder acortado para evitar que se desborde o aplaste en pantallas reducidas
+        hora_atencion = col10.text_input("Hora de Atención (HH:MM - formato 24h)", value=prefill.get("HORA ATENCION", ""), placeholder="HH:MM (Ej: 14:30)", key=f"ha_{fk}", disabled=es_edicion_usuario)
         hora_valida = True
         if hora_atencion and not re.match(r"^(?:[01]\d|2[0-3]):[0-5]\d$", str(hora_atencion)):
             col10.error("❌ Formato horario inválido (use HH:MM, ejemplo: 08:30 o 21:15).")
