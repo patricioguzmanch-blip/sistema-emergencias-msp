@@ -143,7 +143,7 @@ st.markdown("""
     """, unsafe_allow_html=True)
 
 # ==============================================================================
-# FUNCIONES DE LIMPIEZA DE TEXTO Y NORMALIZACIÓN
+# FUNCIONES DE LIMPIEZA DE TEXTO Y NORMALIZACIÓN DE CÉDULAS
 # ==============================================================================
 def limpiar_texto(texto):
     """Convierte a mayúsculas y quita todas las tildes de un texto."""
@@ -159,6 +159,7 @@ def limpiar_texto(texto):
     return t
 
 def normalizar_id(val):
+    """Elimina apóstrofes ('0101575165 -> 0101575165), decimales .0 y ceros a la izquierda para comparar con éxito."""
     if pd.isna(val) or val is None:
         return ""
     v = str(val).replace("'", "").replace(".0", "").strip().upper()
@@ -184,7 +185,7 @@ def cargar_tabla(hoja_nombre):
         if not registros:
             return pd.DataFrame()
         df = pd.DataFrame(registros, dtype=str)
-        # Limpieza estandarizada de encabezados (sin tildes y sin espacios en blanco)
+        # Limpieza estandarizada de encabezados (sin tildes y en mayúsculas)
         df.columns = (
             df.columns.astype(str)
             .str.strip()
@@ -318,7 +319,6 @@ HOSPITALES_REFERENCIA = [
     "000359 HOSPITAL GENERAL LATACUNGA", "001549 HOSPITAL BASICO DE BAEZA", "000000 OTRO"
 ]
 
-# Nombres de columnas oficiales sin tildes para garantizar coincidencia 100% en todas las hojas
 COLUMNAS_OFICIALES = [
     "INSTITUCION DEL SISTEMA", "UNICODIGO", "NOMBRE DEL ESTABLECIMIENTO DE SALUD", "ZONA", "PROVINCIA", "CANTON", "DISTRITO", "NIVEL", 
     "FECHA DE ATENCION", "HORA ATENCION", "FECHA DE NACIMIENTO DEL PACIENTE", "TIPO DE DOCUMENTO DE IDENTIFICACION", "NUMERO DE IDENTIFICACION", 
@@ -421,6 +421,50 @@ def calcular_edad(fecha_nacimiento):
     if anios >= 1: return anios, "AÑO/S"
     elif meses >= 1: return meses, "MES/ES"
     else: return max(0, dias), "DIA/S"
+
+# ==============================================================================
+# MOTOR DE SINCRONIZACIÓN AUTOMÁTICA DE DATOS PARA DESCARGA DE EXCEL (.XLSX)
+# ==============================================================================
+def sincronizar_descarga_con_catalogos(df_target, df_pacientes, df_profesionales):
+    """Garantiza que antes de descargar el Excel, todos los datos demográficos (sexo, nombres, etc.)
+
+    se actualicen con la información corregida más reciente del catálogo.
+    """
+    if df_target.empty:
+        return df_target
+    
+    map_pac = {}
+    if not df_pacientes.empty and "NUMERO DE IDENTIFICACION" in df_pacientes.columns:
+        for _, row_p in df_pacientes.iterrows():
+            nid_p = normalizar_id(row_p.get("NUMERO DE IDENTIFICACION", ""))
+            if nid_p:
+                map_pac[nid_p] = row_p.to_dict()
+                
+    map_prof = {}
+    if not df_profesionales.empty and "CEDULA" in df_profesionales.columns:
+        for _, row_m in df_profesionales.iterrows():
+            nid_m = normalizar_id(row_m.get("CEDULA", ""))
+            if nid_m:
+                map_prof[nid_m] = row_m.to_dict()
+                
+    cols_demo = ["PRIMER APELLIDO", "SEGUNDO APELLIDO", "PRIMER NOMBRE", "SEGUNDO NOMBRE", "SEXO", "EDAD", "CONDICION DE LA EDAD", "NACIONALIDAD", "ETNIA", "GRUPO PRIORITARIO", "TIPO DE SEGURO", "PROV_RES", "CANT_RES", "PARR_RES", "FECHA DE NACIMIENTO DEL PACIENTE"]
+
+    def enriq_row(row):
+        nid_p = normalizar_id(row.get("NUMERO DE IDENTIFICACION", ""))
+        if nid_p in map_pac:
+            p_data = map_pac[nid_p]
+            for c in cols_demo:
+                if c in p_data and pd.notna(p_data[c]) and str(p_data[c]).strip() != "":
+                    row[c] = p_data[c]
+                    
+        nid_m = normalizar_id(row.get("NUMERO DE IDENTIFICACION DEL PROFESIONAL DE SALUD", ""))
+        if nid_m in map_prof:
+            m_data = map_prof[nid_m]
+            if "NOMBRE_COMPLETO" in m_data and pd.notna(m_data["NOMBRE_COMPLETO"]) and str(m_data["NOMBRE_COMPLETO"]).strip() != "":
+                row["NOMBRES Y APELLIDOS DEL PROFESIONAL DE SALUD"] = m_data["NOMBRE_COMPLETO"]
+        return row
+
+    return df_target.apply(enriq_row, axis=1)
 
 # ==========================================
 # VENTANA EMERGENTE PARA PROFESIONAL
@@ -953,12 +997,11 @@ def formulario_principal():
                                 st.error("❌ Resuelva los campos en rojo antes de sobreescribir la ficha.")
                             else:
                                 del datos_admin_edit["_valido"]
-                                # 1. Actualizar fila de atención en HOJA_ATENCIONES
                                 for k, v in datos_admin_edit.items():
                                     if k in df_global.columns:
                                         df_global.loc[idx_audit, k] = str(v)
                                 
-                                # 2. SINCRONIZACIÓN EN CASCADA: Actualizar en HOJA_PACIENTES y en otras atenciones
+                                # Sincronizar simultáneamente en el catálogo de Pacientes
                                 ced_pac_audit = datos_admin_edit.get("NUMERO DE IDENTIFICACION", "")
                                 if ced_pac_audit:
                                     ced_norm_a = normalizar_id(ced_pac_audit)
@@ -971,7 +1014,7 @@ def formulario_principal():
                                                     df_pac.loc[mask_p, col_demo] = str(datos_admin_edit[col_demo])
                                             guardar_tabla(HOJA_PACIENTES, df_pac)
                                     
-                                    # Sincronizar en el resto de atenciones del mismo paciente (para la exportación Excel)
+                                    # Sincronizar en el resto de atenciones del mismo paciente en memoria
                                     mask_at_a = df_global["NUMERO DE IDENTIFICACION"].apply(normalizar_id) == ced_norm_a
                                     if mask_at_a.any():
                                         for col_demo in ["PRIMER APELLIDO", "SEGUNDO APELLIDO", "PRIMER NOMBRE", "SEGUNDO NOMBRE", "SEXO", "EDAD", "CONDICION DE LA EDAD", "NACIONALIDAD", "ETNIA", "GRUPO PRIORITARIO", "TIPO DE SEGURO", "PROV_RES", "CANT_RES", "PARR_RES", "FECHA DE NACIMIENTO DEL PACIENTE"]:
@@ -979,7 +1022,7 @@ def formulario_principal():
                                                 df_global.loc[mask_at_a, col_demo] = str(datos_admin_edit[col_demo])
 
                                 guardar_tabla(HOJA_ATENCIONES, df_global)
-                                st.success("✅ ¡Atención modificada y sincronizada perfectamente con Google Sheets y catálogos!")
+                                st.success("✅ ¡Atención modificada y sincronizada con Google Sheets y catálogos!")
                                 st.rerun()
 
                     with st.expander("🗑️ ELIMINAR ATENCIÓN SELECCIONADA (MÓDULO ADMIN)", expanded=False):
@@ -991,12 +1034,12 @@ def formulario_principal():
                             st.success("✅ Atención eliminada correctamente del servidor provincial.")
                             st.rerun()
 
-        # === TAB 2: EDICIÓN DE CATÁLOGOS (PACIENTES Y MÉDICOS CON ACTUALIZACIÓN EN CASCADA BLINDADA) ===
+        # === TAB 2: EDICIÓN DE CATÁLOGOS ===
         with tab2:
             st.markdown("<div class='section-title'>✏️ Edición de Catálogos Provinciales (Pacientes y Profesionales)</div>", unsafe_allow_html=True)
             subtab_pac, subtab_med = st.tabs(["👤 Fichas Demográficas de Pacientes", "👨‍⚕️ Catálogo de Profesionales de Salud"])
             
-            # --- SUBTAB 1: EDICIÓN DE PACIENTES (ACTUALIZACIÓN EN CASCADA PARA EXCEL) ---
+            # --- SUBTAB 1: EDICIÓN DE PACIENTES ---
             with subtab_pac:
                 df_pacientes_cat = cargar_tabla(HOJA_PACIENTES)
                 st.markdown("#### Búsqueda y Edición de Pacientes Registrados")
@@ -1060,13 +1103,11 @@ def formulario_principal():
                                         "CANT_RES": limpiar_texto(ed_cr),
                                         "PARR_RES": limpiar_texto(ed_par)
                                     }
-                                    # 1. Actualizar en Catálogo Pacientes
                                     for k, val in datos_corregidos.items():
                                         if k in df_pacientes_cat.columns:
                                             df_pacientes_cat.loc[idx_pac_sel, k] = str(val)
                                     guardar_tabla(HOJA_PACIENTES, df_pacientes_cat)
 
-                                    # 2. ACTUALIZACIÓN EN CASCADA en la hoja 'Atenciones' (blindada sin tildes ni espacios)
                                     df_at = cargar_tabla(HOJA_ATENCIONES)
                                     if not df_at.empty and "NUMERO DE IDENTIFICACION" in df_at.columns:
                                         mask_at = df_at["NUMERO DE IDENTIFICACION"].apply(normalizar_id) == ced_norm_cat
@@ -1076,10 +1117,10 @@ def formulario_principal():
                                                     df_at.loc[mask_at, k] = str(val)
                                             guardar_tabla(HOJA_ATENCIONES, df_at)
 
-                                    st.success("✅ ¡Ficha actualizada en el catálogo Y en todo el historial de Atenciones para la exportación Excel!")
+                                    st.success("✅ ¡Ficha del paciente actualizada en el catálogo y en el historial!")
                                     st.rerun()
 
-            # --- SUBTAB 2: EDICIÓN DE MÉDICOS (ACTUALIZACIÓN EN CASCADA PARA EXCEL) ---
+            # --- SUBTAB 2: EDICIÓN DE MÉDICOS ---
             with subtab_med:
                 df_prof_cat = cargar_profesionales()
                 st.markdown("#### Búsqueda y Edición de Profesionales de Salud")
@@ -1108,7 +1149,6 @@ def formulario_principal():
                                     st.error("❌ Primer Nombre y Primer Apellido son obligatorios.")
                                 else:
                                     nom_com = re.sub(r'\s+', ' ', f"{limpiar_texto(ed_m_pn)} {limpiar_texto(ed_m_sn)} {limpiar_texto(ed_m_pa)} {limpiar_texto(ed_m_sa)}").strip()
-                                    # 1. Actualizar en Profesionales
                                     df_prof_cat.loc[idx_med_sel, "PRIMER NOMBRE"] = limpiar_texto(ed_m_pn)
                                     df_prof_cat.loc[idx_med_sel, "SEGUNDO NOMBRE"] = limpiar_texto(ed_m_sn)
                                     df_prof_cat.loc[idx_med_sel, "PRIMER APELLIDO"] = limpiar_texto(ed_m_pa)
@@ -1116,7 +1156,6 @@ def formulario_principal():
                                     df_prof_cat.loc[idx_med_sel, "NOMBRE_COMPLETO"] = nom_com
                                     guardar_tabla(HOJA_PROFESIONALES, df_prof_cat)
 
-                                    # 2. ACTUALIZACIÓN EN CASCADA en la hoja 'Atenciones'
                                     df_at = cargar_tabla(HOJA_ATENCIONES)
                                     if not df_at.empty and "NUMERO DE IDENTIFICACION DEL PROFESIONAL DE SALUD" in df_at.columns:
                                         mask_med = df_at["NUMERO DE IDENTIFICACION DEL PROFESIONAL DE SALUD"].apply(normalizar_id) == ced_norm_med
@@ -1125,7 +1164,7 @@ def formulario_principal():
                                                 df_at.loc[mask_med, "NOMBRES Y APELLIDOS DEL PROFESIONAL DE SALUD"] = nom_com
                                             guardar_tabla(HOJA_ATENCIONES, df_at)
 
-                                    st.success("✅ ¡Nombre del profesional actualizado en el catálogo Y en todas sus atenciones registradas!")
+                                    st.success("✅ ¡Nombre del profesional actualizado en el catálogo y en todas sus atenciones registradas!")
                                     st.rerun()
 
         # === TAB 3: ADMINISTRACIÓN DE USUARIOS INSTITUCIONALES ===
@@ -1227,7 +1266,7 @@ def formulario_principal():
                     st.rerun()
 
     # ==========================================================================
-    # DESCARGAR MATRIZ GLOBAL POR RANGO DE FECHAS
+    # DESCARGAR MATRIZ GLOBAL POR RANGO DE FECHAS (SINCRONIZACIÓN EN TIEMPO DE DESCARGA)
     # ==========================================================================
     st.markdown("---")
     st.markdown("<div class='section-title'>📥 Centro de Exportación de Datos Estadísticos (MSP Orellana)</div>", unsafe_allow_html=True)
@@ -1248,12 +1287,18 @@ def formulario_principal():
                 except:
                     return False
             
-            df_descarga = df_global[df_global["FECHA DE ATENCION"].apply(es_fecha_en_rango)]
+            df_descarga = df_global[df_global["FECHA DE ATENCION"].apply(es_fecha_en_rango)].copy()
+            
+            # === AQUÍ OCURRE LA SINCRONIZACIÓN DINÁMICA CON LOS CATÁLOGOS MÁS RECIENTES ===
+            df_pac_live = cargar_tabla(HOJA_PACIENTES)
+            df_prof_live = cargar_tabla(HOJA_PROFESIONALES)
+            df_descarga = sincronizar_descarga_con_catalogos(df_descarga, df_pac_live, df_prof_live)
+            # ==============================================================================
             
             if df_descarga.empty:
                 st.warning(f"⚠️ No se identificaron atenciones médicas registradas entre el **{f_desc_ini.strftime('%d/%m/%Y')}** y el **{f_desc_fin.strftime('%d/%m/%Y')}**.")
             else:
-                st.success(f"✅ Se consolidaron **{len(df_descarga)}** atenciones de emergencia en el intervalo seleccionado.")
+                st.success(f"✅ Se consolidaron **{len(df_descarga)}** atenciones de emergencia en el intervalo seleccionado (con demografías 100% actualizadas).")
                 
                 if st.session_state.rol_actual == "ADMIN":
                     c_des1, c_des2 = st.columns(2)
