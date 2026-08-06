@@ -118,15 +118,18 @@ st.markdown("""
     }
     
     /* ==========================================================================
-       5. REGLAS DE BORDES Y FONDOS SEGÚN JERARQUÍA SOLICITADA
+       5. REGLA UNIVERSAL: POR DEFECTO TODOS LOS CAMPOS VAN EN AZUL INSTITUCIONAL
+       (Cubre Hora de Atención, Cédula Profesional, Nombres Médico, CIE-10, Hospitales, Fechas, etc.)
        ========================================================================== */
-       
-    /* A) BORDE AZUL (#3b82f6) y FONDO CELESTE (#f0f8ff) para COMBOS y CAMPOS SELECCIONADOS
-          (Cubre Especialidad, CIE-10 Principal, Condición, CIE-10 Secundario, Alta, Hospitalización, Establecimiento, Causa, Médico, etc.) */
+    div[data-testid="stTextInput"] div[data-baseweb="input"],
+    div[data-testid="stTextInput"] div[data-baseweb="base-input"],
+    div[data-testid="stNumberInput"] div[data-baseweb="input"],
+    div[data-testid="stDateInput"] div[data-baseweb="input"],
+    div[data-testid="stPasswordInput"] div[data-baseweb="input"],
     div[data-testid="stSelectbox"] div[data-baseweb="select"],
-    div[data-testid="stSelectbox"] div[data-baseweb="select"] > div,
-    div[data-testid="stSelectbox"] [role="combobox"],
-    div[data-baseweb="select"] > div,
+    div[data-testid="stSelectbox"] div[role="combobox"],
+    div[data-baseweb="input"],
+    div[data-baseweb="base-input"],
     div[data-baseweb="select"] {
         background-color: #f0f8ff !important;
         border: 1.5px solid #3b82f6 !important;
@@ -136,89 +139,91 @@ st.markdown("""
         transition: all 0.15s ease-in-out !important;
     }
 
-    /* B) CAMPOS SIN BORDE AZUL (Fondo blanco puro #ffffff y borde gris neutro limpio #cbd5e1):
-          - Sexo, Condición de la Edad, Nacionalidad, Etnia, Grupo Prioritario, Tipo de Seguro
-          - Primer Apellido, Segundo Apellido, Primer Nombre, Segundo Nombre
-          - Provincia, Cantón y Parroquia de Residencia */
-    div[data-testid="stTextInput"]:has(input[aria-label*="Primer Apellido"]) div[data-baseweb="input"],
-    div[data-testid="stTextInput"]:has(input[aria-label*="Segundo Apellido"]) div[data-baseweb="input"],
-    div[data-testid="stTextInput"]:has(input[aria-label*="Primer Nombre"]) div[data-baseweb="input"],
-    div[data-testid="stTextInput"]:has(input[aria-label*="Segundo Nombre"]) div[data-baseweb="input"],
-    div[data-testid="stTextInput"]:has(input[aria-label*="Provincia"]) div[data-baseweb="input"],
-    div[data-testid="stTextInput"]:has(input[aria-label*="Cantón"]) div[data-baseweb="input"],
-    div[data-testid="stTextInput"]:has(input[aria-label*="Parroquia"]) div[data-baseweb="input"],
-    div[data-testid="stSelectbox"]:has([aria-label*="Sexo"]) div[data-baseweb="select"],
-    div[data-testid="stSelectbox"]:has([aria-label*="Condición de la Edad"]) div[data-baseweb="select"],
-    div[data-testid="stSelectbox"]:has([aria-label*="Nacionalidad"]) div[data-baseweb="select"],
-    div[data-testid="stSelectbox"]:has([aria-label*="Etnia"]) div[data-baseweb="select"],
-    div[data-testid="stSelectbox"]:has([aria-label*="Grupo Prioritario"]) div[data-baseweb="select"],
-    div[data-testid="stSelectbox"]:has([aria-label*="Seguro"]) div[data-baseweb="select"] {
+    /* ==========================================================================
+       6. CAMPOS EN BLANCO SIN BORDE AZUL (FONDO BLANCO PURO Y BORDE GRIS NEUTRO #cbd5e1)
+       Usamos nombres exactos para jamás chocar con "Nombres y Apellidos del Profesional"
+       ========================================================================== */
+    div[data-testid="stTextInput"]:has([aria-label*="Primer Apellido" i]) div[data-baseweb="input"],
+    div[data-testid="stTextInput"]:has([aria-label*="Primer Apellido" i]) div[data-baseweb="base-input"],
+    div[data-testid="stTextInput"]:has([aria-label*="Segundo Apellido" i]) div[data-baseweb="input"],
+    div[data-testid="stTextInput"]:has([aria-label*="Segundo Apellido" i]) div[data-baseweb="base-input"],
+    div[data-testid="stTextInput"]:has([aria-label*="Primer Nombre" i]) div[data-baseweb="input"],
+    div[data-testid="stTextInput"]:has([aria-label*="Primer Nombre" i]) div[data-baseweb="base-input"],
+    div[data-testid="stTextInput"]:has([aria-label*="Segundo Nombre" i]) div[data-baseweb="input"],
+    div[data-testid="stTextInput"]:has([aria-label*="Segundo Nombre" i]) div[data-baseweb="base-input"],
+    div[data-testid="stTextInput"]:has([aria-label*="Provincia" i]) div[data-baseweb="input"],
+    div[data-testid="stTextInput"]:has([aria-label*="Provincia" i]) div[data-baseweb="base-input"],
+    div[data-testid="stTextInput"]:has([aria-label*="Cantón" i]) div[data-baseweb="input"],
+    div[data-testid="stTextInput"]:has([aria-label*="Cantón" i]) div[data-baseweb="base-input"],
+    div[data-testid="stTextInput"]:has([aria-label*="Canton" i]) div[data-baseweb="input"],
+    div[data-testid="stTextInput"]:has([aria-label*="Parroquia" i]) div[data-baseweb="input"],
+    div[data-testid="stTextInput"]:has([aria-label*="Parroquia" i]) div[data-baseweb="base-input"],
+    div[data-testid="stSelectbox"]:has([aria-label*="Sexo" i]) div[data-baseweb="select"],
+    div[data-testid="stSelectbox"]:has([aria-label*="Sexo" i]) [role="combobox"],
+    div[data-testid="stSelectbox"]:has([aria-label*="Condición de la Edad" i]) div[data-baseweb="select"],
+    div[data-testid="stSelectbox"]:has([aria-label*="Condición de la Edad" i]) [role="combobox"],
+    div[data-testid="stSelectbox"]:has([aria-label*="Nacionalidad" i]) div[data-baseweb="select"],
+    div[data-testid="stSelectbox"]:has([aria-label*="Nacionalidad" i]) [role="combobox"],
+    div[data-testid="stSelectbox"]:has([aria-label*="Etnia" i]) div[data-baseweb="select"],
+    div[data-testid="stSelectbox"]:has([aria-label*="Etnia" i]) [role="combobox"],
+    div[data-testid="stSelectbox"]:has([aria-label*="Grupo Prioritario" i]) div[data-baseweb="select"],
+    div[data-testid="stSelectbox"]:has([aria-label*="Grupo Prioritario" i]) [role="combobox"],
+    div[data-testid="stSelectbox"]:has([aria-label*="Seguro" i]) div[data-baseweb="select"],
+    div[data-testid="stSelectbox"]:has([aria-label*="Seguro" i]) [role="combobox"],
+    div[data-testid="stSelectbox"]:has([aria-label*="Cobertura" i]) div[data-baseweb="select"],
+    div[data-testid="stSelectbox"]:has([aria-label*="Cobertura" i]) [role="combobox"] {
         background-color: #ffffff !important;
         border: 1px solid #cbd5e1 !important;
         border-radius: 6px !important;
         box-shadow: none !important;
     }
-
-    /* C) BORDE AZUL INSTITUCIONAL para Cédula Profesional, Nombre Profesional, Fechas y Hora */
-    div[data-testid="stTextInput"]:has(input[aria-label*="Cédula Profesional"]) div[data-baseweb="input"],
-    div[data-testid="stTextInput"]:has(input[aria-label*="Nombres y Apellidos del Profesional"]) div[data-baseweb="input"],
-    div[data-testid="stDateInput"] div[data-baseweb="input"],
-    div[data-testid="stNumberInput"] div[data-baseweb="input"],
-    div[data-testid="stTextInput"]:has(input[aria-label*="Hora"]) div[data-baseweb="input"] {
-        background-color: #f0f8ff !important;
-        border: 1.5px solid #3b82f6 !important;
-        border-radius: 6px !important;
-        min-height: 38px !important;
-    }
     
     /* ==========================================================================
-       6. DESTACADO ESPECIAL Y LLAMATIVO PARA EL CAMPO PRINCIPAL:
-       "Número de Identificación (Presione ENTER para verificar en el sistema)"
+       7. RESALTADO LLAMATIVO Y VIBRANTE PARA NÚMERO DE IDENTIFICACIÓN / CÉDULA
+       Marco Rojo Carmesí fuerte (#e11d48, 3px), fondo tenue y tipografía destacada
        ========================================================================== */
-    div[data-testid="stTextInput"]:has(input[aria-label*="Número de Identificación"]) div[data-baseweb="input"],
-    div[data-testid="stTextInput"]:has(input[aria-label*="Identificación"]) div[data-baseweb="input"] {
-        background-color: #fffbeb !important; /* Fondo cálido ámbar/dorado muy tenue */
-        border: 2.5px solid #d97706 !important; /* Borde ámbar/naranja vibrante y notorio */
+    div[data-testid="stTextInput"]:has([aria-label*="Número de Identificación" i]) div[data-baseweb="input"],
+    div[data-testid="stTextInput"]:has([aria-label*="Número de Identificación" i]) div[data-baseweb="base-input"],
+    div[data-testid="stTextInput"]:has([aria-label*="Identificación" i]) div[data-baseweb="input"],
+    div[data-testid="stTextInput"]:has([aria-label*="Identificación" i]) div[data-baseweb="base-input"] {
+        background-color: #fff1f2 !important;
+        border: 3px solid #e11d48 !important;
         border-radius: 8px !important;
-        min-height: 44px !important; /* Más alto y amplio que el resto */
-        box-shadow: 0 0 0 4px rgba(217, 119, 6, 0.15) !important;
+        min-height: 44px !important;
+        box-shadow: 0 0 0 4px rgba(225, 29, 72, 0.18) !important;
     }
     
-    /* Texto digitado más grande, en negrita y color oscuro elegante */
-    div[data-testid="stTextInput"]:has(input[aria-label*="Número de Identificación"]) input,
-    div[data-testid="stTextInput"]:has(input[aria-label*="Identificación"]) input {
-        font-size: 1.05rem !important;
+    div[data-testid="stTextInput"]:has([aria-label*="Identificación" i]) input {
+        font-size: 1.08rem !important;
         font-weight: 800 !important;
-        color: #78350f !important; /* Ámbar oscuro/café intenso */
+        color: #881337 !important;
         letter-spacing: 0.5px !important;
     }
     
-    /* Placeholder con color llamativo, tamaño mayor y tipografía audaz */
-    div[data-testid="stTextInput"]:has(input[aria-label*="Número de Identificación"]) input::placeholder,
-    div[data-testid="stTextInput"]:has(input[aria-label*="Identificación"]) input::placeholder {
-        color: #b45309 !important; /* Naranja/ámbar notorio y legible */
-        font-weight: 600 !important;
-        font-size: 0.95rem !important;
+    div[data-testid="stTextInput"]:has([aria-label*="Identificación" i]) input::placeholder {
+        color: #be123c !important;
+        font-weight: 700 !important;
+        font-size: 0.96rem !important;
         opacity: 1 !important;
     }
     
-    /* Resplandor intenso al hacer clic */
-    div[data-testid="stTextInput"]:has(input[aria-label*="Número de Identificación"]) div[data-baseweb="input"]:focus-within,
-    div[data-testid="stTextInput"]:has(input[aria-label*="Identificación"]) div[data-baseweb="input"]:focus-within {
+    div[data-testid="stTextInput"]:has([aria-label*="Identificación" i]) div[data-baseweb="input"]:focus-within,
+    div[data-testid="stTextInput"]:has([aria-label*="Identificación" i]) div[data-baseweb="base-input"]:focus-within {
         background-color: #ffffff !important;
-        border-color: #ea580c !important;
-        box-shadow: 0 0 0 4px rgba(234, 88, 12, 0.28) !important;
+        border-color: #be123c !important;
+        box-shadow: 0 0 0 4px rgba(190, 18, 60, 0.3) !important;
     }
     
     /* Quitar bordes anidados en contenedores internos de Streamlit */
     div[data-baseweb="input"] > div,
-    div[data-baseweb="base-input"] > div {
+    div[data-baseweb="base-input"] > div,
+    div[data-baseweb="select"] > div {
         border: none !important;
         background-color: transparent !important;
         box-shadow: none !important;
     }
     
-    /* Input interno transparente y con tipografía nítida */
+    /* Input interior transparente y tipografía legible */
     div[data-testid="stTextInput"] input,
     div[data-testid="stNumberInput"] input,
     div[data-testid="stDateInput"] input,
@@ -234,6 +239,7 @@ st.markdown("""
     
     /* Resplandor al hacer clic en cualquier casilla o selector normal */
     div[data-baseweb="input"]:focus-within,
+    div[data-baseweb="base-input"]:focus-within,
     div[data-baseweb="select"]:focus-within,
     div[data-baseweb="select"] > div:focus-within {
         background-color: #ffffff !important;
@@ -241,7 +247,7 @@ st.markdown("""
         box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.22) !important;
     }
     
-    /* Textos guía (placeholder) para el resto del sistema */
+    /* Textos guía (placeholder) claros para el resto del sistema */
     input::placeholder {
         color: #64748b !important;
         opacity: 0.95 !important;
@@ -249,7 +255,7 @@ st.markdown("""
         font-weight: 400 !important;
     }
     
-    /* 7. Pestañas tipo "Toolbar / Ribbon" de Programa de Escritorio */
+    /* 8. Pestañas tipo "Toolbar / Ribbon" de Programa de Escritorio */
     .stTabs [data-baseweb="tab-list"] {
         gap: 2px;
         background-color: #e2e8f0;
