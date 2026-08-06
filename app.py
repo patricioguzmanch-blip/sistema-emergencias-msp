@@ -118,42 +118,44 @@ st.markdown("""
     }
     
     /* ==========================================================================
-       5. REGLA UNIVERSAL INFALIBLE PARA BORDE AZUL EN ABSOLUTAMENTE TODOS LOS INPUTS
-       Cubre Cédula, Textos, Combo Boxes (Selects), Horas, Fechas y Números por igual
+       5. REGLA UNIVERSAL TOTAL PARA BORDE AZUL Y FONDO EN TODOS LOS CAMPOS
+       Aplica a Cédula, Tipo Doc, Textos, Combos/Selects (CIE-10), Horas y Fechas
        ========================================================================== */
     div[data-testid="stTextInput"] div[data-baseweb="input"],
     div[data-testid="stTextInput"] div[data-baseweb="base-input"],
+    div[data-testid="stTextInputRootElement"],
     div[data-testid="stNumberInput"] div[data-baseweb="input"],
     div[data-testid="stDateInput"] div[data-baseweb="input"],
     div[data-testid="stPasswordInput"] div[data-baseweb="input"],
-    div[data-testid="stSelectbox"] div[data-baseweb="select"] > div,
+    div[data-testid="stSelectbox"] div[data-baseweb="select"],
     div[data-testid="stSelectbox"] div[role="combobox"],
-    div[data-baseweb="select"] > div,
-    div[data-baseweb="input"] {
+    div[data-baseweb="input"],
+    div[data-baseweb="base-input"],
+    div[data-baseweb="select"] {
         background-color: #f0f8ff !important;
-        border: 1.5px solid #3b82f6 !important;
+        border: 2px solid #3b82f6 !important;
         border-radius: 6px !important;
         min-height: 38px !important;
         box-shadow: none !important;
         transition: all 0.15s ease-in-out !important;
     }
     
-    /* Quitar cualquier segundo borde interno que Streamlit dibuje por defecto */
-    div[data-testid="stTextInput"] div[data-baseweb="input"] > div,
-    div[data-testid="stNumberInput"] div[data-baseweb="input"] > div,
-    div[data-testid="stDateInput"] div[data-baseweb="input"] > div,
-    div[data-baseweb="input"] > div {
+    /* Eliminar cualquier borde o fondo duplicado en sub-contenedores internos */
+    div[data-baseweb="input"] > div,
+    div[data-baseweb="base-input"] > div,
+    div[data-baseweb="select"] > div {
         border: none !important;
         background-color: transparent !important;
         box-shadow: none !important;
     }
     
-    /* El campo donde se escribe (input real) debe ser transparente para dejar ver el celeste */
+    /* El campo real de escritura y los selectores transparentes para ver el celeste */
     div[data-testid="stTextInput"] input,
     div[data-testid="stNumberInput"] input,
     div[data-testid="stDateInput"] input,
     div[data-testid="stPasswordInput"] input,
     div[data-baseweb="input"] input,
+    div[data-baseweb="base-input"] input,
     div[data-baseweb="select"] span,
     div[data-baseweb="select"] div {
         background-color: transparent !important;
@@ -161,13 +163,10 @@ st.markdown("""
         font-weight: 600 !important;
     }
     
-    /* Resplandor y cambio a blanco al hacer clic en cualquier campo para escribir o elegir */
-    div[data-testid="stTextInput"] div[data-baseweb="input"]:focus-within,
-    div[data-testid="stNumberInput"] div[data-baseweb="input"]:focus-within,
-    div[data-testid="stDateInput"] div[data-baseweb="input"]:focus-within,
-    div[data-testid="stSelectbox"] div[data-baseweb="select"] > div:focus-within,
+    /* Resplandor y cambio a fondo blanco al hacer clic en CUALQUIER campo */
     div[data-baseweb="input"]:focus-within,
-    div[data-baseweb="select"] > div:focus-within {
+    div[data-baseweb="base-input"]:focus-within,
+    div[data-baseweb="select"]:focus-within {
         background-color: #ffffff !important;
         border-color: #1d4ed8 !important;
         box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.22) !important;
@@ -384,8 +383,8 @@ def login():
                 </div>
             """, unsafe_allow_html=True)
             
-            usuario = st.text_input("👤 Credencial de Usuario", placeholder="Ingrese su nombre de usuario")
-            contrasena = st.text_input("🔑 Contraseña Asignada", type="password", placeholder="Ingrese su contraseña asignada")
+            usuario = st.text_input("👤 Credencial de Usuario", placeholder="Ingrese el usuario institucional")
+            contrasena = st.text_input("🔑 Contraseña Asignada", type="password", placeholder="Ingrese la contraseña asignada")
             
             st.markdown("<br>", unsafe_allow_html=True)
             if st.button("Iniciar Sesión en el Software", use_container_width=True):
@@ -726,8 +725,8 @@ def renderizar_campos_paciente(fk, prefill=None, df_global=None):
                                 st.error(f"Error al guardar ficha: {e}")
             st.stop()
 
-        # [Ajuste de proporciones: 1.3 para Fecha Atención, 1.0 para Hora (evita compresión), 1.3 para Nacimiento, 1.4 de relleno]
-        col9, col10, col11, col12_vacia = st.columns([1.3, 1.0, 1.3, 1.4])
+        # [Proporciones ajustadas para que Hora de Atención no se aplaste en pantallas normales]
+        col9, col10, col11, col12_vacia = st.columns([1.3, 1.1, 1.3, 1.3])
         
         fecha_hoy = obtener_fecha_actual()
         limite_inferior = fecha_hoy - timedelta(days=4)
@@ -740,7 +739,7 @@ def renderizar_campos_paciente(fk, prefill=None, df_global=None):
 
         fecha_atencion = col9.date_input("Fecha de Atención", value=valor_fecha_atencion, min_value=min_calendario, max_value=fecha_hoy, format="DD/MM/YYYY", key=f"fa_{fk}", disabled=es_edicion_usuario)
 
-        # Placeholder acortado para evitar que se desborde o aplaste en pantallas reducidas
+        # Placeholder corto para evitar distorsión visual
         hora_atencion = col10.text_input("Hora de Atención (HH:MM - formato 24h)", value=prefill.get("HORA ATENCION", ""), placeholder="HH:MM (Ej: 14:30)", key=f"ha_{fk}", disabled=es_edicion_usuario)
         hora_valida = True
         if hora_atencion and not re.match(r"^(?:[01]\d|2[0-3]):[0-5]\d$", str(hora_atencion)):
@@ -1053,9 +1052,11 @@ def formulario_principal():
             datos_nuevo = renderizar_campos_paciente(f"nuevo_{fk}", df_global=df_global)
 
             st.markdown("<br>", unsafe_allow_html=True)
-            col_vacia_btn, col_btn_guardar = st.columns([2, 1.3])
+            
+            # BOTÓN DE GUARDADO ALINEADO A LA IZQUIERDA, COMPACTO Y CON TEXTO EXACTO
+            col_btn_guardar, col_vacia_btn = st.columns([1.2, 4.8])
             with col_btn_guardar:
-                if st.button("💾 Grabar Atención en el Sistema Provincial", key=f"btn_nuevo_g_{fk}", use_container_width=True):
+                if st.button("Guardar Atención", key=f"btn_nuevo_g_{fk}", use_container_width=True):
                     if not datos_nuevo["_valido"]:
                         st.error("❌ Se encontraron inconsistencias en la ficha. Verifique los avisos en color rojo antes de guardar.")
                     else:
@@ -1101,7 +1102,7 @@ def formulario_principal():
                         st.info("🔒 **Modo Edición Operador:** Los datos de identificación, demografía y residencia se muestran bloqueados. Solo está permitida la modification de la sección **4. Diagnóstico CIE-10 y Profesional Tratante**.")
                         datos_editados = renderizar_campos_paciente(f"edit_{idx_original}", prefill=fila_editar, df_global=df_global)
                         
-                        col_vacia_e, col_btn_e = st.columns([2, 1.3])
+                        col_btn_e, col_vacia_e = st.columns([1.2, 4.8])
                         with col_btn_e:
                             if st.button("🔄 Sobreescribir Ficha Actualizada", use_container_width=True):
                                 if not datos_editados["_valido"]:
@@ -1139,7 +1140,7 @@ def formulario_principal():
                         st.info("⚠️ Los cambios realizados aquí se sobrescribirán directamente sobre la base provincial de Google Sheets.")
                         datos_admin_edit = renderizar_campos_paciente(f"admin_edit_{idx_audit}", prefill=fila_audit_editar, df_global=df_global)
                         
-                        col_vacia_ae, col_btn_ae = st.columns([2, 1.3])
+                        col_btn_ae, col_vacia_ae = st.columns([1.5, 4.5])
                         with col_btn_ae:
                             if st.button("💾 Sobreescribir Atención en la Base Provincial", key=f"btn_admin_save_{idx_audit}", use_container_width=True):
                                 if not datos_admin_edit["_valido"]:
@@ -1176,7 +1177,7 @@ def formulario_principal():
                         st.warning("⚠️ **ATENCIÓN:** Esta acción eliminará permanentemente la atención seleccionada de la base de datos oficial del MSP Orellana.")
                         confirmar_borrado = st.checkbox(f"Confirmo que deseo eliminar la atención del paciente {fila_audit_editar.get('NUMERO DE IDENTIFICACION','')} fechada el {fila_audit_editar.get('FECHA DE ATENCION','')}.", key=f"chk_del_{idx_audit}")
                         
-                        col_vacia_del, col_btn_del = st.columns([2, 1.3])
+                        col_btn_del, col_vacia_del = st.columns([1.5, 4.5])
                         with col_btn_del:
                             if st.button("🗑️ Eliminar Definitivamente esta Atención", disabled=not confirmar_borrado, key=f"btn_del_at_{idx_audit}", use_container_width=True):
                                 df_global_borrado = df_global.drop(index=idx_audit).reset_index(drop=True)
@@ -1233,7 +1234,7 @@ def formulario_principal():
                             ed_cr = cp14.text_input("Cantón", value=row_pac.get("CANT_RES",""), placeholder="Ingrese el cantón de residencia", key="ed_pac_cr")
                             ed_par = cp15.text_input("Parroquia", value=row_pac.get("PARR_RES",""), placeholder="Ingrese la parroquia de residencia", key="ed_pac_par")
                             
-                            col_vacia_ep, col_btn_ep = st.columns([2, 1.3])
+                            col_btn_ep, col_vacia_ep = st.columns([1.5, 4.5])
                             with col_btn_ep:
                                 if st.button("💾 Guardar Actualización del Paciente", use_container_width=True, key="btn_save_edit_pac"):
                                     if not ed_pa or not ed_pn or not ed_pr:
@@ -1298,7 +1299,7 @@ def formulario_principal():
                             ed_m_pa = cm3.text_input("Primer Apellido", value=row_med.get("PRIMER APELLIDO",""), placeholder="Ingrese el primer apellido", key="ed_med_pa")
                             ed_m_sa = cm4.text_input("Segundo Apellido", value=row_med.get("SEGUNDO APELLIDO",""), placeholder="Ingrese el segundo apellido", key="ed_med_sa")
                             
-                            col_vacia_em, col_btn_em = st.columns([2, 1.3])
+                            col_btn_em, col_vacia_em = st.columns([1.5, 4.5])
                             with col_btn_em:
                                 if st.button("💾 Guardar Actualización del Profesional", use_container_width=True, key="btn_save_edit_med"):
                                     if not ed_m_pn or not ed_m_pa:
@@ -1341,7 +1342,7 @@ def formulario_principal():
                 lista_unis = [str(x) for x in base_est['UNICODIGO'].tolist() if str(x).strip() != "" and str(x).lower() != "nan"] if base_est is not None else []
                 n_uni = c_nu4.selectbox("Unicódigo Asignado", lista_unis)
                 
-            col_vacia_cu, col_btn_cu = st.columns([2, 1.3])
+            col_btn_cu, col_vacia_cu = st.columns([1.5, 4.5])
             with col_btn_cu:
                 if st.button("Crear Acceso Institucional", use_container_width=True):
                     if not n_usr or not n_pwd: st.error("El usuario y la contraseña son requeridos.")
@@ -1366,7 +1367,7 @@ def formulario_principal():
                 col_usr_e, col_usr_v = st.columns([2, 2])
                 usr_a_eliminar = col_usr_e.selectbox("Seleccione el operador a revocar", usuarios_borrables)
                 
-                col_vacia_ru, col_btn_ru = st.columns([2, 1.3])
+                col_btn_ru, col_vacia_ru = st.columns([1.5, 4.5])
                 with col_btn_ru:
                     if st.button("Revocar Acceso Permanentemente", use_container_width=True):
                         df_usuarios = df_usuarios[df_usuarios['USUARIO'] != usr_a_eliminar]
@@ -1394,7 +1395,7 @@ def formulario_principal():
                     st.warning(f"⚠️ Se eliminarán de forma irreversible los registros médicos fechados entre el **{f_inicio_del.strftime('%d/%m/%Y')}** y el **{f_fin_del.strftime('%d/%m/%Y')}**.")
                     confirmar_rango = st.checkbox("Confirmo la depuración oficial para el rango seleccionado.", key="chk_rango_atenciones")
                     
-                    col_vacia_p1, col_btn_p1 = st.columns([2, 1.3])
+                    col_btn_p1, col_vacia_p1 = st.columns([1.5, 4.5])
                     with col_btn_p1:
                         if st.button("🗑️ Ejecutar Depuración del Período", disabled=not confirmar_rango, use_container_width=True):
                             if not df_global.empty and "FECHA DE ATENCION" in df_global.columns:
@@ -1421,7 +1422,7 @@ def formulario_principal():
                 st.write("Esta operación vaciará las listas en línea de ciudadanos y médicos para reiniciar catálogos desde cero.")
                 confirmar_pac_prof = st.checkbox("Confirmo el encerado de catálogos demográficos en el sistema.", key="chk_pac_prof")
                 
-                col_vacia_p2, col_btn_p2 = st.columns([2, 1.3])
+                col_btn_p2, col_vacia_p2 = st.columns([1.5, 4.5])
                 with col_btn_p2:
                     if st.button("🗑️ Reiniciar Catálogos", disabled=not confirmar_pac_prof, use_container_width=True):
                         payload_keys = ["NUMERO DE IDENTIFICACION", "PRIMER APELLIDO", "SEGUNDO APELLIDO", "PRIMER NOMBRE", "SEGUNDO NOMBRE", "SEXO", "EDAD", "CONDICION DE LA EDAD", "NACIONALIDAD", "ETNIA", "GRUPO PRIORITARIO", "TIPO DE SEGURO", "PROV_RES", "CANT_RES", "PARR_RES", "FECHA DE NACIMIENTO DEL PACIENTE"]
@@ -1508,7 +1509,7 @@ def formulario_principal():
                             with pd.ExcelWriter(buf3, engine='openpyxl') as w: 
                                 df_usuario_final.to_excel(w, index=False, sheet_name='Mi_Produccion')
                             
-                            col_vacia_du, col_btn_du = st.columns([1.5, 1.5])
+                            col_btn_du, col_vacia_du = st.columns([1.5, 4.5])
                             with col_btn_du:
                                 st.download_button(
                                     label=f"📥 Descargar Producción de la Unidad ({f_desc_ini.strftime('%d/%m')} al {f_desc_fin.strftime('%d/%m')})", 
