@@ -118,44 +118,65 @@ st.markdown("""
     }
     
     /* ==========================================================================
-       5. REGLA UNIVERSAL TOTAL PARA BORDE AZUL Y FONDO EN TODOS LOS CAMPOS
-       Aplica a Cédula, Tipo Doc, Textos, Combos/Selects (CIE-10), Horas y Fechas
+       5. REGLAS DIFERENCIADAS DE BORDES SEGÚN LO SOLICITADO
        ========================================================================== */
-    div[data-testid="stTextInput"] div[data-baseweb="input"],
-    div[data-testid="stTextInput"] div[data-baseweb="base-input"],
-    div[data-testid="stTextInputRootElement"],
-    div[data-testid="stNumberInput"] div[data-baseweb="input"],
-    div[data-testid="stDateInput"] div[data-baseweb="input"],
-    div[data-testid="stPasswordInput"] div[data-baseweb="input"],
+       
+    /* A) BORDE AZUL (#3b82f6) y FONDO CELESTE (#f0f8ff) para TODOS los COMBOBOX / SELECTBOX 
+          (Cubre Especialidad, CIE-10 Principal, Condición, CIE-10 Secundario, Alta, Hospitalización, Establecimiento, Causa) */
     div[data-testid="stSelectbox"] div[data-baseweb="select"],
-    div[data-testid="stSelectbox"] div[role="combobox"],
-    div[data-baseweb="input"],
-    div[data-baseweb="base-input"],
+    div[data-testid="stSelectbox"] div[data-baseweb="select"] > div,
+    div[data-testid="stSelectbox"] [role="combobox"],
+    div[data-baseweb="select"] > div,
     div[data-baseweb="select"] {
         background-color: #f0f8ff !important;
-        border: 2px solid #3b82f6 !important;
+        border: 1.5px solid #3b82f6 !important;
         border-radius: 6px !important;
         min-height: 38px !important;
         box-shadow: none !important;
         transition: all 0.15s ease-in-out !important;
     }
     
-    /* Eliminar cualquier borde o fondo duplicado en sub-contenedores internos */
+    /* B) QUITAR EL COLOR DE BORDE AZUL a los campos de texto:
+          Primer Apellido, Segundo Apellido, Primer Nombre, Segundo Nombre,
+          Provincia de Residencia, Cantón de Residencia, Parroquia de Residencia.
+          (Quedan con fondo blanco puro y borde gris neutro limpio #cbd5e1) */
+    div[data-testid="stTextInput"]:has(input[aria-label*="Apellido"]) div[data-baseweb="input"],
+    div[data-testid="stTextInput"]:has(input[aria-label*="Nombre"]) div[data-baseweb="input"],
+    div[data-testid="stTextInput"]:has(input[aria-label*="Provincia"]) div[data-baseweb="input"],
+    div[data-testid="stTextInput"]:has(input[aria-label*="Cantón"]) div[data-baseweb="input"],
+    div[data-testid="stTextInput"]:has(input[aria-label*="Parroquia"]) div[data-baseweb="input"] {
+        background-color: #ffffff !important;
+        border: 1px solid #cbd5e1 !important;
+        border-radius: 6px !important;
+        box-shadow: none !important;
+    }
+
+    /* C) Borde institucional azul suave para Identificación, Fechas y Hora */
+    div[data-testid="stTextInput"]:has(input[aria-label*="Identificación"]) div[data-baseweb="input"],
+    div[data-testid="stTextInput"]:has(input[aria-label*="Cédula"]) div[data-baseweb="input"],
+    div[data-testid="stDateInput"] div[data-baseweb="input"],
+    div[data-testid="stNumberInput"] div[data-baseweb="input"],
+    div[data-testid="stTextInput"]:has(input[aria-label*="Hora"]) div[data-baseweb="input"] {
+        background-color: #f0f8ff !important;
+        border: 1.5px solid #3b82f6 !important;
+        border-radius: 6px !important;
+        min-height: 38px !important;
+    }
+    
+    /* Quitar bordes anidados en contenedores internos de Streamlit */
     div[data-baseweb="input"] > div,
-    div[data-baseweb="base-input"] > div,
-    div[data-baseweb="select"] > div {
+    div[data-baseweb="base-input"] > div {
         border: none !important;
         background-color: transparent !important;
         box-shadow: none !important;
     }
     
-    /* El campo real de escritura y los selectores transparentes para ver el celeste */
+    /* Input interno transparente y tipografía nítida */
     div[data-testid="stTextInput"] input,
     div[data-testid="stNumberInput"] input,
     div[data-testid="stDateInput"] input,
     div[data-testid="stPasswordInput"] input,
     div[data-baseweb="input"] input,
-    div[data-baseweb="base-input"] input,
     div[data-baseweb="select"] span,
     div[data-baseweb="select"] div {
         background-color: transparent !important;
@@ -163,10 +184,10 @@ st.markdown("""
         font-weight: 600 !important;
     }
     
-    /* Resplandor y cambio a fondo blanco al hacer clic en CUALQUIER campo */
+    /* Resplandor al hacer clic en cualquier casilla o selector para escribir/elegir */
     div[data-baseweb="input"]:focus-within,
-    div[data-baseweb="base-input"]:focus-within,
-    div[data-baseweb="select"]:focus-within {
+    div[data-baseweb="select"]:focus-within,
+    div[data-baseweb="select"] > div:focus-within {
         background-color: #ffffff !important;
         border-color: #1d4ed8 !important;
         box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.22) !important;
@@ -383,8 +404,8 @@ def login():
                 </div>
             """, unsafe_allow_html=True)
             
-            usuario = st.text_input("👤 Credencial de Usuario", placeholder="Ingrese el usuario institucional")
-            contrasena = st.text_input("🔑 Contraseña Asignada", type="password", placeholder="Ingrese la contraseña asignada")
+            usuario = st.text_input("👤 Credencial de Usuario", placeholder="Ingrese su nombre de usuario")
+            contrasena = st.text_input("🔑 Contraseña Asignada", type="password", placeholder="Ingrese su contraseña asignada")
             
             st.markdown("<br>", unsafe_allow_html=True)
             if st.button("Iniciar Sesión en el Software", use_container_width=True):
@@ -725,7 +746,7 @@ def renderizar_campos_paciente(fk, prefill=None, df_global=None):
                                 st.error(f"Error al guardar ficha: {e}")
             st.stop()
 
-        # [Proporciones ajustadas para que Hora de Atención no se aplaste en pantallas normales]
+        # [Anchos medidos para que Hora de Atención no se distorsione]
         col9, col10, col11, col12_vacia = st.columns([1.3, 1.1, 1.3, 1.3])
         
         fecha_hoy = obtener_fecha_actual()
@@ -739,7 +760,7 @@ def renderizar_campos_paciente(fk, prefill=None, df_global=None):
 
         fecha_atencion = col9.date_input("Fecha de Atención", value=valor_fecha_atencion, min_value=min_calendario, max_value=fecha_hoy, format="DD/MM/YYYY", key=f"fa_{fk}", disabled=es_edicion_usuario)
 
-        # Placeholder corto para evitar distorsión visual
+        # Placeholder corto que entra perfecto en su casilla
         hora_atencion = col10.text_input("Hora de Atención (HH:MM - formato 24h)", value=prefill.get("HORA ATENCION", ""), placeholder="HH:MM (Ej: 14:30)", key=f"ha_{fk}", disabled=es_edicion_usuario)
         hora_valida = True
         if hora_atencion and not re.match(r"^(?:[01]\d|2[0-3]):[0-5]\d$", str(hora_atencion)):
@@ -1053,7 +1074,7 @@ def formulario_principal():
 
             st.markdown("<br>", unsafe_allow_html=True)
             
-            # BOTÓN DE GUARDADO ALINEADO A LA IZQUIERDA, COMPACTO Y CON TEXTO EXACTO
+            # BOTÓN ALINEADO A LA IZQUIERDA Y COMPACTO ("Guardar Atención")
             col_btn_guardar, col_vacia_btn = st.columns([1.2, 4.8])
             with col_btn_guardar:
                 if st.button("Guardar Atención", key=f"btn_nuevo_g_{fk}", use_container_width=True):
