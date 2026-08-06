@@ -70,7 +70,25 @@ st.markdown("""
         margin-bottom: 0.4rem !important;
     }
     
-    /* 2. Botones Estilo Software Ejecutivo (Compactos y precisos) */
+    /* 2. LABELS (ETIQUETAS) EN NEGRITA PARA TODOS LOS CUADROS DE TEXTO Y SELECTORES */
+    div[data-testid="stWidgetLabel"] p,
+    div[data-testid="stWidgetLabel"] label,
+    label[data-testid="stWidgetLabel"],
+    .stTextInput label,
+    .stSelectbox label,
+    .stNumberInput label,
+    .stDateInput label,
+    .stPasswordInput label,
+    div[class*="st-"] > label,
+    div[class*="st-"] label p,
+    label p,
+    label {
+        font-weight: 700 !important;
+        color: #0f172a !important;
+        font-size: 0.89rem !important;
+    }
+    
+    /* 3. Botones Estilo Software Ejecutivo (Compactos y precisos) */
     .stButton > button {
         background: #0f4c81;
         color: #ffffff !important;
@@ -90,7 +108,7 @@ st.markdown("""
         box-shadow: 0 2px 4px rgba(0,0,0,0.14);
     }
     
-    /* 3. Contenedores de Ventana (Marcos de Trabajo estilo panel de control) */
+    /* 4. Contenedores de Ventana (Marcos de Trabajo estilo panel de control) */
     div[data-testid="stVerticalBlockBorderWrapper"] {
         background-color: #ffffff !important;
         border: 1px solid #cbd5e1 !important;
@@ -99,54 +117,61 @@ st.markdown("""
         padding: 1.1rem !important;
     }
     
-    /* 4. ESTILO UNIVERSAL Y FUERZA BRUTA PARA ABSOLUTAMENTE TODOS LOS CONTENEDORES DE ENTRADA */
-    /* Apuntamos directamente al contenedor visual interno (> div) de Streamlit BaseWeb en TODO el software */
+    /* 5. ESTILO UNIVERSAL Y SUAVE PARA TODOS LOS CUADROS DE TEXTO (INCLUYENDO NÚMERO DE IDENTIFICACIÓN / CÉDULA) */
+    /* Borde azul suave institucional (#60a5fa, 1.5px) y fondo celeste hielo tenue (#f0f8ff) */
+    div[data-testid="stTextInput"] div[data-baseweb="input"],
+    div[data-testid="stTextInput"] div[data-baseweb="input"] > div,
+    div[data-testid="stNumberInput"] div[data-baseweb="input"],
+    div[data-testid="stNumberInput"] div[data-baseweb="input"] > div,
+    div[data-testid="stDateInput"] div[data-baseweb="input"],
+    div[data-testid="stDateInput"] div[data-baseweb="input"] > div,
+    div[data-testid="stPasswordInput"] div[data-baseweb="input"],
+    div[data-testid="stPasswordInput"] div[data-baseweb="input"] > div,
+    div[data-testid="stSelectbox"] div[data-baseweb="select"],
+    div[data-testid="stSelectbox"] div[data-baseweb="select"] > div,
     div[data-baseweb="input"] > div,
     div[data-baseweb="base-input"],
-    div[data-baseweb="select"] > div,
-    div[data-testid="stTextInput"] div[data-baseweb="input"] > div,
-    div[data-testid="stNumberInput"] div[data-baseweb="input"] > div,
-    div[data-testid="stDateInput"] div[data-baseweb="input"] > div,
-    div[data-testid="stPasswordInput"] div[data-baseweb="input"] > div,
-    div[data-testid="stSelectbox"] div[data-baseweb="select"] > div,
-    div[data-testid="stSelectbox"] > div > div {
-        background-color: #e8f2fc !important;
-        border: 2px solid #2563eb !important;
+    div[role="combobox"] {
+        background-color: #f0f8ff !important;
+        border: 1.5px solid #60a5fa !important;
         border-radius: 6px !important;
         min-height: 38px !important;
         box-shadow: none !important;
         transition: all 0.15s ease-in-out !important;
     }
     
-    /* Forzamos que el elemento <input> interior sea totalmente transparente para no tapar el fondo celeste hielo #e8f2fc */
-    div[data-baseweb="input"] input,
-    div[data-baseweb="base-input"] input,
+    /* Evitar borde o fondo duplicado en contenedores anidados */
+    div[data-baseweb="input"] > div > div,
+    div[data-baseweb="base-input"] > div {
+        border: none !important;
+        background-color: transparent !important;
+    }
+    
+    /* Input interior transparente y con letra legible */
     div[data-testid="stTextInput"] input,
     div[data-testid="stNumberInput"] input,
     div[data-testid="stDateInput"] input,
-    div[data-testid="stPasswordInput"] input {
-        background-color: transparent !important;
-        border: none !important;
-        color: #0f172a !important;
-        font-weight: 600 !important;
-        box-shadow: none !important;
-    }
-    
-    /* El texto y contenedores internos de las Listas Desplegables (selects) también transparentes */
-    div[data-baseweb="select"] span,
-    div[data-baseweb="select"] div {
+    div[data-testid="stPasswordInput"] input,
+    div[data-baseweb="input"] input,
+    div[data-baseweb="base-input"] input,
+    div[data-testid="stSelectbox"] span,
+    div[data-testid="stSelectbox"] div {
         background-color: transparent !important;
         color: #0f172a !important;
         font-weight: 600 !important;
     }
     
-    /* Resplandor y cambio a fondo blanco al hacer clic en CUALQUIER campo para escribir o seleccionar */
-    div[data-baseweb="input"] > div:focus-within,
-    div[data-baseweb="base-input"]:focus-within,
-    div[data-baseweb="select"] > div:focus-within {
+    /* Estado activo al hacer clic para escribir o seleccionar (ilumina en azul medio suave #3b82f6) */
+    div[data-testid="stTextInput"] div[data-baseweb="input"]:focus-within,
+    div[data-testid="stNumberInput"] div[data-baseweb="input"]:focus-within,
+    div[data-testid="stDateInput"] div[data-baseweb="input"]:focus-within,
+    div[data-testid="stSelectbox"] div[data-baseweb="select"]:focus-within,
+    div[data-testid="stSelectbox"] div[data-baseweb="select"] > div:focus-within,
+    div[data-baseweb="input"]:focus-within,
+    div[data-baseweb="base-input"]:focus-within {
         background-color: #ffffff !important;
-        border-color: #1e40af !important;
-        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.28) !important;
+        border-color: #3b82f6 !important;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.18) !important;
     }
     
     /* Estilo nítido para textos guía (placeholder sin ejemplos) */
@@ -157,7 +182,7 @@ st.markdown("""
         font-weight: 400 !important;
     }
     
-    /* 5. Pestañas tipo "Toolbar / Ribbon" de Programa de Escritorio */
+    /* 6. Pestañas tipo "Toolbar / Ribbon" de Programa de Escritorio */
     .stTabs [data-baseweb="tab-list"] {
         gap: 2px;
         background-color: #e2e8f0;
