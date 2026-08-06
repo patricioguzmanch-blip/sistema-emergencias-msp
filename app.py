@@ -209,7 +209,7 @@ def guardar_tabla(hoja_nombre, df):
         st.error(f"Error guardando {hoja_nombre}: {e}")
 
 # ==============================================================================
-# GESTIÓN DE SESIÓN Y CATÁLOGOS (BLINDADOS CONTRA KEYERROR)
+# GESTIÓN DE SESIÓN Y CATÁLOGOS
 # ==============================================================================
 def cargar_usuarios():
     df = cargar_tabla(HOJA_USUARIOS)
@@ -951,12 +951,12 @@ def formulario_principal():
                             st.success("✅ Atención eliminada correctamente del servidor provincial.")
                             st.rerun()
 
-        # === TAB 2: EDICIÓN DE CATÁLOGOS (PACIENTES Y MÉDICOS) ===
+        # === TAB 2: EDICIÓN DE CATÁLOGOS (PACIENTES Y MÉDICOS CON ACTUALIZACIÓN EN CASCADA) ===
         with tab2:
             st.markdown("<div class='section-title'>✏️ Edición de Catálogos Provinciales (Pacientes y Profesionales)</div>", unsafe_allow_html=True)
             subtab_pac, subtab_med = st.tabs(["👤 Fichas Demográficas de Pacientes", "👨‍⚕️ Catálogo de Profesionales de Salud"])
             
-            # --- SUBTAB 1: EDICIÓN DE PACIENTES ---
+            # --- SUBTAB 1: EDICIÓN DE PACIENTES (CON ACTUALIZACIÓN EN CASCADA) ---
             with subtab_pac:
                 df_pacientes_cat = cargar_tabla(HOJA_PACIENTES)
                 st.markdown("#### Búsqueda y Edición de Pacientes Registrados")
@@ -1003,6 +1003,7 @@ def formulario_principal():
                                 if not ed_pa or not ed_pn or not ed_pr:
                                     st.error("❌ Apellidos, Nombres y Residencia son obligatorios.")
                                 else:
+                                    # 1. ACTUALIZAR EN LA HOJA DE CATÁLOGO 'PACIENTES'
                                     df_pacientes_cat.loc[idx_pac_sel, "PRIMER APELLIDO"] = limpiar_texto(ed_pa)
                                     df_pacientes_cat.loc[idx_pac_sel, "SEGUNDO APELLIDO"] = limpiar_texto(ed_sa)
                                     df_pacientes_cat.loc[idx_pac_sel, "PRIMER NOMBRE"] = limpiar_texto(ed_pn)
@@ -1020,10 +1021,32 @@ def formulario_principal():
                                     df_pacientes_cat.loc[idx_pac_sel, "PARR_RES"] = limpiar_texto(ed_par)
                                     
                                     guardar_tabla(HOJA_PACIENTES, df_pacientes_cat)
-                                    st.success("✅ ¡Ficha demográfica del paciente actualizada en Google Sheets!")
+
+                                    # 2. ACTUALIZACIÓN EN CASCADA EN LA HOJA 'ATENCIONES' (PARA EL EXCEL)
+                                    if not df_global.empty and "NÚMERO DE IDENTIFICACION" in df_global.columns:
+                                        mask_at = df_global["NÚMERO DE IDENTIFICACION"].apply(normalizar_id) == ced_norm_cat
+                                        if mask_at.any():
+                                            df_global.loc[mask_at, "PRIMER APELLIDO"] = limpiar_texto(ed_pa)
+                                            df_global.loc[mask_at, "SEGUNDO APELLIDO"] = limpiar_texto(ed_sa)
+                                            df_global.loc[mask_at, "PRIMER NOMBRE"] = limpiar_texto(ed_pn)
+                                            df_global.loc[mask_at, "SEGUNDO NOMBRE"] = limpiar_texto(ed_sn)
+                                            df_global.loc[mask_at, "FECHA DE NACIMIENTO DEL PACIENTE"] = ed_fn.strftime("%d/%m/%Y")
+                                            df_global.loc[mask_at, "EDAD"] = str(c_edad)
+                                            df_global.loc[mask_at, "CONDICIÓN DE LA EDAD"] = c_cond
+                                            df_global.loc[mask_at, "SEXO"] = ed_sexo
+                                            df_global.loc[mask_at, "NACIONALIDAD"] = ed_nac
+                                            df_global.loc[mask_at, "ETNIA"] = ed_etn
+                                            df_global.loc[mask_at, "GRUPO PRIORITARIO"] = ed_gp
+                                            df_global.loc[mask_at, "TIPO DE SEGURO"] = ed_ts
+                                            df_global.loc[mask_at, "PROV_RES"] = limpiar_texto(ed_pr)
+                                            df_global.loc[mask_at, "CANT_RES"] = limpiar_texto(ed_cr)
+                                            df_global.loc[mask_at, "PARR_RES"] = limpiar_texto(ed_par)
+                                            guardar_tabla(HOJA_ATENCIONES, df_global)
+
+                                    st.success("✅ ¡Ficha demográfica actualizada en el catálogo Y en todo el historial de Atenciones!")
                                     st.rerun()
 
-            # --- SUBTAB 2: EDICIÓN DE MÉDICOS ---
+            # --- SUBTAB 2: EDICIÓN DE MÉDICOS (CON ACTUALIZACIÓN EN CASCADA) ---
             with subtab_med:
                 df_prof_cat = cargar_profesionales()
                 st.markdown("#### Búsqueda y Edición de Profesionales de Salud")
@@ -1052,6 +1075,7 @@ def formulario_principal():
                                     st.error("❌ Primer Nombre y Primer Apellido son obligatorios.")
                                 else:
                                     nom_com = re.sub(r'\s+', ' ', f"{limpiar_texto(ed_m_pn)} {limpiar_texto(ed_m_sn)} {limpiar_texto(ed_m_pa)} {limpiar_texto(ed_m_sa)}").strip()
+                                    # 1. ACTUALIZAR EN LA HOJA 'PROFESIONALES'
                                     df_prof_cat.loc[idx_med_sel, "PRIMER NOMBRE"] = limpiar_texto(ed_m_pn)
                                     df_prof_cat.loc[idx_med_sel, "SEGUNDO NOMBRE"] = limpiar_texto(ed_m_sn)
                                     df_prof_cat.loc[idx_med_sel, "PRIMER APELLIDO"] = limpiar_texto(ed_m_pa)
@@ -1059,7 +1083,15 @@ def formulario_principal():
                                     df_prof_cat.loc[idx_med_sel, "NOMBRE_COMPLETO"] = nom_com
                                     
                                     guardar_tabla(HOJA_PROFESIONALES, df_prof_cat)
-                                    st.success("✅ ¡Nombre del profesional actualizado en el catálogo oficial!")
+
+                                    # 2. ACTUALIZACIÓN EN CASCADA EN LA HOJA 'ATENCIONES' (PARA EL EXCEL)
+                                    if not df_global.empty and "NÚMERO DE IDENTIFICACIÓN DEL PROFESIONAL DE SALUD" in df_global.columns:
+                                        mask_med = df_global["NÚMERO DE IDENTIFICACIÓN DEL PROFESIONAL DE SALUD"].apply(normalizar_id) == ced_norm_med
+                                        if mask_med.any():
+                                            df_global.loc[mask_med, "NOMBRES Y APELLIDOS DEL PROFESIONAL DE SALUD"] = nom_com
+                                            guardar_tabla(HOJA_ATENCIONES, df_global)
+
+                                    st.success("✅ ¡Nombre del profesional actualizado en el catálogo Y en todas sus atenciones registradas!")
                                     st.rerun()
 
         # === TAB 3: ADMINISTRACIÓN DE USUARIOS INSTITUCIONALES ===
