@@ -118,11 +118,11 @@ st.markdown("""
     }
     
     /* ==========================================================================
-       5. REGLAS DIFERENCIADAS DE BORDES SEGÚN LO SOLICITADO
+       5. REGLAS DE BORDES Y FONDOS SEGÚN JERARQUÍA SOLICITADA
        ========================================================================== */
        
-    /* A) BORDE AZUL (#3b82f6) y FONDO CELESTE (#f0f8ff) para TODOS los COMBOBOX / SELECTBOX 
-          (Cubre Especialidad, CIE-10 Principal, Condición, CIE-10 Secundario, Alta, Hospitalización, Establecimiento, Causa) */
+    /* A) BORDE AZUL (#3b82f6) y FONDO CELESTE (#f0f8ff) para COMBOS y CAMPOS SELECCIONADOS
+          (Cubre Especialidad, CIE-10 Principal, Condición, CIE-10 Secundario, Alta, Hospitalización, Establecimiento, Causa, Médico, etc.) */
     div[data-testid="stSelectbox"] div[data-baseweb="select"],
     div[data-testid="stSelectbox"] div[data-baseweb="select"] > div,
     div[data-testid="stSelectbox"] [role="combobox"],
@@ -135,25 +135,33 @@ st.markdown("""
         box-shadow: none !important;
         transition: all 0.15s ease-in-out !important;
     }
-    
-    /* B) QUITAR EL COLOR DE BORDE AZUL a los campos de texto:
-          Primer Apellido, Segundo Apellido, Primer Nombre, Segundo Nombre,
-          Provincia de Residencia, Cantón de Residencia, Parroquia de Residencia.
-          (Quedan con fondo blanco puro y borde gris neutro limpio #cbd5e1) */
-    div[data-testid="stTextInput"]:has(input[aria-label*="Apellido"]) div[data-baseweb="input"],
-    div[data-testid="stTextInput"]:has(input[aria-label*="Nombre"]) div[data-baseweb="input"],
+
+    /* B) CAMPOS SIN BORDE AZUL (Fondo blanco puro #ffffff y borde gris neutro limpio #cbd5e1):
+          - Sexo, Condición de la Edad, Nacionalidad, Etnia, Grupo Prioritario, Tipo de Seguro
+          - Primer Apellido, Segundo Apellido, Primer Nombre, Segundo Nombre
+          - Provincia, Cantón y Parroquia de Residencia */
+    div[data-testid="stTextInput"]:has(input[aria-label*="Primer Apellido"]) div[data-baseweb="input"],
+    div[data-testid="stTextInput"]:has(input[aria-label*="Segundo Apellido"]) div[data-baseweb="input"],
+    div[data-testid="stTextInput"]:has(input[aria-label*="Primer Nombre"]) div[data-baseweb="input"],
+    div[data-testid="stTextInput"]:has(input[aria-label*="Segundo Nombre"]) div[data-baseweb="input"],
     div[data-testid="stTextInput"]:has(input[aria-label*="Provincia"]) div[data-baseweb="input"],
     div[data-testid="stTextInput"]:has(input[aria-label*="Cantón"]) div[data-baseweb="input"],
-    div[data-testid="stTextInput"]:has(input[aria-label*="Parroquia"]) div[data-baseweb="input"] {
+    div[data-testid="stTextInput"]:has(input[aria-label*="Parroquia"]) div[data-baseweb="input"],
+    div[data-testid="stSelectbox"]:has([aria-label*="Sexo"]) div[data-baseweb="select"],
+    div[data-testid="stSelectbox"]:has([aria-label*="Condición de la Edad"]) div[data-baseweb="select"],
+    div[data-testid="stSelectbox"]:has([aria-label*="Nacionalidad"]) div[data-baseweb="select"],
+    div[data-testid="stSelectbox"]:has([aria-label*="Etnia"]) div[data-baseweb="select"],
+    div[data-testid="stSelectbox"]:has([aria-label*="Grupo Prioritario"]) div[data-baseweb="select"],
+    div[data-testid="stSelectbox"]:has([aria-label*="Seguro"]) div[data-baseweb="select"] {
         background-color: #ffffff !important;
         border: 1px solid #cbd5e1 !important;
         border-radius: 6px !important;
         box-shadow: none !important;
     }
 
-    /* C) Borde institucional azul suave para Identificación, Fechas y Hora */
-    div[data-testid="stTextInput"]:has(input[aria-label*="Identificación"]) div[data-baseweb="input"],
-    div[data-testid="stTextInput"]:has(input[aria-label*="Cédula"]) div[data-baseweb="input"],
+    /* C) BORDE AZUL INSTITUCIONAL para Cédula Profesional, Nombre Profesional, Fechas y Hora */
+    div[data-testid="stTextInput"]:has(input[aria-label*="Cédula Profesional"]) div[data-baseweb="input"],
+    div[data-testid="stTextInput"]:has(input[aria-label*="Nombres y Apellidos del Profesional"]) div[data-baseweb="input"],
     div[data-testid="stDateInput"] div[data-baseweb="input"],
     div[data-testid="stNumberInput"] div[data-baseweb="input"],
     div[data-testid="stTextInput"]:has(input[aria-label*="Hora"]) div[data-baseweb="input"] {
@@ -161,6 +169,45 @@ st.markdown("""
         border: 1.5px solid #3b82f6 !important;
         border-radius: 6px !important;
         min-height: 38px !important;
+    }
+    
+    /* ==========================================================================
+       6. DESTACADO ESPECIAL Y LLAMATIVO PARA EL CAMPO PRINCIPAL:
+       "Número de Identificación (Presione ENTER para verificar en el sistema)"
+       ========================================================================== */
+    div[data-testid="stTextInput"]:has(input[aria-label*="Número de Identificación"]) div[data-baseweb="input"],
+    div[data-testid="stTextInput"]:has(input[aria-label*="Identificación"]) div[data-baseweb="input"] {
+        background-color: #fffbeb !important; /* Fondo cálido ámbar/dorado muy tenue */
+        border: 2.5px solid #d97706 !important; /* Borde ámbar/naranja vibrante y notorio */
+        border-radius: 8px !important;
+        min-height: 44px !important; /* Más alto y amplio que el resto */
+        box-shadow: 0 0 0 4px rgba(217, 119, 6, 0.15) !important;
+    }
+    
+    /* Texto digitado más grande, en negrita y color oscuro elegante */
+    div[data-testid="stTextInput"]:has(input[aria-label*="Número de Identificación"]) input,
+    div[data-testid="stTextInput"]:has(input[aria-label*="Identificación"]) input {
+        font-size: 1.05rem !important;
+        font-weight: 800 !important;
+        color: #78350f !important; /* Ámbar oscuro/café intenso */
+        letter-spacing: 0.5px !important;
+    }
+    
+    /* Placeholder con color llamativo, tamaño mayor y tipografía audaz */
+    div[data-testid="stTextInput"]:has(input[aria-label*="Número de Identificación"]) input::placeholder,
+    div[data-testid="stTextInput"]:has(input[aria-label*="Identificación"]) input::placeholder {
+        color: #b45309 !important; /* Naranja/ámbar notorio y legible */
+        font-weight: 600 !important;
+        font-size: 0.95rem !important;
+        opacity: 1 !important;
+    }
+    
+    /* Resplandor intenso al hacer clic */
+    div[data-testid="stTextInput"]:has(input[aria-label*="Número de Identificación"]) div[data-baseweb="input"]:focus-within,
+    div[data-testid="stTextInput"]:has(input[aria-label*="Identificación"]) div[data-baseweb="input"]:focus-within {
+        background-color: #ffffff !important;
+        border-color: #ea580c !important;
+        box-shadow: 0 0 0 4px rgba(234, 88, 12, 0.28) !important;
     }
     
     /* Quitar bordes anidados en contenedores internos de Streamlit */
@@ -171,12 +218,13 @@ st.markdown("""
         box-shadow: none !important;
     }
     
-    /* Input interno transparente y tipografía nítida */
+    /* Input interno transparente y con tipografía nítida */
     div[data-testid="stTextInput"] input,
     div[data-testid="stNumberInput"] input,
     div[data-testid="stDateInput"] input,
     div[data-testid="stPasswordInput"] input,
     div[data-baseweb="input"] input,
+    div[data-baseweb="base-input"] input,
     div[data-baseweb="select"] span,
     div[data-baseweb="select"] div {
         background-color: transparent !important;
@@ -184,7 +232,7 @@ st.markdown("""
         font-weight: 600 !important;
     }
     
-    /* Resplandor al hacer clic en cualquier casilla o selector para escribir/elegir */
+    /* Resplandor al hacer clic en cualquier casilla o selector normal */
     div[data-baseweb="input"]:focus-within,
     div[data-baseweb="select"]:focus-within,
     div[data-baseweb="select"] > div:focus-within {
@@ -193,7 +241,7 @@ st.markdown("""
         box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.22) !important;
     }
     
-    /* Textos guía (placeholder) nítidos y sin ejemplos */
+    /* Textos guía (placeholder) para el resto del sistema */
     input::placeholder {
         color: #64748b !important;
         opacity: 0.95 !important;
@@ -201,7 +249,7 @@ st.markdown("""
         font-weight: 400 !important;
     }
     
-    /* 6. Pestañas tipo "Toolbar / Ribbon" de Programa de Escritorio */
+    /* 7. Pestañas tipo "Toolbar / Ribbon" de Programa de Escritorio */
     .stTabs [data-baseweb="tab-list"] {
         gap: 2px;
         background-color: #e2e8f0;
@@ -606,7 +654,7 @@ def modal_nuevo_profesional(cedula_prof):
     p_ape = st.text_input("3. Primer Apellido", placeholder="Ingrese el primer apellido", key="new_prof_pape")
     s_ape = st.text_input("4. Segundo Apellido", placeholder="Ingrese el segundo apellido", key="new_prof_sape")
     
-    col_vacia_m, col_btn_m = st.columns([1, 1.3])
+    col_btn_m, col_vacia_m = st.columns([1.3, 1])
     with col_btn_m:
         if st.button("💾 Guardar y Registrar Profesional", use_container_width=True):
             if not p_nom or not p_ape:
@@ -713,7 +761,7 @@ def renderizar_campos_paciente(fk, prefill=None, df_global=None):
                 np_cr = c_np14.text_input("Cantón de Residencia", placeholder="Ingrese el cantón de residencia", key=f"np_cr_{fk}")
                 np_par = c_np15.text_input("Parroquia de Residencia", placeholder="Ingrese la parroquia de residencia", key=f"np_par_{fk}")
 
-                col_vacia_btn, col_btn_pac = st.columns([2, 1.2])
+                col_btn_pac, col_vacia_btn = st.columns([1.2, 2])
                 with col_btn_pac:
                     if st.button("💾 Grabar Nueva Ficha en el Sistema", key=f"btn_save_pac_{fk}", use_container_width=True):
                         if not np_pa.strip() or not np_sa.strip() or not np_pn.strip() or not np_sn.strip() or not np_fn or not np_pr.strip() or not np_cr.strip() or not np_par.strip():
@@ -746,7 +794,6 @@ def renderizar_campos_paciente(fk, prefill=None, df_global=None):
                                 st.error(f"Error al guardar ficha: {e}")
             st.stop()
 
-        # [Anchos medidos para que Hora de Atención no se distorsione]
         col9, col10, col11, col12_vacia = st.columns([1.3, 1.1, 1.3, 1.3])
         
         fecha_hoy = obtener_fecha_actual()
@@ -760,7 +807,6 @@ def renderizar_campos_paciente(fk, prefill=None, df_global=None):
 
         fecha_atencion = col9.date_input("Fecha de Atención", value=valor_fecha_atencion, min_value=min_calendario, max_value=fecha_hoy, format="DD/MM/YYYY", key=f"fa_{fk}", disabled=es_edicion_usuario)
 
-        # Placeholder corto que entra perfecto en su casilla
         hora_atencion = col10.text_input("Hora de Atención (HH:MM - formato 24h)", value=prefill.get("HORA ATENCION", ""), placeholder="HH:MM (Ej: 14:30)", key=f"ha_{fk}", disabled=es_edicion_usuario)
         hora_valida = True
         if hora_atencion and not re.match(r"^(?:[01]\d|2[0-3]):[0-5]\d$", str(hora_atencion)):
