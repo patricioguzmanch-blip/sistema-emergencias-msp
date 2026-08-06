@@ -99,27 +99,46 @@ st.markdown("""
         padding: 1.1rem !important;
     }
     
-    /* 4. Inputs Estilo Software (Borde azul profesional, fondo azul hielo tenue y texto guía claro) */
-    div[data-baseweb="input"] > div, div[data-baseweb="select"] > div {
+    /* 4. Inputs y Selectores: Borde Azul Profesional (#2563eb) y Fondo Hielo Visible (#e8f2fc) en todo el software */
+    div[data-testid="stTextInput"] div[data-baseweb="input"],
+    div[data-testid="stNumberInput"] div[data-baseweb="input"],
+    div[data-testid="stDateInput"] div[data-baseweb="input"],
+    div[data-testid="stSelectbox"] div[data-baseweb="select"] > div,
+    div[data-testid="stPasswordInput"] div[data-baseweb="input"] {
         border-radius: 6px !important;
-        border: 1.5px solid #2563eb !important;
-        background-color: #f0f7ff !important;
+        border: 2px solid #2563eb !important;
+        background-color: #e8f2fc !important;
         min-height: 38px !important;
-        font-size: 0.88rem !important;
         transition: all 0.15s ease-in-out;
     }
     
-    div[data-baseweb="input"] > div:focus-within, div[data-baseweb="select"] > div:focus-within {
-        border-color: #1d4ed8 !important;
-        background-color: #ffffff !important;
-        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2) !important;
+    /* Hacemos transparente el input interior para no ocultar el fondo azul hielo del contenedor */
+    div[data-testid="stTextInput"] input,
+    div[data-testid="stNumberInput"] input,
+    div[data-testid="stDateInput"] input,
+    div[data-testid="stPasswordInput"] input {
+        background-color: transparent !important;
+        color: #0f172a !important;
+        font-weight: 500 !important;
     }
     
-    /* Estilo para los textos guía (placeholders) */
+    /* Resplandor y cambio a fondo blanco cuando el operador hace clic para escribir */
+    div[data-testid="stTextInput"] div[data-baseweb="input"]:focus-within,
+    div[data-testid="stNumberInput"] div[data-baseweb="input"]:focus-within,
+    div[data-testid="stDateInput"] div[data-baseweb="input"]:focus-within,
+    div[data-testid="stSelectbox"] div[data-baseweb="select"] > div:focus-within,
+    div[data-testid="stPasswordInput"] div[data-baseweb="input"]:focus-within {
+        border-color: #1d4ed8 !important;
+        background-color: #ffffff !important;
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.25) !important;
+    }
+    
+    /* Estilo nítido para textos guía (placeholder sin ejemplos) */
     input::placeholder {
-        color: #64748b !important;
-        opacity: 0.85 !important;
-        font-style: italic;
+        color: #475569 !important;
+        opacity: 0.95 !important;
+        font-style: normal !important;
+        font-weight: 400 !important;
     }
     
     /* 5. Pestañas tipo "Toolbar / Ribbon" de Programa de Escritorio */
@@ -149,14 +168,16 @@ st.markdown("""
         border-bottom: 2px solid #0f4c81 !important;
     }
     
-    /* Input de Número de Identificación con aspecto de software médico verificado */
+    /* Resaltado especial en Verde Esmeralda para la celda de Número de Identificación / Cédula */
     div[data-testid="stTextInput"] div[data-baseweb="input"]:has(input[aria-label*="Número de Identificación"]),
-    div[data-testid="stTextInput"] div[data-baseweb="input"]:has(input[aria-label*="Cédula"]) {
+    div[data-testid="stTextInput"] div[data-baseweb="input"]:has(input[aria-label*="Cédula"]),
+    div[data-testid="stTextInput"] div[data-baseweb="input"]:has(input[aria-label*="cédula"]) {
         background-color: #f0fdf4 !important;
-        border: 1.5px solid #16a34a !important;
+        border: 2px solid #16a34a !important;
     }
     
-    div[data-testid="stTextInput"] div[data-baseweb="input"]:has(input[aria-label*="Número de Identificación"]) input {
+    div[data-testid="stTextInput"] div[data-baseweb="input"]:has(input[aria-label*="Número de Identificación"]) input,
+    div[data-testid="stTextInput"] div[data-baseweb="input"]:has(input[aria-label*="Cédula"]) input {
         color: #166534 !important;
         font-weight: 700;
     }
@@ -337,8 +358,8 @@ def login():
                 </div>
             """, unsafe_allow_html=True)
             
-            usuario = st.text_input("👤 Credencial de Usuario", placeholder="Ej: Tello2047")
-            contrasena = st.text_input("🔑 Contraseña Asignada", type="password", placeholder="••••••••••••")
+            usuario = st.text_input("👤 Credencial de Usuario", placeholder="Ingrese su usuario institucional")
+            contrasena = st.text_input("🔑 Contraseña Asignada", type="password", placeholder="Ingrese su contraseña asignada")
             
             st.markdown("<br>", unsafe_allow_html=True)
             if st.button("Iniciar Sesión en el Software", use_container_width=True):
@@ -534,10 +555,10 @@ def sincronizar_descarga_con_catalogos(df_target, df_pacientes, df_profesionales
 @st.dialog("👨‍⚕️ Registro de Nuevo Profesional de Salud")
 def modal_nuevo_profesional(cedula_prof):
     st.markdown(f"La cédula **{cedula_prof}** no figura en el catálogo general. Ingrese los datos oficiales:")
-    p_nom = st.text_input("1. Primer Nombre", placeholder="Ej: CARLOS", key="new_prof_pnom")
-    s_nom = st.text_input("2. Segundo Nombre", placeholder="Ej: EDUARDO", key="new_prof_snom")
-    p_ape = st.text_input("3. Primer Apellido", placeholder="Ej: MENDOZA", key="new_prof_pape")
-    s_ape = st.text_input("4. Segundo Apellido", placeholder="Ej: LÓPEZ", key="new_prof_sape")
+    p_nom = st.text_input("1. Primer Nombre", placeholder="Ingrese el primer nombre", key="new_prof_pnom")
+    s_nom = st.text_input("2. Segundo Nombre", placeholder="Ingrese el segundo nombre", key="new_prof_snom")
+    p_ape = st.text_input("3. Primer Apellido", placeholder="Ingrese el primer apellido", key="new_prof_pape")
+    s_ape = st.text_input("4. Segundo Apellido", placeholder="Ingrese el segundo apellido", key="new_prof_sape")
     
     col_vacia_m, col_btn_m = st.columns([1, 1.3])
     with col_btn_m:
@@ -573,7 +594,7 @@ def renderizar_campos_paciente(fk, prefill=None, df_global=None):
     with st.container(border=True):
         col_doc1, col_doc2, col_doc_vacia = st.columns([1.5, 1.5, 1.0])
         tipo_doc = col_doc1.selectbox("Tipo de Documento", TIPOS_DOCUMENTO, index=safe_index(TIPOS_DOCUMENTO, prefill.get("TIPO DE DOCUMENTO DE IDENTIFICACION")), key=f"td_{fk}", disabled=es_edicion_usuario)
-        identificacion = col_doc2.text_input("Número de Identificación (Presione ENTER para verificar en el sistema)", placeholder="Ej: 2200123456 (Presione ENTER)", value=prefill.get("NUMERO DE IDENTIFICACION", ""), key=f"id_{fk}", disabled=es_edicion_usuario)
+        identificacion = col_doc2.text_input("Número de Identificación (Presione ENTER para verificar en el sistema)", placeholder="Ingrese el número de cédula y presione ENTER", value=prefill.get("NUMERO DE IDENTIFICACION", ""), key=f"id_{fk}", disabled=es_edicion_usuario)
         
         id_valida = False
         if identificacion:
@@ -623,10 +644,10 @@ def renderizar_campos_paciente(fk, prefill=None, df_global=None):
             with st.expander("📝 INGRESO DE NUEVA FICHA DEMOGRÁFICA DEL PACIENTE", expanded=True):
                 st.markdown("Los campos demográficos son obligatorios de acuerdo a la normativa ministerial.")
                 c_np1, c_np2, c_np3, c_np4 = st.columns(4)
-                np_pa = c_np1.text_input("Primer Apellido", placeholder="Ej: GUZMÁN", key=f"np_pa_{fk}")
-                np_sa = c_np2.text_input("Segundo Apellido", placeholder="Ej: CHANALUISA (o N/A)", key=f"np_sa_{fk}")
-                np_pn = c_np3.text_input("Primer Nombre", placeholder="Ej: WILMER", key=f"np_pn_{fk}")
-                np_sn = c_np4.text_input("Segundo Nombre", placeholder="Ej: PATRICIO (o N/A)", key=f"np_sn_{fk}")
+                np_pa = c_np1.text_input("Primer Apellido", placeholder="Ingrese el primer apellido", key=f"np_pa_{fk}")
+                np_sa = c_np2.text_input("Segundo Apellido", placeholder="Ingrese el segundo apellido", key=f"np_sa_{fk}")
+                np_pn = c_np3.text_input("Primer Nombre", placeholder="Ingrese el primer nombre", key=f"np_pn_{fk}")
+                np_sn = c_np4.text_input("Segundo Nombre", placeholder="Ingrese el segundo nombre", key=f"np_sn_{fk}")
                 
                 c_np5, c_np6, c_np7, c_np_vacia = st.columns([1.2, 0.8, 1.1, 1.9])
                 np_fn = c_np5.date_input("Fecha de Nacimiento", value=None, min_value=date(1900, 1, 1), max_value=obtener_fecha_actual(), format="DD/MM/YYYY", key=f"np_fn_form_{fk}")
@@ -642,9 +663,9 @@ def renderizar_campos_paciente(fk, prefill=None, df_global=None):
 
                 c_np12, c_np13, c_np14, c_np15 = st.columns(4)
                 np_ts = c_np12.selectbox("Tipo de Seguro / Cobertura", TIPO_SEGURO, key=f"np_ts_{fk}")
-                np_pr = c_np13.text_input("Provincia de Residencia", placeholder="Ej: ORELLANA", key=f"np_pr_{fk}")
-                np_cr = c_np14.text_input("Cantón de Residencia", placeholder="Ej: AGUARICO", key=f"np_cr_{fk}")
-                np_par = c_np15.text_input("Parroquia de Residencia", placeholder="Ej: NUEVO ROCAFUERTE", key=f"np_par_{fk}")
+                np_pr = c_np13.text_input("Provincia de Residencia", placeholder="Ingrese la provincia de residencia", key=f"np_pr_{fk}")
+                np_cr = c_np14.text_input("Cantón de Residencia", placeholder="Ingrese el cantón de residencia", key=f"np_cr_{fk}")
+                np_par = c_np15.text_input("Parroquia de Residencia", placeholder="Ingrese la parroquia de residencia", key=f"np_par_{fk}")
 
                 col_vacia_btn, col_btn_pac = st.columns([2, 1.2])
                 with col_btn_pac:
@@ -692,7 +713,7 @@ def renderizar_campos_paciente(fk, prefill=None, df_global=None):
 
         fecha_atencion = col9.date_input("Fecha de Atención", value=valor_fecha_atencion, min_value=min_calendario, max_value=fecha_hoy, format="DD/MM/YYYY", key=f"fa_{fk}", disabled=es_edicion_usuario)
 
-        hora_atencion = col10.text_input("Hora de Atención (HH:MM - formato 24h)", value=prefill.get("HORA ATENCION", ""), placeholder="Ej: 14:30 (Formato 24h)", key=f"ha_{fk}", disabled=es_edicion_usuario)
+        hora_atencion = col10.text_input("Hora de Atención (HH:MM - formato 24h)", value=prefill.get("HORA ATENCION", ""), placeholder="Ingrese la hora en formato HH:MM", key=f"ha_{fk}", disabled=es_edicion_usuario)
         hora_valida = True
         if hora_atencion and not re.match(r"^(?:[01]\d|2[0-3]):[0-5]\d$", str(hora_atencion)):
             col10.error("❌ Formato horario inválido (use HH:MM, ejemplo: 08:30 o 21:15).")
@@ -707,10 +728,10 @@ def renderizar_campos_paciente(fk, prefill=None, df_global=None):
         fecha_nacimiento = col11.date_input("Fecha de Nacimiento", value=safe_date(fn_val, default_today=False), min_value=date(1900, 1, 1), max_value=fecha_hoy, format="DD/MM/YYYY", key=f"fn_{fk}{dyn_k}", disabled=bloquear_campos)
 
         col14, col15, col16, col17 = st.columns(4)
-        primer_apellido = col14.text_input("Primer Apellido", value=limpiar_texto(prefill.get("PRIMER APELLIDO", "")), placeholder="Ej: GUZMÁN", key=f"pa_{fk}{dyn_k}", disabled=bloquear_campos)
-        segundo_apellido = col15.text_input("Segundo Apellido", value=limpiar_texto(prefill.get("SEGUNDO APELLIDO", "")), placeholder="Ej: CHANALUISA (o N/A)", key=f"sa_{fk}{dyn_k}", disabled=bloquear_campos)
-        primer_nombre = col16.text_input("Primer Nombre", value=limpiar_texto(prefill.get("PRIMER NOMBRE", "")), placeholder="Ej: WILMER", key=f"pn_{fk}{dyn_k}", disabled=bloquear_campos)
-        segundo_nombre = col17.text_input("Segundo Nombre", value=limpiar_texto(prefill.get("SEGUNDO NOMBRE", "")), placeholder="Ej: PATRICIO (o N/A)", key=f"sn_{fk}{dyn_k}", disabled=bloquear_campos)
+        primer_apellido = col14.text_input("Primer Apellido", value=limpiar_texto(prefill.get("PRIMER APELLIDO", "")), placeholder="Ingrese el primer apellido", key=f"pa_{fk}{dyn_k}", disabled=bloquear_campos)
+        segundo_apellido = col15.text_input("Segundo Apellido", value=limpiar_texto(prefill.get("SEGUNDO APELLIDO", "")), placeholder="Ingrese el segundo apellido", key=f"sa_{fk}{dyn_k}", disabled=bloquear_campos)
+        primer_nombre = col16.text_input("Primer Nombre", value=limpiar_texto(prefill.get("PRIMER NOMBRE", "")), placeholder="Ingrese el primer nombre", key=f"pn_{fk}{dyn_k}", disabled=bloquear_campos)
+        segundo_nombre = col17.text_input("Segundo Nombre", value=limpiar_texto(prefill.get("SEGUNDO NOMBRE", "")), placeholder="Ingrese el segundo nombre", key=f"sn_{fk}{dyn_k}", disabled=bloquear_campos)
         
         col18, col19, col20, col21 = st.columns([1.1, 0.6, 1.0, 1.5])
         sexo = col18.selectbox("Sexo", SEXO_OPCIONES, index=safe_index(SEXO_OPCIONES, prefill.get("SEXO")), key=f"sx_{fk}{dyn_k}", disabled=bloquear_campos)
@@ -730,9 +751,9 @@ def renderizar_campos_paciente(fk, prefill=None, df_global=None):
     st.markdown("<div class='section-title'>📍 3. Información de Residencia del Ciudadano</div>", unsafe_allow_html=True)
     with st.container(border=True):
         col25, col26, col27 = st.columns(3)
-        prov_res = col25.text_input("Provincia de Residencia", value=limpiar_texto(prefill.get("PROV_RES", "ORELLANA")), placeholder="Ej: ORELLANA", key=f"pr_{fk}{dyn_k}", disabled=bloquear_campos)
-        cant_res = col26.text_input("Cantón de Residencia", value=limpiar_texto(prefill.get("CANT_RES", "")), placeholder="Ej: AGUARICO", key=f"cr_{fk}{dyn_k}", disabled=bloquear_campos)
-        parr_res = col27.text_input("Parroquia de Residencia", value=limpiar_texto(prefill.get("PARR_RES", "")), placeholder="Ej: NUEVO ROCAFUERTE", key=f"par_{fk}{dyn_k}", disabled=bloquear_campos)
+        prov_res = col25.text_input("Provincia de Residencia", value=limpiar_texto(prefill.get("PROV_RES", "ORELLANA")), placeholder="Ingrese la provincia de residencia", key=f"pr_{fk}{dyn_k}", disabled=bloquear_campos)
+        cant_res = col26.text_input("Cantón de Residencia", value=limpiar_texto(prefill.get("CANT_RES", "")), placeholder="Ingrese el cantón de residencia", key=f"cr_{fk}{dyn_k}", disabled=bloquear_campos)
+        parr_res = col27.text_input("Parroquia de Residencia", value=limpiar_texto(prefill.get("PARR_RES", "")), placeholder="Ingrese la parroquia de residencia", key=f"par_{fk}{dyn_k}", disabled=bloquear_campos)
 
     # =========================================================================
     # SECCIÓN 4: SIEMPRE DISPONIBLE PARA MODIFICACIÓN DEL USUARIO OPERADOR
@@ -816,7 +837,7 @@ def renderizar_campos_paciente(fk, prefill=None, df_global=None):
             valido_hosp = False
 
         col37, col38 = st.columns([1.5, 2.5])
-        id_profesional = col37.text_input("Cédula Profesional del Médico (Presione ENTER)", placeholder="Ej: 1712345678 (Presione ENTER)", value=prefill.get("NUMERO DE IDENTIFICACION DEL PROFESIONAL DE SALUD", ""), key=f"ip_{fk}", disabled=False)
+        id_profesional = col37.text_input("Cédula Profesional del Médico (Presione ENTER)", placeholder="Ingrese el número de cédula del médico y presione ENTER", value=prefill.get("NUMERO DE IDENTIFICACION DEL PROFESIONAL DE SALUD", ""), key=f"ip_{fk}", disabled=False)
         
         id_prof_valida = False
         nombre_prof_auto = prefill.get("NOMBRES Y APELLIDOS DEL PROFESIONAL DE SALUD", "")
@@ -845,7 +866,7 @@ def renderizar_campos_paciente(fk, prefill=None, df_global=None):
         else:
             if fk.startswith("nuevo") and f"np_{fk}" in st.session_state: st.session_state[f"np_{fk}"] = ""
 
-        nombre_profesional = col38.text_input("Nombres y Apellidos del Profesional", value=limpiar_texto(nombre_prof_auto), placeholder="Ej: DR. CARLOS PÉREZ", key=f"np_{fk}", disabled=(profesional_encontrado and fk.startswith("nuevo")))
+        nombre_profesional = col38.text_input("Nombres y Apellidos del Profesional", value=limpiar_texto(nombre_prof_auto), placeholder="Ingrese los nombres y apellidos del profesional de salud", key=f"np_{fk}", disabled=(profesional_encontrado and fk.startswith("nuevo")))
 
         val_fecha_nacimiento = fecha_nacimiento.strftime("%d/%m/%Y") if fecha_nacimiento else "N/A"
         val_fecha_atencion = fecha_atencion.strftime("%d/%m/%Y") if fecha_atencion else ""
@@ -1035,7 +1056,7 @@ def formulario_principal():
         with tab2:
             st.markdown("<div class='section-title'>🔍 Corrección y Actualización de Fichas de la Unidad</div>", unsafe_allow_html=True)
             col_ced_b, col_ced_v = st.columns([2, 2])
-            busqueda_cedula = col_ced_b.text_input("Ingrese la Cédula o Identificación del Ciudadano a corregir:", placeholder="Ej: 2200123456", key="search_edit_local")
+            busqueda_cedula = col_ced_b.text_input("Ingrese la Cédula o Identificación del Ciudadano a corregir:", placeholder="Ingrese el número de identificación del ciudadano", key="search_edit_local")
             if busqueda_cedula and not df_global.empty:
                 busqueda_norm = normalizar_id(busqueda_cedula)
                 df_paciente = df_global[(df_global['NUMERO DE IDENTIFICACION'].apply(normalizar_id) == busqueda_norm) & (df_global['UNICODIGO'] == st.session_state.unicodigo_actual)]
@@ -1071,7 +1092,7 @@ def formulario_principal():
         with tab1:
             st.markdown("<div class='section-title'>🔍 Auditoría, Edición y Eliminación de Atenciones Provinciales</div>", unsafe_allow_html=True)
             col_ced_a, col_ced_av = st.columns([2, 2])
-            cedula_auditoria = col_ced_a.text_input("Ingrese Cédula / Documento del Ciudadano para auditoría general:", placeholder="Ej: 2200123456")
+            cedula_auditoria = col_ced_a.text_input("Ingrese Cédula / Documento del Ciudadano para auditoría general:", placeholder="Ingrese el número de identificación del ciudadano")
             
             if cedula_auditoria and not df_global.empty:
                 ced_audit_norm = normalizar_id(cedula_auditoria)
@@ -1145,7 +1166,7 @@ def formulario_principal():
                 df_pacientes_cat = cargar_tabla(HOJA_PACIENTES)
                 st.markdown("#### Búsqueda y Edición de Pacientes Registrados")
                 col_pac_b, col_pac_v = st.columns([2, 2])
-                ced_pac_edit = col_pac_b.text_input("Ingrese el Número de Identificación del Paciente a modificar:", placeholder="Ej: 2200123456", key="search_pac_cat")
+                ced_pac_edit = col_pac_b.text_input("Ingrese el Número de Identificación del Paciente a modificar:", placeholder="Ingrese el número de identificación del ciudadano", key="search_pac_cat")
                 
                 if ced_pac_edit and not df_pacientes_cat.empty and "NUMERO DE IDENTIFICACION" in df_pacientes_cat.columns:
                     ced_norm_cat = normalizar_id(ced_pac_edit)
@@ -1160,10 +1181,10 @@ def formulario_principal():
                         with st.container(border=True):
                             st.write(f"Editando ficha del paciente: **{row_pac.get('PRIMER NOMBRE','')} {row_pac.get('PRIMER APELLIDO','')}**")
                             cp1, cp2, cp3, cp4 = st.columns(4)
-                            ed_pa = cp1.text_input("Primer Apellido", value=row_pac.get("PRIMER APELLIDO",""), placeholder="Ej: GUZMÁN", key="ed_pac_pa")
-                            ed_sa = cp2.text_input("Segundo Apellido", value=row_pac.get("SEGUNDO APELLIDO",""), placeholder="Ej: CHANALUISA", key="ed_pac_sa")
-                            ed_pn = cp3.text_input("Primer Nombre", value=row_pac.get("PRIMER NOMBRE",""), placeholder="Ej: WILMER", key="ed_pac_pn")
-                            ed_sn = cp4.text_input("Segundo Nombre", value=row_pac.get("SEGUNDO NOMBRE",""), placeholder="Ej: PATRICIO", key="ed_pac_sn")
+                            ed_pa = cp1.text_input("Primer Apellido", value=row_pac.get("PRIMER APELLIDO",""), placeholder="Ingrese el primer apellido", key="ed_pac_pa")
+                            ed_sa = cp2.text_input("Segundo Apellido", value=row_pac.get("SEGUNDO APELLIDO",""), placeholder="Ingrese el segundo apellido", key="ed_pac_sa")
+                            ed_pn = cp3.text_input("Primer Nombre", value=row_pac.get("PRIMER NOMBRE",""), placeholder="Ingrese el primer nombre", key="ed_pac_pn")
+                            ed_sn = cp4.text_input("Segundo Nombre", value=row_pac.get("SEGUNDO NOMBRE",""), placeholder="Ingrese el segundo nombre", key="ed_pac_sn")
                             
                             cp5, cp6, cp7, cp_vacia = st.columns([1.2, 0.8, 1.1, 1.9])
                             fn_pac_actual = safe_date(row_pac.get("FECHA DE NACIMIENTO DEL PACIENTE", ""), default_today=True)
@@ -1180,9 +1201,9 @@ def formulario_principal():
                             
                             cp12, cp13, cp14, cp15 = st.columns(4)
                             ed_ts = cp12.selectbox("Tipo de Seguro", TIPO_SEGURO, index=safe_index(TIPO_SEGURO, row_pac.get("TIPO DE SEGURO")), key="ed_pac_ts")
-                            ed_pr = cp13.text_input("Provincia", value=row_pac.get("PROV_RES",""), placeholder="Ej: ORELLANA", key="ed_pac_pr")
-                            ed_cr = cp14.text_input("Cantón", value=row_pac.get("CANT_RES",""), placeholder="Ej: AGUARICO", key="ed_pac_cr")
-                            ed_par = cp15.text_input("Parroquia", value=row_pac.get("PARR_RES",""), placeholder="Ej: NUEVO ROCAFUERTE", key="ed_pac_par")
+                            ed_pr = cp13.text_input("Provincia", value=row_pac.get("PROV_RES",""), placeholder="Ingrese la provincia de residencia", key="ed_pac_pr")
+                            ed_cr = cp14.text_input("Cantón", value=row_pac.get("CANT_RES",""), placeholder="Ingrese el cantón de residencia", key="ed_pac_cr")
+                            ed_par = cp15.text_input("Parroquia", value=row_pac.get("PARR_RES",""), placeholder="Ingrese la parroquia de residencia", key="ed_pac_par")
                             
                             col_vacia_ep, col_btn_ep = st.columns([2, 1.3])
                             with col_btn_ep:
@@ -1229,7 +1250,7 @@ def formulario_principal():
                 df_prof_cat = cargar_profesionales()
                 st.markdown("#### Búsqueda y Edición de Profesionales de Salud")
                 col_med_b, col_med_v = st.columns([2, 2])
-                ced_prof_edit = col_med_b.text_input("Ingrese la Cédula Profesional del Médico/Obstetriz a modificar:", placeholder="Ej: 1712345678", key="search_med_cat")
+                ced_prof_edit = col_med_b.text_input("Ingrese la Cédula Profesional del Médico/Obstetriz a modificar:", placeholder="Ingrese el número de cédula del profesional", key="search_med_cat")
                 
                 if ced_prof_edit and not df_prof_cat.empty and "CEDULA" in df_prof_cat.columns:
                     ced_norm_med = normalizar_id(ced_prof_edit)
@@ -1244,10 +1265,10 @@ def formulario_principal():
                         with st.container(border=True):
                             st.write(f"Editando ficha del profesional: **{row_med.get('NOMBRE_COMPLETO','')}**")
                             cm1, cm2, cm3, cm4 = st.columns(4)
-                            ed_m_pn = cm1.text_input("Primer Nombre", value=row_med.get("PRIMER NOMBRE",""), placeholder="Ej: CARLOS", key="ed_med_pn")
-                            ed_m_sn = cm2.text_input("Segundo Nombre", value=row_med.get("SEGUNDO NOMBRE",""), placeholder="Ej: EDUARDO", key="ed_med_sn")
-                            ed_m_pa = cm3.text_input("Primer Apellido", value=row_med.get("PRIMER APELLIDO",""), placeholder="Ej: MENDOZA", key="ed_med_pa")
-                            ed_m_sa = cm4.text_input("Segundo Apellido", value=row_med.get("SEGUNDO APELLIDO",""), placeholder="Ej: LÓPEZ", key="ed_med_sa")
+                            ed_m_pn = cm1.text_input("Primer Nombre", value=row_med.get("PRIMER NOMBRE",""), placeholder="Ingrese el primer nombre", key="ed_med_pn")
+                            ed_m_sn = cm2.text_input("Segundo Nombre", value=row_med.get("SEGUNDO NOMBRE",""), placeholder="Ingrese el segundo nombre", key="ed_med_sn")
+                            ed_m_pa = cm3.text_input("Primer Apellido", value=row_med.get("PRIMER APELLIDO",""), placeholder="Ingrese el primer apellido", key="ed_med_pa")
+                            ed_m_sa = cm4.text_input("Segundo Apellido", value=row_med.get("SEGUNDO APELLIDO",""), placeholder="Ingrese el segundo apellido", key="ed_med_sa")
                             
                             col_vacia_em, col_btn_em = st.columns([2, 1.3])
                             with col_btn_em:
@@ -1282,8 +1303,8 @@ def formulario_principal():
             st.markdown("---")
             st.markdown("#### ➕ Creación de Nuevo Acceso Institucional")
             c_nu1, c_nu2 = st.columns(2)
-            n_usr = c_nu1.text_input("Nuevo Usuario (Credencial)", placeholder="Ej: Tello2047")
-            n_pwd = c_nu2.text_input("Contraseña Asignada", placeholder="••••••••••••")
+            n_usr = c_nu1.text_input("Nuevo Usuario (Credencial)", placeholder="Ingrese el nombre de usuario")
+            n_pwd = c_nu2.text_input("Contraseña Asignada", placeholder="Ingrese la contraseña asignada")
             c_nu3, c_nu4 = st.columns(2)
             n_rol = c_nu3.selectbox("Rol Institucional", ["USUARIO", "ADMIN"])
             if n_rol == "ADMIN": 
