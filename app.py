@@ -99,41 +99,50 @@ st.markdown("""
         padding: 1.1rem !important;
     }
     
-    /* 4. Inputs y Selectores: Borde Azul Profesional (#2563eb) y Fondo Hielo Visible (#e8f2fc) en todo el software */
+    /* 4. ESTILO UNIVERSAL PARA TODOS LOS CAMPOS DE CAPTURA DEL SISTEMA SIN EXCEPCIÓN */
+    /* Cubre absolutamente todo: Cuadros de Texto, Cédula, Tipo de Identificación, Selectores, Números, Fechas y Contraseñas */
     div[data-testid="stTextInput"] div[data-baseweb="input"],
     div[data-testid="stNumberInput"] div[data-baseweb="input"],
     div[data-testid="stDateInput"] div[data-baseweb="input"],
     div[data-testid="stSelectbox"] div[data-baseweb="select"] > div,
-    div[data-testid="stPasswordInput"] div[data-baseweb="input"] {
+    div[data-testid="stSelectbox"] div[data-baseweb="select"],
+    div[data-baseweb="input"],
+    div[data-baseweb="select"] > div,
+    div[data-baseweb="select"],
+    div[role="combobox"] {
         border-radius: 6px !important;
         border: 2px solid #2563eb !important;
         background-color: #e8f2fc !important;
         min-height: 38px !important;
-        transition: all 0.15s ease-in-out;
+        transition: all 0.15s ease-in-out !important;
     }
     
-    /* Hacemos transparente el input interior para no ocultar el fondo azul hielo del contenedor */
+    /* Forzar transparencia interna para que el fondo azul hielo #e8f2fc no sea tapado por el blanco nativo */
     div[data-testid="stTextInput"] input,
     div[data-testid="stNumberInput"] input,
     div[data-testid="stDateInput"] input,
-    div[data-testid="stPasswordInput"] input {
+    div[data-testid="stPasswordInput"] input,
+    div[data-testid="stSelectbox"] div[data-baseweb="select"] span,
+    div[data-testid="stSelectbox"] div[data-baseweb="select"] div {
         background-color: transparent !important;
         color: #0f172a !important;
-        font-weight: 500 !important;
+        font-weight: 600 !important;
     }
     
-    /* Resplandor y cambio a fondo blanco cuando el operador hace clic para escribir */
+    /* Efecto de activación y resplandor azul al hacer clic en CUALQUIER campo */
     div[data-testid="stTextInput"] div[data-baseweb="input"]:focus-within,
     div[data-testid="stNumberInput"] div[data-baseweb="input"]:focus-within,
     div[data-testid="stDateInput"] div[data-baseweb="input"]:focus-within,
+    div[data-testid="stSelectbox"] div[data-baseweb="select"]:focus-within,
     div[data-testid="stSelectbox"] div[data-baseweb="select"] > div:focus-within,
-    div[data-testid="stPasswordInput"] div[data-baseweb="input"]:focus-within {
+    div[data-baseweb="input"]:focus-within,
+    div[data-baseweb="select"]:focus-within {
         border-color: #1d4ed8 !important;
         background-color: #ffffff !important;
         box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.25) !important;
     }
     
-    /* Estilo nítido para textos guía (placeholder sin ejemplos) */
+    /* Estilo para los textos guía (placeholder sin ejemplos) */
     input::placeholder {
         color: #475569 !important;
         opacity: 0.95 !important;
@@ -166,20 +175,6 @@ st.markdown("""
         color: #0f4c81 !important;
         box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
         border-bottom: 2px solid #0f4c81 !important;
-    }
-    
-    /* Resaltado especial en Verde Esmeralda para la celda de Número de Identificación / Cédula */
-    div[data-testid="stTextInput"] div[data-baseweb="input"]:has(input[aria-label*="Número de Identificación"]),
-    div[data-testid="stTextInput"] div[data-baseweb="input"]:has(input[aria-label*="Cédula"]),
-    div[data-testid="stTextInput"] div[data-baseweb="input"]:has(input[aria-label*="cédula"]) {
-        background-color: #f0fdf4 !important;
-        border: 2px solid #16a34a !important;
-    }
-    
-    div[data-testid="stTextInput"] div[data-baseweb="input"]:has(input[aria-label*="Número de Identificación"]) input,
-    div[data-testid="stTextInput"] div[data-baseweb="input"]:has(input[aria-label*="Cédula"]) input {
-        color: #166534 !important;
-        font-weight: 700;
     }
     
     /* Títulos de Sección Estilo Encabezado de Ventana */
@@ -358,8 +353,8 @@ def login():
                 </div>
             """, unsafe_allow_html=True)
             
-            usuario = st.text_input("👤 Credencial de Usuario", placeholder="Ingrese su usuario institucional")
-            contrasena = st.text_input("🔑 Contraseña Asignada", type="password", placeholder="Ingrese su contraseña asignada")
+            usuario = st.text_input("👤 Credencial de Usuario", placeholder="Ingrese el usuario institucional")
+            contrasena = st.text_input("🔑 Contraseña Asignada", type="password", placeholder="Ingrese la contraseña asignada")
             
             st.markdown("<br>", unsafe_allow_html=True)
             if st.button("Iniciar Sesión en el Software", use_container_width=True):
