@@ -99,50 +99,57 @@ st.markdown("""
         padding: 1.1rem !important;
     }
     
-    /* 4. ESTILO UNIVERSAL PARA TODOS LOS CAMPOS DE CAPTURA DEL SISTEMA SIN EXCEPCIÓN */
-    /* Cubre absolutamente todo: Cuadros de Texto, Cédula, Tipo de Identificación, Selectores, Números, Fechas y Contraseñas */
-    div[data-testid="stTextInput"] div[data-baseweb="input"],
-    div[data-testid="stNumberInput"] div[data-baseweb="input"],
-    div[data-testid="stDateInput"] div[data-baseweb="input"],
-    div[data-testid="stSelectbox"] div[data-baseweb="select"] > div,
-    div[data-testid="stSelectbox"] div[data-baseweb="select"],
-    div[data-baseweb="input"],
+    /* 4. ESTILO UNIVERSAL Y FUERZA BRUTA PARA ABSOLUTAMENTE TODOS LOS CONTENEDORES DE ENTRADA */
+    /* Apuntamos directamente al contenedor visual interno (> div) de Streamlit BaseWeb en TODO el software */
+    div[data-baseweb="input"] > div,
+    div[data-baseweb="base-input"],
     div[data-baseweb="select"] > div,
-    div[data-baseweb="select"],
-    div[role="combobox"] {
-        border-radius: 6px !important;
-        border: 2px solid #2563eb !important;
+    div[data-testid="stTextInput"] div[data-baseweb="input"] > div,
+    div[data-testid="stNumberInput"] div[data-baseweb="input"] > div,
+    div[data-testid="stDateInput"] div[data-baseweb="input"] > div,
+    div[data-testid="stPasswordInput"] div[data-baseweb="input"] > div,
+    div[data-testid="stSelectbox"] div[data-baseweb="select"] > div,
+    div[data-testid="stSelectbox"] > div > div {
         background-color: #e8f2fc !important;
+        border: 2px solid #2563eb !important;
+        border-radius: 6px !important;
         min-height: 38px !important;
+        box-shadow: none !important;
         transition: all 0.15s ease-in-out !important;
     }
     
-    /* Forzar transparencia interna para que el fondo azul hielo #e8f2fc no sea tapado por el blanco nativo */
+    /* Forzamos que el elemento <input> interior sea totalmente transparente para no tapar el fondo celeste hielo #e8f2fc */
+    div[data-baseweb="input"] input,
+    div[data-baseweb="base-input"] input,
     div[data-testid="stTextInput"] input,
     div[data-testid="stNumberInput"] input,
     div[data-testid="stDateInput"] input,
-    div[data-testid="stPasswordInput"] input,
-    div[data-testid="stSelectbox"] div[data-baseweb="select"] span,
-    div[data-testid="stSelectbox"] div[data-baseweb="select"] div {
+    div[data-testid="stPasswordInput"] input {
+        background-color: transparent !important;
+        border: none !important;
+        color: #0f172a !important;
+        font-weight: 600 !important;
+        box-shadow: none !important;
+    }
+    
+    /* El texto y contenedores internos de las Listas Desplegables (selects) también transparentes */
+    div[data-baseweb="select"] span,
+    div[data-baseweb="select"] div {
         background-color: transparent !important;
         color: #0f172a !important;
         font-weight: 600 !important;
     }
     
-    /* Efecto de activación y resplandor azul al hacer clic en CUALQUIER campo */
-    div[data-testid="stTextInput"] div[data-baseweb="input"]:focus-within,
-    div[data-testid="stNumberInput"] div[data-baseweb="input"]:focus-within,
-    div[data-testid="stDateInput"] div[data-baseweb="input"]:focus-within,
-    div[data-testid="stSelectbox"] div[data-baseweb="select"]:focus-within,
-    div[data-testid="stSelectbox"] div[data-baseweb="select"] > div:focus-within,
-    div[data-baseweb="input"]:focus-within,
-    div[data-baseweb="select"]:focus-within {
-        border-color: #1d4ed8 !important;
+    /* Resplandor y cambio a fondo blanco al hacer clic en CUALQUIER campo para escribir o seleccionar */
+    div[data-baseweb="input"] > div:focus-within,
+    div[data-baseweb="base-input"]:focus-within,
+    div[data-baseweb="select"] > div:focus-within {
         background-color: #ffffff !important;
-        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.25) !important;
+        border-color: #1e40af !important;
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.28) !important;
     }
     
-    /* Estilo para los textos guía (placeholder sin ejemplos) */
+    /* Estilo nítido para textos guía (placeholder sin ejemplos) */
     input::placeholder {
         color: #475569 !important;
         opacity: 0.95 !important;
@@ -353,8 +360,8 @@ def login():
                 </div>
             """, unsafe_allow_html=True)
             
-            usuario = st.text_input("👤 Credencial de Usuario", placeholder="Ingrese el usuario institucional")
-            contrasena = st.text_input("🔑 Contraseña Asignada", type="password", placeholder="Ingrese la contraseña asignada")
+            usuario = st.text_input("👤 Credencial de Usuario", placeholder="Ingrese su nombre de usuario")
+            contrasena = st.text_input("🔑 Contraseña Asignada", type="password", placeholder="Ingrese su contraseña asignada")
             
             st.markdown("<br>", unsafe_allow_html=True)
             if st.button("Iniciar Sesión en el Software", use_container_width=True):
