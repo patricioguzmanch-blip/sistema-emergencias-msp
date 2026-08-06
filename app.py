@@ -501,11 +501,16 @@ def modal_nuevo_profesional(cedula_prof):
 # ==========================================
 def renderizar_campos_paciente(fk, prefill=None, df_global=None):
     if prefill is None: prefill = {}
+    
+    # === IDENTIFICAR SI EL USUARIO ESTÁ EN MODO EDICIÓN (BLOQUEA TODO MENOS SECCIÓN 4) ===
+    es_edicion_usuario = bool(st.session_state.rol_actual == "USUARIO" and fk.startswith("edit"))
+    # =====================================================================================
+    
     st.markdown("<div class='section-title'>👤 2. Identificación y Demografía del Ciudadano</div>", unsafe_allow_html=True)
     
     col_doc1, col_doc2 = st.columns(2)
-    tipo_doc = col_doc1.selectbox("Tipo de Documento", TIPOS_DOCUMENTO, index=safe_index(TIPOS_DOCUMENTO, prefill.get("TIPO DE DOCUMENTO DE IDENTIFICACION")), key=f"td_{fk}")
-    identificacion = col_doc2.text_input("Número de Identificación (Presione ENTER para verificar en el sistema)", value=prefill.get("NUMERO DE IDENTIFICACION", ""), key=f"id_{fk}")
+    tipo_doc = col_doc1.selectbox("Tipo de Documento", TIPOS_DOCUMENTO, index=safe_index(TIPOS_DOCUMENTO, prefill.get("TIPO DE DOCUMENTO DE IDENTIFICACION")), key=f"td_{fk}", disabled=es_edicion_usuario)
+    identificacion = col_doc2.text_input("Número de Identificación (Presione ENTER para verificar en el sistema)", value=prefill.get("NUMERO DE IDENTIFICACION", ""), key=f"id_{fk}", disabled=es_edicion_usuario)
     
     id_valida = False
     if identificacion:
@@ -545,7 +550,7 @@ def renderizar_campos_paciente(fk, prefill=None, df_global=None):
     dyn_k = f"_{st.session_state.get('last_checked_id', '')}_{rt}" if fk.startswith("nuevo") else ""
     
     paciente_encontrado = True if st.session_state.get("prefill_auto") else False
-    bloquear_campos = paciente_encontrado if (fk.startswith("nuevo") and st.session_state.rol_actual == "USUARIO") else False
+    bloquear_campos = True if ((fk.startswith("nuevo") and st.session_state.rol_actual == "USUARIO" and paciente_encontrado) or es_edicion_usuario) else False
 
     if identificacion and id_valida and fk.startswith("nuevo") and paciente_encontrado:
         st.success("✅ **Paciente verificado:** Los datos demográficos han sido cargados desde el historial provincial.")
@@ -620,9 +625,9 @@ def renderizar_campos_paciente(fk, prefill=None, df_global=None):
     else:
         min_calendario = limite_inferior
 
-    fecha_atencion = col9.date_input("Fecha de Atención", value=valor_fecha_atencion, min_value=min_calendario, max_value=fecha_hoy, format="DD/MM/YYYY", key=f"fa_{fk}")
+    fecha_atencion = col9.date_input("Fecha de Atención", value=valor_fecha_atencion, min_value=min_calendario, max_value=fecha_hoy, format="DD/MM/YYYY", key=f"fa_{fk}", disabled=es_edicion_usuario)
 
-    hora_atencion = col10.text_input("Hora de Atención (HH:MM - formato 24h)", value=prefill.get("HORA ATENCION", ""), placeholder="Ej: 14:30", key=f"ha_{fk}")
+    hora_atencion = col10.text_input("Hora de Atención (HH:MM - formato 24h)", value=prefill.get("HORA ATENCION", ""), placeholder="Ej: 14:30", key=f"ha_{fk}", disabled=es_edicion_usuario)
     hora_valida = True
     if hora_atencion and not re.match(r"^(?:[01]\d|2[0-3]):[0-5]\d$", str(hora_atencion)):
         col10.error("❌ Formato horario inválido (use HH:MM, ejemplo: 08:30 o 21:15).")
@@ -654,8 +659,8 @@ def renderizar_campos_paciente(fk, prefill=None, df_global=None):
 
     col22, col23, col24 = st.columns(3)
     etnia = col22.selectbox("Etnia", ETNIAS, index=safe_index(ETNIAS, prefill.get("ETNIA")), key=f"et_{fk}{dyn_k}", disabled=bloquear_campos)
-    grupo_prio = col23.selectbox("Grupo Prioritario", GRUPO_PRIORITARIO, index=safe_index(GRUPO_PRIORITARIO, prefill.get("GRUPO PRIORITARIO")), key=f"gp_{fk}{dyn_k}", disabled=False)
-    tipo_seguro = col24.selectbox("Tipo de Seguro / Cobertura", TIPO_SEGURO, index=safe_index(TIPO_SEGURO, prefill.get("TIPO DE SEGURO")), key=f"ts_{fk}{dyn_k}", disabled=False)
+    grupo_prio = col23.selectbox("Grupo Prioritario", GRUPO_PRIORITARIO, index=safe_index(GRUPO_PRIORITARIO, prefill.get("GRUPO PRIORITARIO")), key=f"gp_{fk}{dyn_k}", disabled=es_edicion_usuario)
+    tipo_seguro = col24.selectbox("Tipo de Seguro / Cobertura", TIPO_SEGURO, index=safe_index(TIPO_SEGURO, prefill.get("TIPO DE SEGURO")), key=f"ts_{fk}{dyn_k}", disabled=es_edicion_usuario)
 
     st.markdown("<div class='section-title'>📍 3. Información de Residencia del Ciudadano</div>", unsafe_allow_html=True)
     col25, col26, col27 = st.columns(3)
@@ -663,12 +668,15 @@ def renderizar_campos_paciente(fk, prefill=None, df_global=None):
     cant_res = col26.text_input("Cantón de Residencia", value=limpiar_texto(prefill.get("CANT_RES", "")), key=f"cr_{fk}{dyn_k}", disabled=bloquear_campos)
     parr_res = col27.text_input("Parroquia de Residencia", value=limpiar_texto(prefill.get("PARR_RES", "")), key=f"par_{fk}{dyn_k}", disabled=bloquear_campos)
 
+    # =========================================================================
+    # SECCIÓN 4: SIEMPRE DISPONIBLE PARA MODIFICACIÓN DEL USUARIO OPERADOR
+    # =========================================================================
     st.markdown("<div class='section-title'>🩺 4. Diagnóstico CIE-10 y Profesional Tratante</div>", unsafe_allow_html=True)
-    especialidad = st.selectbox("Especialidad de la Atención", ESPECIALIDADES_PROFESIONAL, index=safe_index(ESPECIALIDADES_PROFESIONAL, prefill.get("ESPECIALIDAD DEL PROFESIONAL")), key=f"esp_{fk}")
+    especialidad = st.selectbox("Especialidad de la Atención", ESPECIALIDADES_PROFESIONAL, index=safe_index(ESPECIALIDADES_PROFESIONAL, prefill.get("ESPECIALIDAD DEL PROFESIONAL")), key=f"esp_{fk}", disabled=False)
     
     col_bus_p, col_cond_p = st.columns([2, 1])
-    buscador_cie10_p = col_bus_p.selectbox("🔍 Diagnóstico Principal (CIE-10)", CIE10_PRIN_OPCIONES, index=safe_index(CIE10_PRIN_OPCIONES, prefill.get("CIE-10 (PRINCIPAL)")), key=f"bus_p_{fk}")
-    cond_diag = col_cond_p.selectbox("Condición del Diagnóstico", CONDICION_DIAGNOSTICO, index=safe_index(CONDICION_DIAGNOSTICO, prefill.get("CONDICION DEL DIAGNOSTICO")), key=f"cd_{fk}")
+    buscador_cie10_p = col_bus_p.selectbox("🔍 Diagnóstico Principal (CIE-10)", CIE10_PRIN_OPCIONES, index=safe_index(CIE10_PRIN_OPCIONES, prefill.get("CIE-10 (PRINCIPAL)")), key=f"bus_p_{fk}", disabled=False)
+    cond_diag = col_cond_p.selectbox("Condición del Diagnóstico", CONDICION_DIAGNOSTICO, index=safe_index(CONDICION_DIAGNOSTICO, prefill.get("CONDICION DEL DIAGNOSTICO")), key=f"cd_{fk}", disabled=False)
     if buscador_cie10_p:
         cod_p = buscador_cie10_p.split(" - ")[0]
         desc_p = buscador_cie10_p.split(" - ", 1)[1] if " - " in buscador_cie10_p else ""
@@ -688,7 +696,7 @@ def renderizar_campos_paciente(fk, prefill=None, df_global=None):
         disabled=bloquear_causa_externa
     )
     
-    condicion_alta = col_cond_e.selectbox("Condición de Alta Médica", CONDICION_ALTA, index=safe_index(CONDICION_ALTA, prefill.get("CONDICION DEL ALTA")), key=f"ca_{fk}")
+    condicion_alta = col_cond_e.selectbox("Condición de Alta Médica", CONDICION_ALTA, index=safe_index(CONDICION_ALTA, prefill.get("CONDICION DEL ALTA")), key=f"ca_{fk}", disabled=False)
     
     if bloquear_causa_externa:
         cod_e = ""
@@ -730,9 +738,9 @@ def renderizar_campos_paciente(fk, prefill=None, df_global=None):
     # =========================================================================
 
     col34, col35, col36 = st.columns(3)
-    req_hosp = col34.selectbox("¿Requiere Hospitalización?", ["NO", "SI"], index=safe_index(["NO", "SI"], prefill.get("REQUIERE HOSPITALIZACION")), key=f"rh_{fk}")
+    req_hosp = col34.selectbox("¿Requiere Hospitalización?", ["NO", "SI"], index=safe_index(["NO", "SI"], prefill.get("REQUIERE HOSPITALIZACION")), key=f"rh_{fk}", disabled=False)
     hosp_referido = col35.selectbox("Establecimiento de Referencia (Hospital)", HOSPITALES_REFERENCIA, index=safe_index(HOSPITALES_REFERENCIA, prefill.get("NOMBRE DEL HOSPITAL AL QUE FUE REFERIDO PARA LA HOSPITALIZACION", "")), disabled=(req_hosp == "NO"), key=f"hr_{fk}")
-    causa_atencion = col36.selectbox("Causa de Atención Médica", CAUSA_ATENCION, index=safe_index(CAUSA_ATENCION, prefill.get("CAUSA DE ATENCION")), key=f"cau_{fk}")
+    causa_atencion = col36.selectbox("Causa de Atención Médica", CAUSA_ATENCION, index=safe_index(CAUSA_ATENCION, prefill.get("CAUSA DE ATENCION")), key=f"cau_{fk}", disabled=False)
     
     valido_hosp = True
     if req_hosp == "SI" and not hosp_referido.strip():
@@ -740,7 +748,7 @@ def renderizar_campos_paciente(fk, prefill=None, df_global=None):
         valido_hosp = False
 
     col37, col38 = st.columns(2)
-    id_profesional = col37.text_input("Cédula Profesional del Médico (Presione ENTER)", value=prefill.get("NUMERO DE IDENTIFICACION DEL PROFESIONAL DE SALUD", ""), key=f"ip_{fk}")
+    id_profesional = col37.text_input("Cédula Profesional del Médico (Presione ENTER)", value=prefill.get("NUMERO DE IDENTIFICACION DEL PROFESIONAL DE SALUD", ""), key=f"ip_{fk}", disabled=False)
     
     id_prof_valida = False
     nombre_prof_auto = prefill.get("NOMBRES Y APELLIDOS DEL PROFESIONAL DE SALUD", "")
@@ -956,6 +964,7 @@ def formulario_principal():
                     fila_editar = df_global.iloc[idx_original].to_dict()
 
                     with st.container(border=True):
+                        st.info("🔒 **Modo Edición Operador:** Los datos de identificación, demografía y residencia se muestran bloqueados. Solo está permitida la modificación de la sección **4. Diagnóstico CIE-10 y Profesional Tratante**.")
                         datos_editados = renderizar_campos_paciente(f"edit_{idx_original}", prefill=fila_editar, df_global=df_global)
                         if st.button("🔄 Sobreescribir Ficha Actualizada", use_container_width=True):
                             if not datos_editados["_valido"]:
