@@ -25,10 +25,10 @@ HOJA_PACIENTES = "Pacientes"
 HOJA_PROFESIONALES = "Profesionales"
 
 # ==============================================================================
-# CONFIGURACIÓN GENERAL Y ESTILOS VISUALES (UI/UX PREMIUM MSP)
+# CONFIGURACIÓN GENERAL Y ESTILO "DESKTOP APP" (SOFTWARE DE ESCRITORIO)
 # ==============================================================================
 st.set_page_config(
-    page_title="SIEM - Emergencias MSP Orellana",
+    page_title="SIEM - MSP Orellana (Sistema de Escritorio)",
     page_icon="🏥",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -38,91 +38,114 @@ st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
     
+    /* 1. Reset visual para aspecto de Software de Escritorio */
     html, body, [class*="css"] {
-        font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+        font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
         color: #1e293b;
+        font-size: 0.88rem;
     }
     
     .stApp {
-        background-color: #f8fafc;
+        background-color: #f1f5f9;
+    }
+    
+    /* Ocultar barras nativas web de Streamlit para simular ventana nativa */
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    header {visibility: hidden;}
+    
+    /* Aprovechamiento del 98% del marco visual (estilo software pantalla completa) */
+    div.block-container {
+        padding-top: 1.2rem !important;
+        padding-bottom: 1.5rem !important;
+        padding-left: 1.8rem !important;
+        padding-right: 1.8rem !important;
+        max-width: 98% !important;
     }
     
     h1, h2, h3, h4 {
         color: #0f172a;
         font-weight: 700 !important;
-        letter-spacing: -0.02em;
+        letter-spacing: -0.01em;
+        margin-bottom: 0.4rem !important;
     }
     
-    /* Botones principales institucionales */
+    /* 2. Botones Estilo Software Ejecutivo (Compactos y precisos) */
     .stButton > button {
-        background: linear-gradient(135deg, #0A4D68 0%, #088395 100%);
+        background: #0f4c81;
         color: #ffffff !important;
-        border: none;
-        border-radius: 12px;
-        padding: 0.65rem 1.4rem;
+        border: 1px solid #083b66;
+        border-radius: 6px;
+        padding: 0.45rem 1rem;
         font-weight: 600;
-        font-size: 0.95rem;
-        box-shadow: 0 4px 12px rgba(10, 77, 104, 0.18);
-        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        font-size: 0.85rem;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+        transition: all 0.15s ease-in-out;
         width: 100%;
     }
     
     .stButton > button:hover {
-        background: linear-gradient(135deg, #083b50 0%, #066573 100%);
-        box-shadow: 0 6px 16px rgba(10, 77, 104, 0.28);
-        transform: translateY(-2px);
+        background: #0b3a63;
+        border-color: #072a4a;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.14);
     }
     
-    /* Contenedores y Tarjetas con borde moderno */
+    /* 3. Contenedores de Ventana (Marcos de Trabajo estilo panel de control) */
     div[data-testid="stVerticalBlockBorderWrapper"] {
         background-color: #ffffff !important;
-        border: 1px solid #e2e8f0 !important;
-        border-radius: 16px !important;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px -1px rgba(0, 0, 0, 0.02) !important;
+        border: 1px solid #cbd5e1 !important;
+        border-radius: 8px !important;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04) !important;
+        padding: 1.1rem !important;
     }
     
+    /* 4. Inputs Estilo Software (Altura compacta, bordes rectos profesionales) */
     div[data-baseweb="input"] > div, div[data-baseweb="select"] > div {
-        border-radius: 10px !important;
-        border-color: #cbd5e1 !important;
+        border-radius: 6px !important;
+        border: 1px solid #cbd5e1 !important;
         background-color: #ffffff !important;
-        transition: all 0.2s ease;
+        min-height: 36px !important;
+        font-size: 0.86rem !important;
+        transition: border-color 0.15s ease;
     }
     
     div[data-baseweb="input"] > div:focus-within, div[data-baseweb="select"] > div:focus-within {
-        border-color: #088395 !important;
-        box-shadow: 0 0 0 3px rgba(8, 131, 149, 0.15) !important;
+        border-color: #0f4c81 !important;
+        box-shadow: 0 0 0 2px rgba(15, 76, 129, 0.15) !important;
     }
     
-    /* Pestañas (Tabs) Estilo Tarjeta */
+    /* 5. Pestañas tipo "Toolbar / Ribbon" de Programa de Escritorio */
     .stTabs [data-baseweb="tab-list"] {
-        gap: 10px;
-        background-color: #f1f5f9;
-        padding: 6px;
-        border-radius: 14px;
-        border: 1px solid #e2e8f0;
+        gap: 2px;
+        background-color: #e2e8f0;
+        padding: 4px;
+        border-radius: 8px;
+        border: 1px solid #cbd5e1;
+        border-bottom: 2px solid #94a3b8;
     }
     
     .stTabs [data-baseweb="tab"] {
-        height: 44px;
-        border-radius: 10px;
+        height: 36px;
+        border-radius: 6px;
         font-weight: 600;
-        color: #475569;
-        padding: 0 20px;
+        font-size: 0.84rem;
+        color: #334155;
+        padding: 0 16px;
         border: none !important;
     }
     
     .stTabs [aria-selected="true"] {
         background-color: #ffffff !important;
-        color: #0A4D68 !important;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);
+        color: #0f4c81 !important;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+        border-bottom: 2px solid #0f4c81 !important;
     }
     
-    /* Input de Número de Identificación con estilo clínica verificada */
+    /* Input de Número de Identificación con aspecto de software médico verificado */
     div[data-testid="stTextInput"] div[data-baseweb="input"]:has(input[aria-label*="Número de Identificación"]),
     div[data-testid="stTextInput"] div[data-baseweb="input"]:has(input[aria-label*="Cédula"]) {
         background-color: #f0fdf4 !important;
-        border: 1.5px solid #16a34a !important;
-        font-weight: 600;
+        border: 1px solid #16a34a !important;
     }
     
     div[data-testid="stTextInput"] div[data-baseweb="input"]:has(input[aria-label*="Número de Identificación"]) input {
@@ -130,32 +153,48 @@ st.markdown("""
         font-weight: 700;
     }
     
-    /* Cabecera de Secciones Institucionales */
+    /* Títulos de Sección Estilo Encabezado de Ventana */
     .section-title {
         color: #0f172a;
-        font-size: 1.12rem;
+        font-size: 0.95rem;
         font-weight: 700;
-        margin-top: 1.4rem;
-        margin-bottom: 0.9rem;
+        margin-top: 1.1rem;
+        margin-bottom: 0.7rem;
         display: flex;
         align-items: center;
-        gap: 10px;
-        border-left: 5px solid #0A4D68;
-        padding-left: 12px;
-        background: linear-gradient(90deg, #e0f2fe 0%, rgba(255,255,255,0) 100%);
-        padding-top: 8px;
-        padding-bottom: 8px;
-        border-radius: 0 10px 10px 0;
+        gap: 8px;
+        border-left: 4px solid #0f4c81;
+        padding-left: 10px;
+        background-color: #eaf2f8;
+        padding-top: 6px;
+        padding-bottom: 6px;
+        border-radius: 0 4px 4px 0;
+        border-top: 1px solid #d0e1fd;
+        border-bottom: 1px solid #d0e1fd;
+        border-right: 1px solid #d0e1fd;
     }
     
-    /* Credencial de Operador en Sidebar */
+    /* Credencial de Operador en Sidebar tipo Ficha Institucional */
     .sidebar-user-card {
-        background: linear-gradient(135deg, #0A4D68 0%, #088395 100%);
-        color: white;
-        padding: 1rem;
-        border-radius: 14px;
-        margin-bottom: 1.2rem;
-        box-shadow: 0 4px 10px rgba(10, 77, 104, 0.2);
+        background: #0f172a;
+        color: #f8fafc;
+        padding: 0.85rem;
+        border-radius: 6px;
+        margin-bottom: 1rem;
+        border: 1px solid #334155;
+    }
+    
+    /* Barra Superior de Estado del Software (Desktop Title Bar) */
+    .desktop-app-header {
+        background: #ffffff;
+        border-bottom: 2px solid #0f4c81;
+        padding: 0.6rem 1rem;
+        margin-bottom: 1rem;
+        border-radius: 6px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
     }
     </style>
     """, unsafe_allow_html=True)
@@ -270,32 +309,31 @@ def login():
     col1, col2, col3 = st.columns([1.1, 1.3, 1.1])
     with col2:
         st.markdown("""
-            <div style='text-align: center; margin-bottom: 1.8rem;'>
-                <div style='background: #e0f2fe; color: #0369a1; display: inline-block; padding: 5px 16px; border-radius: 20px; font-size: 0.78rem; font-weight: 800; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1px;'>
+            <div style='text-align: center; margin-bottom: 1.4rem;'>
+                <div style='background: #e2e8f0; color: #0f4c81; display: inline-block; padding: 4px 14px; border-radius: 4px; font-size: 0.75rem; font-weight: 700; margin-bottom: 8px; border: 1px solid #cbd5e1; text-transform: uppercase;'>
                     Ministerio de Salud Pública del Ecuador
                 </div>
-                <h1 style='color: #0f172a; font-size: 1.95rem; font-weight: 800; margin-bottom: 0.2rem; line-height: 1.2;'>
+                <h2 style='color: #0f172a; font-size: 1.6rem; font-weight: 800; margin-bottom: 0.2rem;'>
+                    SIEM - Software Institucional
+                </h2>
+                <p style='color: #475569; font-size: 0.88rem; margin-top: 2px;'>
                     Dirección Provincial de Salud de Orellana
-                </h1>
-                <p style='color: #64748b; font-size: 1rem; margin-top: 6px; font-weight: 500;'>
-                    Sistema Integrado de Registro de Emergencias Hospitalarias
                 </p>
             </div>
         """, unsafe_allow_html=True)
         
         with st.container(border=True):
             st.markdown("""
-                <div style='text-align: center; margin-bottom: 1.4rem;'>
-                    <h4 style='color: #0A4D68; font-weight: 700; font-size: 1.2rem; margin-bottom: 4px;'>Acceso Institucional</h4>
-                    <span style='color: #64748b; font-size: 0.88rem;'>Ingrese sus credenciales de unidad operativa</span>
+                <div style='text-align: left; margin-bottom: 1rem; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px;'>
+                    <span style='color: #0f172a; font-weight: 700; font-size: 0.95rem;'>Acceso al Sistema Integrado</span>
                 </div>
             """, unsafe_allow_html=True)
             
-            usuario = st.text_input("👤 Nombre de Usuario / Credencial", placeholder="Ej: Tello2047")
-            contrasena = st.text_input("🔑 Contraseña de Seguridad", type="password", placeholder="••••••••••••")
+            usuario = st.text_input("👤 Credencial de Usuario", placeholder="Ej: Tello2047")
+            contrasena = st.text_input("🔑 Contraseña Asignada", type="password", placeholder="••••••••••••")
             
             st.markdown("<br>", unsafe_allow_html=True)
-            if st.button("Iniciar Sesión Segura", use_container_width=True):
+            if st.button("Iniciar Sesión en el Software", use_container_width=True):
                 df_usuarios = cargar_usuarios()
                 if not df_usuarios.empty and "USUARIO" in df_usuarios.columns:
                     user_match = df_usuarios[(df_usuarios['USUARIO'] == usuario) & (df_usuarios['CONTRASENA'] == contrasena)]
@@ -313,8 +351,8 @@ def login():
                     st.error("⚠️ Error temporal al sincronizar con el servidor institucional. Por favor reintente en unos segundos.")
 
         st.markdown("""
-            <div style='text-align: center; margin-top: 1.5rem; color: #94a3b8; font-size: 0.8rem;'>
-                🛡️ Plataforma protegida | Gestión de Estadísticas y Emergencias MSP Orellana
+            <div style='text-align: center; margin-top: 1.2rem; color: #64748b; font-size: 0.78rem;'>
+                🏥 MSP Orellana | Entorno Informático de Escritorio V3.2
             </div>
         """, unsafe_allow_html=True)
 
@@ -831,21 +869,19 @@ def renderizar_campos_paciente(fk, prefill=None, df_global=None):
     }
 
 # ==============================================================================
-# APLICACIÓN PRINCIPAL (PANEL POR ROLES)
+# APLICACIÓN PRINCIPAL (PANEL DE ESCRITORIO POR ROLES)
 # ==============================================================================
 def formulario_principal():
     with st.sidebar:
         st.markdown("""
-            <div style='text-align: center; margin-bottom: 0.5rem;'>
-                <h3 style='color: #0A4D68; font-weight: 800; font-size: 1.2rem; line-height: 1.3; margin-bottom: 0px;'>
-                    Dirección Provincial de Salud de Orellana
+            <div style='text-align: center; margin-bottom: 0.6rem;'>
+                <h3 style='color: #0f4c81; font-weight: 800; font-size: 1.15rem; line-height: 1.3; margin-bottom: 0px;'>
+                    Dirección Provincial Orellana
                 </h3>
             </div>
         """, unsafe_allow_html=True)
         
-        st.markdown("---")
-        
-        # Tarjeta de Credencial Digital Operativa
+        # Tarjeta de Credencial Digital de Operador (Sidebar Desktop App)
         nom_est_sidebar = "Unidad Provincial"
         if base_est is not None and not base_est.empty and st.session_state.unicodigo_actual:
             def limpiar_cod_sub(cod):
@@ -865,15 +901,15 @@ def formulario_principal():
 
         st.markdown(f"""
             <div class="sidebar-user-card">
-                <div style="font-size: 0.75rem; font-weight: 700; opacity: 0.85; text-transform: uppercase;">Operador Conectado</div>
-                <div style="font-size: 1.1rem; font-weight: 800; margin-bottom: 8px;">👤 {st.session_state.usuario_actual}</div>
-                <div style="font-size: 0.82rem; font-weight: 600; margin-bottom: 4px;">🛡️ Rol: <b>{st.session_state.rol_actual}</b></div>
-                <div style="font-size: 0.82rem; font-weight: 600;">📍 Cód: <b>{st.session_state.unicodigo_actual}</b></div>
-                <div style="font-size: 0.78rem; margin-top: 8px; border-top: 1px solid rgba(255,255,255,0.2); padding-top: 6px;">🏥 {nom_est_sidebar}</div>
+                <div style="font-size: 0.72rem; font-weight: 700; opacity: 0.8; text-transform: uppercase; letter-spacing: 0.8px;">Operador Conectado</div>
+                <div style="font-size: 1.05rem; font-weight: 800; margin-bottom: 6px; margin-top: 2px;">👤 {st.session_state.usuario_actual}</div>
+                <div style="font-size: 0.8rem; font-weight: 600; margin-bottom: 3px;">🛡️ Rol: <b>{st.session_state.rol_actual}</b></div>
+                <div style="font-size: 0.8rem; font-weight: 600;">📍 Cód: <b>{st.session_state.unicodigo_actual}</b></div>
+                <div style="font-size: 0.75rem; margin-top: 8px; border-top: 1px solid rgba(255,255,255,0.18); padding-top: 6px; color: #cbd5e1;">🏥 {nom_est_sidebar}</div>
             </div>
         """, unsafe_allow_html=True)
 
-        if st.button("🚪 Finalizar Sesión", use_container_width=True):
+        if st.button("🚪 Cerrar Sesión", use_container_width=True):
             st.session_state.autenticado = False
             st.session_state.usuario_actual = ""
             st.session_state.rol_actual = ""
@@ -882,9 +918,22 @@ def formulario_principal():
             st.session_state.last_checked_id = ""
             st.rerun()
 
+    # Cabecera Visual de Sistema de Escritorio
+    st.markdown(f"""
+        <div class="desktop-app-header">
+            <div>
+                <b style="color: #0f172a; font-size: 1.05rem;">🏥 SIEM — Registro Integrado de Emergencias</b>
+                <span style="color: #64748b; font-size: 0.82rem; margin-left: 12px;">MSP Ecuador • Zona 2</span>
+            </div>
+            <div style="font-size: 0.82rem; font-weight: 600; color: #0f4c81;">
+                🟢 SISTEMA CONECTADO EN VIVO
+            </div>
+        </div>
+    """, unsafe_allow_html=True)
+
     df_global = cargar_tabla(HOJA_ATENCIONES)
 
-    # Configuración de Pestañas según el Rol
+    # Pestañas estilo Barra de Herramientas del Software
     if st.session_state.rol_actual == "ADMIN":
         tab1, tab2, tab3, tab4 = st.tabs([
             "🔍 Auditoría y Control de Atenciones", 
@@ -1320,11 +1369,9 @@ def formulario_principal():
                 
                 df_descarga = df_global[df_global["FECHA DE ATENCION"].apply(es_fecha_en_rango)].copy()
                 
-                # === AQUÍ OCURRE LA SINCRONIZACIÓN DINÁMICA CON LOS CATÁLOGOS MÁS RECIENTES ===
                 df_pac_live = cargar_tabla(HOJA_PACIENTES)
                 df_prof_live = cargar_tabla(HOJA_PROFESIONALES)
                 df_descarga = sincronizar_descarga_con_catalogos(df_descarga, df_pac_live, df_prof_live)
-                # ==============================================================================
                 
                 if df_descarga.empty:
                     st.warning(f"⚠️ No se identificaron atenciones médicas registradas entre el **{f_desc_ini.strftime('%d/%m/%Y')}** y el **{f_desc_fin.strftime('%d/%m/%Y')}**.")
