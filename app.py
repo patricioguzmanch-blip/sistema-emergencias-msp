@@ -118,21 +118,39 @@ st.markdown("""
     }
     
     /* ==========================================================================
-       5. REGLA UNIVERSAL: POR DEFECTO TODOS LOS CAMPOS VAN EN AZUL INSTITUCIONAL
-       (Cubre Hora de Atención, Cédula Profesional, Nombres Médico, CIE-10, Hospitales, Fechas, etc.)
+       5. REGLA EXPLÍCITA E INFALIBLE PARA BORDE AZUL (#3b82f6) Y FONDO CELESTE (#f0f8ff)
+       Cubre Hora de Atención, Cédula Profesional, Nombres Médico, Fechas, Números y Selectores Clave
        ========================================================================== */
-    div[data-testid="stTextInput"] div[data-baseweb="input"],
-    div[data-testid="stTextInput"] div[data-baseweb="base-input"],
-    div[data-testid="stNumberInput"] div[data-baseweb="input"],
     div[data-testid="stDateInput"] div[data-baseweb="input"],
-    div[data-testid="stPasswordInput"] div[data-baseweb="input"],
-    div[data-testid="stSelectbox"] div[data-baseweb="select"],
-    div[data-testid="stSelectbox"] div[role="combobox"],
-    div[data-baseweb="input"],
-    div[data-baseweb="base-input"],
-    div[data-baseweb="select"] {
+    div[data-testid="stDateInput"] div[data-baseweb="base-input"],
+    div[data-testid="stNumberInput"] div[data-baseweb="input"],
+    div[data-testid="stNumberInput"] div[data-baseweb="base-input"],
+    div[data-testid="stTextInput"]:has(input[aria-label*="Hora" i]) div[data-baseweb="input"],
+    div[data-testid="stTextInput"]:has(input[aria-label*="Hora" i]) div[data-baseweb="base-input"],
+    div[data-testid="stTextInput"]:has(input[placeholder*="HH:MM" i]) div[data-baseweb="input"],
+    div[data-testid="stTextInput"]:has(input[placeholder*="HH:MM" i]) div[data-baseweb="base-input"],
+    div[data-testid="stTextInput"]:has(input[aria-label*="Cédula Profesional" i]) div[data-baseweb="input"],
+    div[data-testid="stTextInput"]:has(input[aria-label*="Cédula Profesional" i]) div[data-baseweb="base-input"],
+    div[data-testid="stTextInput"]:has(input[placeholder*="médico" i]) div[data-baseweb="input"],
+    div[data-testid="stTextInput"]:has(input[placeholder*="médico" i]) div[data-baseweb="base-input"],
+    div[data-testid="stTextInput"]:has(input[aria-label*="Nombres y Apellidos del Profesional" i]) div[data-baseweb="input"],
+    div[data-testid="stTextInput"]:has(input[aria-label*="Nombres y Apellidos del Profesional" i]) div[data-baseweb="base-input"],
+    div[data-testid="stTextInput"]:has(input[placeholder*="profesional de salud" i]) div[data-baseweb="input"],
+    div[data-testid="stTextInput"]:has(input[placeholder*="profesional de salud" i]) div[data-baseweb="base-input"],
+    div[data-testid="stSelectbox"]:has([aria-label*="Especialidad" i]) div[data-baseweb="select"],
+    div[data-testid="stSelectbox"]:has([aria-label*="Especialidad" i]) [role="combobox"],
+    div[data-testid="stSelectbox"]:has([aria-label*="Diagnóstico" i]) div[data-baseweb="select"],
+    div[data-testid="stSelectbox"]:has([aria-label*="Diagnóstico" i]) [role="combobox"],
+    div[data-testid="stSelectbox"]:has([aria-label*="Condición" i]):not(:has([aria-label*="Edad" i])) div[data-baseweb="select"],
+    div[data-testid="stSelectbox"]:has([aria-label*="Condición" i]):not(:has([aria-label*="Edad" i])) [role="combobox"],
+    div[data-testid="stSelectbox"]:has([aria-label*="Causa" i]) div[data-baseweb="select"],
+    div[data-testid="stSelectbox"]:has([aria-label*="Causa" i]) [role="combobox"],
+    div[data-testid="stSelectbox"]:has([aria-label*="Hospital" i]) div[data-baseweb="select"],
+    div[data-testid="stSelectbox"]:has([aria-label*="Hospital" i]) [role="combobox"],
+    div[data-testid="stSelectbox"]:has([aria-label*="Establecimiento" i]) div[data-baseweb="select"],
+    div[data-testid="stSelectbox"]:has([aria-label*="Establecimiento" i]) [role="combobox"] {
         background-color: #f0f8ff !important;
-        border: 1.5px solid #3b82f6 !important;
+        border: 2px solid #3b82f6 !important;
         border-radius: 6px !important;
         min-height: 38px !important;
         box-shadow: none !important;
@@ -141,7 +159,8 @@ st.markdown("""
 
     /* ==========================================================================
        6. CAMPOS EN BLANCO SIN BORDE AZUL (FONDO BLANCO PURO Y BORDE GRIS NEUTRO #cbd5e1)
-       Usamos nombres exactos para jamás chocar con "Nombres y Apellidos del Profesional"
+       Cubre: Sexo, Condición Edad, Nacionalidad, Etnia, Grupo Prioritario, Seguro,
+       Apellidos, Nombres, Provincia, Cantón, Parroquia y Tipo de Documento
        ========================================================================== */
     div[data-testid="stTextInput"]:has([aria-label*="Primer Apellido" i]) div[data-baseweb="input"],
     div[data-testid="stTextInput"]:has([aria-label*="Primer Apellido" i]) div[data-baseweb="base-input"],
@@ -155,9 +174,10 @@ st.markdown("""
     div[data-testid="stTextInput"]:has([aria-label*="Provincia" i]) div[data-baseweb="base-input"],
     div[data-testid="stTextInput"]:has([aria-label*="Cantón" i]) div[data-baseweb="input"],
     div[data-testid="stTextInput"]:has([aria-label*="Cantón" i]) div[data-baseweb="base-input"],
-    div[data-testid="stTextInput"]:has([aria-label*="Canton" i]) div[data-baseweb="input"],
     div[data-testid="stTextInput"]:has([aria-label*="Parroquia" i]) div[data-baseweb="input"],
     div[data-testid="stTextInput"]:has([aria-label*="Parroquia" i]) div[data-baseweb="base-input"],
+    div[data-testid="stSelectbox"]:has([aria-label*="Tipo de Documento" i]) div[data-baseweb="select"],
+    div[data-testid="stSelectbox"]:has([aria-label*="Tipo de Documento" i]) [role="combobox"],
     div[data-testid="stSelectbox"]:has([aria-label*="Sexo" i]) div[data-baseweb="select"],
     div[data-testid="stSelectbox"]:has([aria-label*="Sexo" i]) [role="combobox"],
     div[data-testid="stSelectbox"]:has([aria-label*="Condición de la Edad" i]) div[data-baseweb="select"],
@@ -972,8 +992,6 @@ def renderizar_campos_paciente(fk, prefill=None, df_global=None):
         val_fecha_atencion = fecha_atencion.strftime("%d/%m/%Y") if fecha_atencion else ""
 
         valido_fecha = bool(fecha_atencion is not None)
-        if not valido_fecha:
-            col9.error("❌ Seleccione la Fecha de Atención en el calendario.")
 
     return {
         "FECHA DE ATENCION": val_fecha_atencion, "HORA ATENCION": hora_atencion, "FECHA DE NACIMIENTO DEL PACIENTE": val_fecha_nacimiento,
