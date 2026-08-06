@@ -17,7 +17,7 @@ def obtener_fecha_actual():
     """Fuerza al sistema a usar SIEMPRE la fecha de Ecuador (UTC-5), ignorando la hora del servidor."""
     return datetime.now(ZONA_HORARIA_ECUADOR).date()
 
-URL_BD_NUBE = "https://docs.google.com/spreadsheets/d/1DhPSc6-qqwzaP1UuF_1JaNI9Z8HMx9_2JAHBQxiPAhw/edit?usp=sharing"
+URL_BD_NUBE = "AQUI_PEGA_EL_LINK_DE_TU_GOOGLE_SHEET_VACIO"
 
 HOJA_ATENCIONES = "Atenciones"
 HOJA_USUARIOS = "Usuarios"
@@ -25,7 +25,7 @@ HOJA_PACIENTES = "Pacientes"
 HOJA_PROFESIONALES = "Profesionales"
 
 # ==============================================================================
-# CONFIGURACIÓN GENERAL Y ESTILOS VISUALES (UI/UX INSTITUCIONAL REDISEÑADO)
+# CONFIGURACIÓN GENERAL Y ESTILOS VISUALES (UI/UX INSTITUCIONAL)
 # ==============================================================================
 st.set_page_config(
     page_title="SIEM - Emergencias MSP Orellana",
@@ -36,7 +36,6 @@ st.set_page_config(
 
 st.markdown("""
     <style>
-    /* Importación de tipografía moderna y limpia */
     @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
     
     html, body, [class*="css"] {
@@ -44,19 +43,16 @@ st.markdown("""
         color: #1e293b;
     }
     
-    /* Fondo principal suave y profesional */
     .stApp {
         background-color: #f8fafc;
     }
     
-    /* Estilización de encabezados institucionales */
     h1, h2, h3, h4 {
         color: #0f172a;
         font-weight: 700 !important;
         letter-spacing: -0.02em;
     }
     
-    /* Botón Primario: Estilo Médico Institucional Moderno */
     .stButton > button {
         background: linear-gradient(135deg, #0A4D68 0%, #088395 100%);
         color: #ffffff !important;
@@ -76,7 +72,6 @@ st.markdown("""
         transform: translateY(-2px);
     }
     
-    /* Contenedores y Tarjetas Limpias con Sombra Sutil */
     div[data-testid="stVerticalBlock"] > div[style*="border"] {
         background-color: #ffffff;
         border: 1px solid #e2e8f0 !important;
@@ -85,7 +80,6 @@ st.markdown("""
         padding: 1.5rem !important;
     }
     
-    /* Inputs y Selects refinados */
     div[data-baseweb="input"] > div, div[data-baseweb="select"] > div {
         border-radius: 8px !important;
         border-color: #cbd5e1 !important;
@@ -98,7 +92,6 @@ st.markdown("""
         box-shadow: 0 0 0 3px rgba(8, 131, 149, 0.15) !important;
     }
     
-    /* Pestañas (Tabs) Estilo Pill / Botón Activo */
     .stTabs [data-baseweb="tab-list"] {
         gap: 8px;
         background-color: #f1f5f9;
@@ -122,7 +115,6 @@ st.markdown("""
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);
     }
     
-    /* Resaltado elegante para campo de Identificación del Paciente */
     div[data-testid="stTextInput"] div.st-key-id_0 input, 
     div[data-testid="stTextInput"] div[data-baseweb="input"]:has(input[aria-label*="Número de Identificación"]) {
         background-color: #f0fdf4 !important;
@@ -131,7 +123,6 @@ st.markdown("""
         color: #166534 !important;
     }
     
-    /* Encabezados de Sección Interiores con Acento Médico */
     .section-title {
         color: #0f172a;
         font-size: 1.15rem;
@@ -213,6 +204,7 @@ def guardar_tabla(hoja_nombre, df):
         except TypeError:
             sheet.update("A1", datos)
         cargar_tabla.clear()
+        cargar_profesionales.clear()
     except Exception as e:
         st.error(f"Error guardando {hoja_nombre}: {e}")
 
@@ -225,6 +217,7 @@ def cargar_usuarios():
         return pd.DataFrame(columns=["USUARIO", "CONTRASENA", "ROL", "UNICODIGO"])
     return df
 
+@st.cache_data(ttl=10, show_spinner=False)
 def cargar_profesionales():
     df = cargar_tabla(HOJA_PROFESIONALES)
     if df.empty: return pd.DataFrame(columns=["CEDULA", "PRIMER NOMBRE", "SEGUNDO NOMBRE", "PRIMER APELLIDO", "SEGUNDO APELLIDO", "NOMBRE_COMPLETO"])
@@ -242,7 +235,6 @@ def login():
     st.markdown("<br>", unsafe_allow_html=True)
     col1, col2, col3 = st.columns([1.1, 1.3, 1.1])
     with col2:
-        # Encabezado Ejecutivo Institucional
         st.markdown("""
             <div style='text-align: center; margin-bottom: 1.8rem;'>
                 <div style='background: #e0f2fe; color: #0369a1; display: inline-block; padding: 4px 14px; border-radius: 20px; font-size: 0.78rem; font-weight: 700; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 1px;'>
@@ -444,7 +436,7 @@ def modal_nuevo_profesional(cedula_prof):
             st.rerun()
 
 # ==========================================
-# RENDERIZADO DEL FORMULARIO
+# RENDERIZADO DEL FORMULARIO DE ATENCIÓN
 # ==========================================
 def renderizar_campos_paciente(fk, prefill=None, df_global=None):
     if prefill is None: prefill = {}
@@ -628,7 +620,7 @@ def renderizar_campos_paciente(fk, prefill=None, df_global=None):
     bloquear_causa_externa = not (cod_p.startswith("S") or cod_p.startswith("T"))
     
     buscador_cie10_e = col_bus_e.selectbox(
-        "🔍 Causa Externa - Traumatismo (CIE-10 Secundario)", 
+        "🔍 Causa Externa - Traumatismo (CIE-10 Secundario - Válido Hombres/Mujeres)", 
         CIE10_SEC_OPCIONES, 
         index=safe_index(CIE10_SEC_OPCIONES, prefill.get("CIE-10 (CAUSA EXTERNA)")), 
         key=f"bus_e_{fk}", 
@@ -648,7 +640,7 @@ def renderizar_campos_paciente(fk, prefill=None, df_global=None):
             cod_e = prefill.get("CIE-10 (CAUSA EXTERNA)", "")
             desc_e = prefill.get("DIAGNOSTICO (CAUSA EXTERNA)", "")
 
-    # === CORRECCIÓN CRÍTICA: VALIDAR QUE EL CIE-10 PRINCIPAL NO ESTÉ VACÍO ===
+    # === VALIDAR QUE EL CIE-10 PRINCIPAL NO ESTÉ VACÍO ===
     valido_diag = True
     if not cod_p.strip():
         col_bus_p.error("❌ Obligatorio seleccionar el Diagnóstico Principal (CIE-10).")
@@ -659,16 +651,22 @@ def renderizar_campos_paciente(fk, prefill=None, df_global=None):
             valido_diag = False
     # =========================================================================
 
+    # === CORRECCIÓN: LIBERACIÓN DE CAUSA EXTERNA PARA AMBOS SEXOS ===
     valido_sexo = True
     if sexo == "HOMBRE":
-        if grupo_prio == "EMBARAZADAS": col23.error("❌ Inválido para género masculino."); valido_sexo = False
+        if grupo_prio == "EMBARAZADAS": 
+            col23.error("❌ Inválido para género masculino.")
+            valido_sexo = False
         palabras_mujer = ["OVARIO", "UTERO", "ÚTERO", "VAGINA", "VULVA", "CERVIX", "CÉRVIX", "TROMPA", "PLACENTA", "PARTO", "EMBARAZO", "PUERPERIO", "MENSTRUACION", "MENSTRUACIÓN"]
-        if cod_p.startswith("O") or any(p in desc_p.upper() for p in palabras_mujer): col_cond_p.error("❌ Diagnóstico obstétrico/ginecológico no admisible para pacientes masculinos."); valido_sexo = False
-        if cod_e.startswith("O") or any(p in desc_e.upper() for p in palabras_mujer): col_cond_e.error("❌ Causa no admisible para pacientes masculinos."); valido_sexo = False
+        if cod_p.startswith("O") or any(p in desc_p.upper() for p in palabras_mujer): 
+            col_cond_p.error("❌ Diagnóstico obstétrico/ginecológico no admisible en Diagnóstico Principal para hombres.")
+            valido_sexo = False
     elif sexo == "MUJER":
         palabras_hombre = ["PROSTATA", "PRÓSTATA", "TESTICULO", "TESTÍCULO", "PENE", "PREPUCIO", "ESCROTO", "ESPERMATOZOIDE", "SEMEN"]
-        if any(p in desc_p.upper() for p in palabras_hombre): col_cond_p.error("❌ Diagnóstico no admisible para pacientes femeninas."); valido_sexo = False
-        if any(p in desc_e.upper() for p in palabras_hombre): col_cond_e.error("❌ Causa no admisible para pacientes femeninas."); valido_sexo = False
+        if any(p in desc_p.upper() for p in palabras_hombre): 
+            col_cond_p.error("❌ Diagnóstico no admisible en Diagnóstico Principal para mujeres.")
+            valido_sexo = False
+    # =========================================================================
 
     col34, col35, col36 = st.columns(3)
     req_hosp = col34.selectbox("¿Requiere Hospitalización?", ["NO", "SI"], index=safe_index(["NO", "SI"], prefill.get("REQUIERE HOSPITALIZACIÓN")), key=f"rh_{fk}")
@@ -746,7 +744,7 @@ def renderizar_campos_paciente(fk, prefill=None, df_global=None):
     }
 
 # ==============================================================================
-# APLICACIÓN PRINCIPAL
+# APLICACIÓN PRINCIPAL (PANEL POR ROLES)
 # ==============================================================================
 def formulario_principal():
     with st.sidebar:
@@ -796,8 +794,14 @@ def formulario_principal():
 
     df_global = cargar_tabla(HOJA_ATENCIONES)
 
+    # Configuración de Pestañas según el Rol
     if st.session_state.rol_actual == "ADMIN":
-        tab1, tab2, tab3 = st.tabs(["🔍 Auditoría Provincial y Búsqueda", "👥 Administración de Accesos", "⚙️ Mantenimiento del Sistema"])
+        tab1, tab2, tab3, tab4 = st.tabs([
+            "🔍 Auditoría y Control de Atenciones", 
+            "✏️ Catálogos: Pacientes y Médicos", 
+            "👥 Administración de Accesos", 
+            "⚙️ Mantenimiento y Purgas"
+        ])
     else:
         tab1, tab2 = st.tabs(["📝 Registro de Nueva Atención Médica", "🔍 Búsqueda y Edición Local"])
 
@@ -903,11 +907,12 @@ def formulario_principal():
                                 st.toast("Ficha actualizada en el servidor", icon="🔄")
                                 st.rerun()
 
-    # ========================== ROL ADMIN ==========================
+    # ========================== ROL ADMINISTRADOR ==========================
     if st.session_state.rol_actual == "ADMIN":
+        # === TAB 1: GESTIÓN INTEGRAL DE ATENCIONES (AUDITAR, EDITAR Y ELIMINAR) ===
         with tab1:
-            st.markdown("<div class='section-title'>🔍 Explorador Histórico Provincial (Auditoría Médica)</div>", unsafe_allow_html=True)
-            cedula_auditoria = st.text_input("Ingrese Cédula / Documento del Ciudadano para consulta institucional:")
+            st.markdown("<div class='section-title'>🔍 Auditoría, Edición y Eliminación de Atenciones Provinciales</div>", unsafe_allow_html=True)
+            cedula_auditoria = st.text_input("Ingrese Cédula / Documento del Ciudadano para auditoría general:")
             
             if cedula_auditoria and not df_global.empty:
                 ced_audit_norm = normalizar_id(cedula_auditoria)
@@ -916,17 +921,149 @@ def formulario_principal():
                     st.error("❌ El ciudadano consultado no presenta atenciones de emergencia registradas en la provincia.")
                 else:
                     st.success(f"✅ Se localizaron **{len(df_audit)}** atenciones hospitalarias en la base consolidada.")
-                    for index, fila in df_audit.iterrows():
-                        with st.expander(f"🏥 {fila.get('NOMBRE DEL ESTABLECIMIENTO DE SALUD','')} | 📅 Fecha: {fila.get('FECHA DE ATENCIÓN','')} ({fila.get('HORA ATENCION','')})", expanded=False):
-                            c_au1, c_audit2, c_audit3 = st.columns(3)
-                            c_au1.markdown(f"**Paciente:** {fila.get('PRIMER NOMBRE','')} {fila.get('PRIMER APELLIDO','')}")
-                            c_audit2.markdown(f"**Edad / Sexo:** {fila.get('EDAD','')} {fila.get('CONDICIÓN DE LA EDAD','')} | {fila.get('SEXO','')}")
-                            c_audit3.markdown(f"**Cobertura:** {fila.get('TIPO DE SEGURO','')}")
-                            c_audit4, c_audit5 = st.columns([2, 1])
-                            c_audit4.markdown(f"**Diagnóstico Principal:** `{fila.get('CIE-10 (PRINCIPAL)','')}` - {fila.get('DIGANÓSTICO 1 (PRINCIPAL)','')}")
-                            c_audit5.markdown(f"**Condición:** {fila.get('CONDICIÓN DEL DIAGNÓSTICO','')}")
+                    
+                    opciones_audit = df_audit.apply(lambda r: f"🏥 {r.get('NOMBRE DEL ESTABLECIMIENTO DE SALUD','')} | 📅 {r['FECHA DE ATENCIÓN']} {r['HORA ATENCION']} ({r['CIE-10 (PRINCIPAL)']})", axis=1)
+                    seleccion_audit = st.selectbox("Seleccione la atención para auditar, modificar o eliminar:", opciones_audit.tolist(), key="sel_audit_atencion")
+                    idx_audit = df_audit.index[opciones_audit.tolist().index(seleccion_audit)]
+                    fila_audit_editar = df_global.iloc[idx_audit].to_dict()
 
+                    with st.expander("✏️ MODIFICAR ATENCIÓN SELECCIONADA (MÓDULO ADMIN)", expanded=False):
+                        st.info("⚠️ Los cambios realizados aquí se sobrescribirán directamente sobre la base provincial de Google Sheets.")
+                        datos_admin_edit = renderizar_campos_paciente(f"admin_edit_{idx_audit}", prefill=fila_audit_editar, df_global=df_global)
+                        
+                        if st.button("💾 Sobreescribir Atención en la Base Provincial", key=f"btn_admin_save_{idx_audit}", use_container_width=True):
+                            if not datos_admin_edit["_valido"]:
+                                st.error("❌ Resuelva los campos en rojo antes de sobreescribir la ficha.")
+                            else:
+                                del datos_admin_edit["_valido"]
+                                for k, v in datos_admin_edit.items():
+                                    df_global.loc[idx_audit, k] = str(v)
+                                guardar_tabla(HOJA_ATENCIONES, df_global)
+                                st.success("✅ ¡Atención modificada y sincronizada con Google Sheets!")
+                                st.rerun()
+
+                    with st.expander("🗑️ ELIMINAR ATENCIÓN SELECCIONADA (MÓDULO ADMIN)", expanded=False):
+                        st.warning("⚠️ **ATENCIÓN:** Esta acción eliminará permanentemente la atención seleccionada de la base de datos oficial del MSP Orellana.")
+                        confirmar_borrado = st.checkbox(f"Confirmo que deseo eliminar la atención del paciente {fila_audit_editar.get('NÚMERO DE IDENTIFICACION','')} fechada el {fila_audit_editar.get('FECHA DE ATENCIÓN','')}.", key=f"chk_del_{idx_audit}")
+                        if st.button("🗑️ Eliminar Definitivamente esta Atención", disabled=not confirmar_borrado, key=f"btn_del_at_{idx_audit}", use_container_width=True):
+                            df_global_borrado = df_global.drop(index=idx_audit).reset_index(drop=True)
+                            guardar_tabla(HOJA_ATENCIONES, df_global_borrado)
+                            st.success("✅ Atención eliminada correctamente del servidor provincial.")
+                            st.rerun()
+
+        # === TAB 2: EDICIÓN DE CATÁLOGOS (PACIENTES Y MÉDICOS) ===
         with tab2:
+            st.markdown("<div class='section-title'>✏️ Edición de Catálogos Provinciales (Pacientes y Profesionales)</div>", unsafe_allow_html=True)
+            subtab_pac, subtab_med = st.tabs(["👤 Fichas Demográficas de Pacientes", "👨‍⚕️ Catálogo de Profesionales de Salud"])
+            
+            # --- SUBTAB 1: EDICIÓN DE PACIENTES ---
+            with subtab_pac:
+                df_pacientes_cat = cargar_tabla(HOJA_PACIENTES)
+                st.markdown("#### Búsqueda y Edición de Pacientes Registrados")
+                ced_pac_edit = st.text_input("Ingrese el Número de Identificación del Paciente a modificar:", key="search_pac_cat")
+                
+                if ced_pac_edit and not df_pacientes_cat.empty and "NÚMERO DE IDENTIFICACION" in df_pacientes_cat.columns:
+                    ced_norm_cat = normalizar_id(ced_pac_edit)
+                    busqueda_pac = df_pacientes_cat[df_pacientes_cat['NÚMERO DE IDENTIFICACION'].apply(normalizar_id) == ced_norm_cat]
+                    
+                    if busqueda_pac.empty:
+                        st.warning("⚠️ El paciente no existe en la hoja de catálogo 'Pacientes'.")
+                    else:
+                        idx_pac_sel = busqueda_pac.index[-1]
+                        row_pac = busqueda_pac.iloc[-1].to_dict()
+                        
+                        with st.container(border=True):
+                            st.write(f"Editando ficha del paciente: **{row_pac.get('PRIMER NOMBRE','')} {row_pac.get('PRIMER APELLIDO','')}**")
+                            cp1, cp2, cp3, cp4 = st.columns(4)
+                            ed_pa = cp1.text_input("Primer Apellido", value=row_pac.get("PRIMER APELLIDO",""), key="ed_pac_pa")
+                            ed_sa = cp2.text_input("Segundo Apellido", value=row_pac.get("SEGUNDO APELLIDO",""), key="ed_pac_sa")
+                            ed_pn = cp3.text_input("Primer Nombre", value=row_pac.get("PRIMER NOMBRE",""), key="ed_pac_pn")
+                            ed_sn = cp4.text_input("Segundo Nombre", value=row_pac.get("SEGUNDO NOMBRE",""), key="ed_pac_sn")
+                            
+                            cp5, cp6, cp7 = st.columns(3)
+                            fn_pac_actual = safe_date(row_pac.get("FECHA DE NACIMIENTO DEL PACIENTE", ""), default_today=True)
+                            ed_fn = cp5.date_input("Fecha de Nacimiento", value=fn_pac_actual, min_value=date(1900,1,1), max_value=obtener_fecha_actual(), format="DD/MM/YYYY", key="ed_pac_fn")
+                            c_edad, c_cond = calcular_edad(ed_fn)
+                            cp6.text_input("Edad Calculada", value=str(c_edad), disabled=True, key="ed_pac_edad")
+                            cp7.text_input("Condición de Edad", value=c_cond, disabled=True, key="ed_pac_cond")
+                            
+                            cp8, cp9, cp10, cp11 = st.columns(4)
+                            ed_sexo = cp8.selectbox("Sexo", SEXO_OPCIONES, index=safe_index(SEXO_OPCIONES, row_pac.get("SEXO")), key="ed_pac_sx")
+                            ed_nac = cp9.selectbox("Nacionalidad", NACIONALIDAD, index=safe_index(NACIONALIDAD, row_pac.get("NACIONALIDAD")), key="ed_pac_nac")
+                            ed_etn = cp10.selectbox("Etnia", ETNIAS, index=safe_index(ETNIAS, row_pac.get("ETNIA")), key="ed_pac_et")
+                            ed_gp = cp11.selectbox("Grupo Prioritario", GRUPO_PRIORITARIO, index=safe_index(GRUPO_PRIORITARIO, row_pac.get("GRUPO PRIORITARIO")), key="ed_pac_gp")
+                            
+                            cp12, cp13, cp14, cp15 = st.columns(4)
+                            ed_ts = cp12.selectbox("Tipo de Seguro", TIPO_SEGURO, index=safe_index(TIPO_SEGURO, row_pac.get("TIPO DE SEGURO")), key="ed_pac_ts")
+                            ed_pr = cp13.text_input("Provincia", value=row_pac.get("PROV_RES",""), key="ed_pac_pr")
+                            ed_cr = cp14.text_input("Cantón", value=row_pac.get("CANT_RES",""), key="ed_pac_cr")
+                            ed_par = cp15.text_input("Parroquia", value=row_pac.get("PARR_RES",""), key="ed_pac_par")
+                            
+                            if st.button("💾 Guardar Actualización del Paciente", use_container_width=True, key="btn_save_edit_pac"):
+                                if not ed_pa or not ed_pn or not ed_pr:
+                                    st.error("❌ Apellidos, Nombres y Residencia son obligatorios.")
+                                else:
+                                    df_pacientes_cat.loc[idx_pac_sel, "PRIMER APELLIDO"] = limpiar_texto(ed_pa)
+                                    df_pacientes_cat.loc[idx_pac_sel, "SEGUNDO APELLIDO"] = limpiar_texto(ed_sa)
+                                    df_pacientes_cat.loc[idx_pac_sel, "PRIMER NOMBRE"] = limpiar_texto(ed_pn)
+                                    df_pacientes_cat.loc[idx_pac_sel, "SEGUNDO NOMBRE"] = limpiar_texto(ed_sn)
+                                    df_pacientes_cat.loc[idx_pac_sel, "FECHA DE NACIMIENTO DEL PACIENTE"] = ed_fn.strftime("%d/%m/%Y")
+                                    df_pacientes_cat.loc[idx_pac_sel, "EDAD"] = str(c_edad)
+                                    df_pacientes_cat.loc[idx_pac_sel, "CONDICIÓN DE LA EDAD"] = c_cond
+                                    df_pacientes_cat.loc[idx_pac_sel, "SEXO"] = ed_sexo
+                                    df_pacientes_cat.loc[idx_pac_sel, "NACIONALIDAD"] = ed_nac
+                                    df_pacientes_cat.loc[idx_pac_sel, "ETNIA"] = ed_etn
+                                    df_pacientes_cat.loc[idx_pac_sel, "GRUPO PRIORITARIO"] = ed_gp
+                                    df_pacientes_cat.loc[idx_pac_sel, "TIPO DE SEGURO"] = ed_ts
+                                    df_pacientes_cat.loc[idx_pac_sel, "PROV_RES"] = limpiar_texto(ed_pr)
+                                    df_pacientes_cat.loc[idx_pac_sel, "CANT_RES"] = limpiar_texto(ed_cr)
+                                    df_pacientes_cat.loc[idx_pac_sel, "PARR_RES"] = limpiar_texto(ed_par)
+                                    
+                                    guardar_tabla(HOJA_PACIENTES, df_pacientes_cat)
+                                    st.success("✅ ¡Ficha demográfica del paciente actualizada en Google Sheets!")
+                                    st.rerun()
+
+            # --- SUBTAB 2: EDICIÓN DE MÉDICOS ---
+            with subtab_med:
+                df_prof_cat = cargar_profesionales()
+                st.markdown("#### Búsqueda y Edición de Profesionales de Salud")
+                ced_prof_edit = st.text_input("Ingrese la Cédula Profesional del Médico/Obstetriz a modificar:", key="search_med_cat")
+                
+                if ced_prof_edit and not df_prof_cat.empty and "CEDULA" in df_prof_cat.columns:
+                    ced_norm_med = normalizar_id(ced_prof_edit)
+                    busqueda_med = df_prof_cat[df_prof_cat['CEDULA'].apply(normalizar_id) == ced_norm_med]
+                    
+                    if busqueda_med.empty:
+                        st.warning("⚠️ El profesional no existe en el catálogo.")
+                    else:
+                        idx_med_sel = busqueda_med.index[-1]
+                        row_med = busqueda_med.iloc[-1].to_dict()
+                        
+                        with st.container(border=True):
+                            st.write(f"Editando ficha del profesional: **{row_med.get('NOMBRE_COMPLETO','')}**")
+                            cm1, cm2, cm3, cm4 = st.columns(4)
+                            ed_m_pn = cm1.text_input("Primer Nombre", value=row_med.get("PRIMER NOMBRE",""), key="ed_med_pn")
+                            ed_m_sn = cm2.text_input("Segundo Nombre", value=row_med.get("SEGUNDO NOMBRE",""), key="ed_med_sn")
+                            ed_m_pa = cm3.text_input("Primer Apellido", value=row_med.get("PRIMER APELLIDO",""), key="ed_med_pa")
+                            ed_m_sa = cm4.text_input("Segundo Apellido", value=row_med.get("SEGUNDO APELLIDO",""), key="ed_med_sa")
+                            
+                            if st.button("💾 Guardar Actualización del Profesional", use_container_width=True, key="btn_save_edit_med"):
+                                if not ed_m_pn or not ed_m_pa:
+                                    st.error("❌ Primer Nombre y Primer Apellido son obligatorios.")
+                                else:
+                                    nom_com = re.sub(r'\s+', ' ', f"{limpiar_texto(ed_m_pn)} {limpiar_texto(ed_m_sn)} {limpiar_texto(ed_m_pa)} {limpiar_texto(ed_m_sa)}").strip()
+                                    df_prof_cat.loc[idx_med_sel, "PRIMER NOMBRE"] = limpiar_texto(ed_m_pn)
+                                    df_prof_cat.loc[idx_med_sel, "SEGUNDO NOMBRE"] = limpiar_texto(ed_m_sn)
+                                    df_prof_cat.loc[idx_med_sel, "PRIMER APELLIDO"] = limpiar_texto(ed_m_pa)
+                                    df_prof_cat.loc[idx_med_sel, "SEGUNDO APELLIDO"] = limpiar_texto(ed_m_sa)
+                                    df_prof_cat.loc[idx_med_sel, "NOMBRE_COMPLETO"] = nom_com
+                                    
+                                    guardar_tabla(HOJA_PROFESIONALES, df_prof_cat)
+                                    st.success("✅ ¡Nombre del profesional actualizado en el catálogo oficial!")
+                                    st.rerun()
+
+        # === TAB 3: ADMINISTRACIÓN DE USUARIOS INSTITUCIONALES ===
+        with tab3:
             st.markdown("<div class='section-title'>👥 Catálogo Provincial de Operadores y Accesos</div>", unsafe_allow_html=True)
             df_usuarios = cargar_usuarios()
             st.dataframe(df_usuarios, use_container_width=True)
@@ -972,7 +1109,8 @@ def formulario_principal():
             else:
                 st.info("No existen usuarios adicionales para revocar.")
 
-        with tab3:
+        # === TAB 4: PANEL DE CONTROL Y PURGAS ===
+        with tab4:
             st.markdown("<div class='section-title'>⚙️ Panel de Control y Mantenimiento de Bases</div>", unsafe_allow_html=True)
             st.warning("⚠️ **ATENCIÓN - ZONA DE AUDITORÍA:** Las acciones ejecutadas aquí modifican o purgan registros directamente sobre el servidor institucional.")
 
@@ -1022,9 +1160,9 @@ def formulario_principal():
                     st.toast("Bases temporales limpias", icon="🧹")
                     st.rerun()
 
-    # ==========================================
+    # ==========================================================================
     # DESCARGAR MATRIZ GLOBAL POR RANGO DE FECHAS
-    # ==========================================
+    # ==========================================================================
     st.markdown("---")
     st.markdown("<div class='section-title'>📥 Centro de Exportación de Datos Estadísticos (MSP Orellana)</div>", unsafe_allow_html=True)
     
