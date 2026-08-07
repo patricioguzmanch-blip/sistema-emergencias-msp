@@ -119,12 +119,14 @@ st.markdown("""
     
     /* ==========================================================================
        5. REGLA EXPLÍCITA E INFALIBLE PARA BORDE AZUL (#3b82f6) Y FONDO CELESTE (#f0f8ff)
-       Cubre Hora de Atención, Cédula Profesional, Nombres Médico, Fechas, Números y Selectores Clave
+       Cubre Número de Serie, Hora de Atención, Cédula Profesional, Nombres Médico, Fechas, Números y Selectores Clave
        ========================================================================== */
     div[data-testid="stDateInput"] div[data-baseweb="input"],
     div[data-testid="stDateInput"] div[data-baseweb="base-input"],
     div[data-testid="stNumberInput"] div[data-baseweb="input"],
     div[data-testid="stNumberInput"] div[data-baseweb="base-input"],
+    div[data-testid="stTextInput"]:has(input[aria-label*="Número de Serie" i]) div[data-baseweb="input"],
+    div[data-testid="stTextInput"]:has(input[aria-label*="Número de Serie" i]) div[data-baseweb="base-input"],
     div[data-testid="stTextInput"]:has(input[aria-label*="Hora" i]) div[data-baseweb="input"],
     div[data-testid="stTextInput"]:has(input[aria-label*="Hora" i]) div[data-baseweb="base-input"],
     div[data-testid="stTextInput"]:has(input[placeholder*="HH:MM" i]) div[data-baseweb="input"],
@@ -523,7 +525,11 @@ HOSPITALES_REFERENCIA = [
     "000359 HOSPITAL GENERAL LATACUNGA", "001549 HOSPITAL BASICO DE BAEZA", "000000 OTRO"
 ]
 
+# ==============================================================================
+# COLUMNAS OFICIALES (CON "NUMERO DE SERIE" EN LA PRIMERA POSICIÓN - CELDA A1)
+# ==============================================================================
 COLUMNAS_OFICIALES = [
+    "NUMERO DE SERIE",
     "INSTITUCION DEL SISTEMA", "UNICODIGO", "NOMBRE DEL ESTABLECIMIENTO DE SALUD", "ZONA", "PROVINCIA", "CANTON", "DISTRITO", "NIVEL", 
     "FECHA DE ATENCION", "HORA ATENCION", "FECHA DE NACIMIENTO DEL PACIENTE", "TIPO DE DOCUMENTO DE IDENTIFICACION", "NUMERO DE IDENTIFICACION", 
     "PRIMER APELLIDO", "SEGUNDO APELLIDO", "PRIMER NOMBRE", "SEGUNDO NOMBRE", "SEXO", "EDAD", "CONDICION DE LA EDAD", "NACIONALIDAD", 
@@ -712,7 +718,9 @@ def renderizar_campos_paciente(fk, prefill=None, df_global=None):
     st.markdown("<div class='section-title'>👤 2. Identificación y Demografía del Ciudadano</div>", unsafe_allow_html=True)
     
     with st.container(border=True):
-        col_doc1, col_doc2, col_doc_vacia = st.columns([1.5, 1.5, 1.0])
+        # Implementación del campo Número de Serie antes del Tipo de Documento
+        col_ser, col_doc1, col_doc2 = st.columns([1.0, 1.3, 1.7])
+        numero_serie = col_ser.text_input("Número de Serie", value=prefill.get("NUMERO DE SERIE", ""), placeholder="Ingrese el número de serie (Opcional)", key=f"ser_{fk}", disabled=es_edicion_usuario)
         tipo_doc = col_doc1.selectbox("Tipo de Documento", TIPOS_DOCUMENTO, index=safe_index(TIPOS_DOCUMENTO, prefill.get("TIPO DE DOCUMENTO DE IDENTIFICACION")), key=f"td_{fk}", disabled=es_edicion_usuario)
         identificacion = col_doc2.text_input("Número de Identificación (Presione ENTER para verificar en el sistema)", placeholder="Ingrese el número de cédula y presione ENTER", value=prefill.get("NUMERO DE IDENTIFICACION", ""), key=f"id_{fk}", disabled=es_edicion_usuario)
         
@@ -994,6 +1002,7 @@ def renderizar_campos_paciente(fk, prefill=None, df_global=None):
         valido_fecha = bool(fecha_atencion is not None)
 
     return {
+        "NUMERO DE SERIE": limpiar_texto(numero_serie),
         "FECHA DE ATENCION": val_fecha_atencion, "HORA ATENCION": hora_atencion, "FECHA DE NACIMIENTO DEL PACIENTE": val_fecha_nacimiento,
         "TIPO DE DOCUMENTO DE IDENTIFICACION": tipo_doc, "NUMERO DE IDENTIFICACION": identificacion.strip(),
         "PRIMER APELLIDO": limpiar_texto(primer_apellido), 
@@ -1159,6 +1168,7 @@ def formulario_principal():
                         
                         df_nuevo = pd.DataFrame([{k: str(v) for k, v in datos_nuevo.items()}], columns=COLUMNAS_OFICIALES)
                         df_final = pd.concat([df_global, df_nuevo], ignore_index=True) if not df_global.empty else df_nuevo
+                        df_final = df_final.reindex(columns=COLUMNAS_OFICIALES).fillna("")
                         
                         guardar_tabla(HOJA_ATENCIONES, df_final)
                         
@@ -1201,6 +1211,7 @@ def formulario_principal():
                                 else:
                                     del datos_editados["_valido"]
                                     for k, v in datos_editados.items(): df_global.loc[idx_original, k] = str(v)
+                                    df_global = df_global.reindex(columns=COLUMNAS_OFICIALES).fillna("")
                                     guardar_tabla(HOJA_ATENCIONES, df_global)
                                     st.success("✅ ¡Registro médico enmendado exitosamente!")
                                     st.toast("Ficha actualizada en el servidor", icon="🔄")
@@ -1239,7 +1250,7 @@ def formulario_principal():
                                 else:
                                     del datos_admin_edit["_valido"]
                                     for k, v in datos_admin_edit.items():
-                                        if k in df_global.columns:
+                                        if k in df_global.columns or k in COLUMNAS_OFICIALES:
                                             df_global.loc[idx_audit, k] = str(v)
                                     
                                     ced_pac_audit = datos_admin_edit.get("NUMERO DE IDENTIFICACION", "")
@@ -1260,6 +1271,7 @@ def formulario_principal():
                                                 if col_demo in df_global.columns and col_demo in datos_admin_edit:
                                                     df_global.loc[mask_at_a, col_demo] = str(datos_admin_edit[col_demo])
 
+                                    df_global = df_global.reindex(columns=COLUMNAS_OFICIALES).fillna("")
                                     guardar_tabla(HOJA_ATENCIONES, df_global)
                                     st.success("✅ ¡Atención modificada y sincronizada con Google Sheets y catálogos!")
                                     st.rerun()
@@ -1552,6 +1564,7 @@ def formulario_principal():
                 df_pac_live = cargar_tabla(HOJA_PACIENTES)
                 df_prof_live = cargar_tabla(HOJA_PROFESIONALES)
                 df_descarga = sincronizar_descarga_con_catalogos(df_descarga, df_pac_live, df_prof_live)
+                df_descarga = df_descarga.reindex(columns=COLUMNAS_OFICIALES).fillna("")
                 
                 if df_descarga.empty:
                     st.warning(f"⚠️ No se identificaron atenciones médicas registradas entre el **{f_desc_ini.strftime('%d/%m/%Y')}** y el **{f_desc_fin.strftime('%d/%m/%Y')}**.")
