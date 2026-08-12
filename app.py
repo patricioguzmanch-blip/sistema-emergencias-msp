@@ -408,6 +408,8 @@ def cargar_tabla(hoja_nombre):
         )
         return df
     except Exception as e:
+        # AQUÍ ESTÁ EL CAMBIO: Ahora el sistema te muestra por qué Google Sheets está fallando
+        st.error(f"🚨 Error técnico al leer la hoja '{hoja_nombre}': {e}")
         return pd.DataFrame()
 
 def proteger_ceros(val):
@@ -1187,7 +1189,6 @@ def formulario_principal():
             with col_btn_guardar:
                 if st.button("Guardar Atención", key=f"btn_nuevo_g_{fk}", use_container_width=True):
                     if not datos_nuevo["_valido"]:
-                        # --- MEJORA: MODAL DE ALERTA DE ERROR ---
                         mostrar_alerta_guardado("❌ Se encontraron inconsistencias en la ficha. Verifique los avisos en color rojo antes de guardar.", "error")
                     else:
                         del datos_nuevo["_valido"]
@@ -1212,7 +1213,6 @@ def formulario_principal():
                             if key.startswith("np_") or key.startswith("ip_"):
                                 del st.session_state[key]
                                 
-                        # --- MEJORA: MODAL DE ALERTA DE ÉXITO ---
                         mostrar_alerta_guardado("✅ ¡Registro médico almacenado exitosamente en la base provincial!", "ok")
 
         with tab2:
