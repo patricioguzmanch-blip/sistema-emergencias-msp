@@ -391,7 +391,8 @@ def get_gsheets_client():
     creds = Credentials.from_service_account_info(s_dict, scopes=scopes)
     return gspread.authorize(creds)
 
-@st.cache_data(ttl=10, show_spinner=False)
+# --- MEJORA: AUMENTADO EL TTL A 60 SEGUNDOS PARA EVITAR ERROR 429 QUOTA EXCEEDED ---
+@st.cache_data(ttl=60, show_spinner=False)
 def cargar_tabla(hoja_nombre):
     try:
         client = get_gsheets_client()
@@ -421,7 +422,12 @@ def cargar_tabla(hoja_nombre):
         )
         return df
     except Exception as e:
-        st.error(f"🚨 Error técnico al leer la hoja '{hoja_nombre}': {e}")
+        # --- MEJORA: MENSAJE AMIGABLE PARA EL USUARIO CUANDO SE ALCANZA EL LÍMITE DE API ---
+        error_str = str(e)
+        if "429" in error_str or "Quota exceeded" in error_str:
+            st.warning("⏳ **Tráfico elevado:** El sistema está procesando demasiadas peticiones simultáneamente. Por favor, **espere 1 minuto** antes de buscar nuevamente.", icon="🚦")
+        else:
+            st.error(f"🚨 Error técnico al leer la base de datos: {error_str}")
         return pd.DataFrame()
 
 def proteger_ceros(val):
@@ -479,7 +485,7 @@ def cargar_usuarios():
         return pd.DataFrame(columns=["USUARIO", "CONTRASENA", "ROL", "UNICODIGO"])
     return df
 
-@st.cache_data(ttl=10, show_spinner=False)
+@st.cache_data(ttl=60, show_spinner=False)
 def cargar_profesionales():
     df = cargar_tabla(HOJA_PROFESIONALES)
     if df.empty: return pd.DataFrame(columns=["CEDULA", "PRIMER NOMBRE", "SEGUNDO NOMBRE", "PRIMER APELLIDO", "SEGUNDO APELLIDO", "NOMBRE_COMPLETO"])
@@ -541,7 +547,7 @@ def login():
 
         st.markdown("""
             <div style='text-align: center; margin-top: 1.2rem; color: #64748b; font-size: 0.78rem;'>
-                🏥 MSP Orellana | Entorno Informático de Escritorio V3.7
+                🏥 MSP Orellana | Entorno Informático de Escritorio V3.8
             </div>
         """, unsafe_allow_html=True)
 
@@ -1273,7 +1279,6 @@ def formulario_principal():
                 ced_audit_norm = normalizar_id(cedula_auditoria)
                 df_audit = df_global[df_global['NUMERO DE IDENTIFICACION'].apply(normalizar_id) == ced_audit_norm]
                 
-                # --- CANDADO DEL SUPERVISOR ---
                 if st.session_state.rol_actual == "SUPERVISOR":
                     df_audit = df_audit[df_audit['UNICODIGO'].apply(limpiar_unicodigo) == limpiar_unicodigo(st.session_state.unicodigo_actual)]
                 
@@ -1327,7 +1332,6 @@ def formulario_principal():
                                     guardar_tabla(HOJA_ATENCIONES, df_global)
                                     mostrar_alerta_guardado("✅ ¡Atención modificada y sincronizada con Google Sheets y catálogos!", "ok")
 
-                    # --- CANDADO DEL SUPERVISOR PARA NO BORRAR ---
                     if st.session_state.rol_actual == "ADMIN":
                         with st.expander("🗑️ ELIMINAR ATENCIÓN SELECCIONADA (MÓDULO ADMIN)", expanded=False):
                             st.warning("⚠️ **ATENCIÓN:** Esta acción eliminará permanentemente la atención seleccionada de la base de datos oficial del MSP Orellana.")
@@ -1492,7 +1496,6 @@ def formulario_principal():
 
                                         mostrar_alerta_guardado("✅ ¡Nombre del profesional actualizado en el catálogo y en todas sus atenciones registradas!", "ok")
 
-        # --- CANDADO DEL SUPERVISOR PARA PESTAÑAS ADMINISTRATIVAS ---
         if st.session_state.rol_actual == "ADMIN":
             with tab3:
                 st.markdown("<div class='section-title'>👥 Catálogo Provincial de Operadores y Accesos</div>", unsafe_allow_html=True)
@@ -1505,7 +1508,6 @@ def formulario_principal():
                 n_pwd = c_nu2.text_input("Contraseña Asignada", placeholder="Ingrese la contraseña asignada")
                 c_nu3, c_nu4 = st.columns(2)
                 
-                # --- NUEVO ROL AÑADIDO AL SELECTOR ---
                 n_rol = c_nu3.selectbox("Rol Institucional", ["USUARIO", "SUPERVISOR", "ADMIN"])
                 
                 if n_rol == "ADMIN": 
@@ -1666,7 +1668,6 @@ def formulario_principal():
                             else:
                                 st.info("No existen establecimientos con registros en este período.")
                 else:
-                    # LÓGICA PARA USUARIOS Y SUPERVISORES (Solo descargan lo de su unidad)
                     unic_limpio = limpiar_unicodigo(st.session_state.unicodigo_actual)
                     df_usuario_final = df_descarga[df_descarga['UNICODIGO'].apply(limpiar_unicodigo) == unic_limpio]
                     
