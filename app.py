@@ -376,6 +376,12 @@ def normalizar_id(val):
     v_no_zeros = v.lstrip("0")
     return v_no_zeros if v_no_zeros != "" else v
 
+# NUEVA FUNCIÓN GLOBAL PARA ELIMINAR CEROS A LA IZQUIERDA EN LOS UNICÓDIGOS
+def limpiar_unicodigo(cod):
+    if pd.isna(cod) or cod is None:
+        return ""
+    return str(cod).strip().replace('.0', '').lstrip('0')
+
 # ==============================================================================
 # MOTOR DE CONEXIÓN A GOOGLE SHEETS
 # ==============================================================================
@@ -536,7 +542,7 @@ def login():
 
         st.markdown("""
             <div style='text-align: center; margin-top: 1.2rem; color: #64748b; font-size: 0.78rem;'>
-                🏥 MSP Orellana | Entorno Informático de Escritorio V3.5
+                🏥 MSP Orellana | Entorno Informático de Escritorio V3.6
             </div>
         """, unsafe_allow_html=True)
 
@@ -648,7 +654,7 @@ def safe_date(date_str, default_today=False):
         parsed = pd.to_datetime(d_str, errors='coerce', dayfirst=True)
         if pd.notna(parsed): return parsed.date()
     except: pass
-    formats = ["%d/%m/%Y", "%Y-%m-%d", "%d-%m-%Y", "%m/%d/%Y", "%Y/%m/%d", "%d/%m/%y"]
+    formats = ["%d/%m/%Y", "%Y-%m-%d", "%d-%m-%Y", "%m/%d/%Y", "%Y-%m-%d", "%d/%m/%y"]
     for fmt in formats:
         try: return datetime.strptime(d_str, fmt).date()
         except ValueError: pass
@@ -1061,9 +1067,7 @@ def formulario_principal():
         
         nom_est_sidebar = "Unidad Provincial"
         if base_est is not None and not base_est.empty and st.session_state.unicodigo_actual:
-            def limpiar_cod_sub(cod):
-                return str(cod).strip().replace('.0', '').lstrip('0')
-            bus_s = base_est[base_est['UNICODIGO'].apply(limpiar_cod_sub) == limpiar_cod_sub(st.session_state.unicodigo_actual)]
+            bus_s = base_est[base_est['UNICODIGO'].apply(limpiar_unicodigo) == limpiar_unicodigo(st.session_state.unicodigo_actual)]
             if not bus_s.empty:
                 fila_est_s = bus_s.iloc[0]
                 for col_name in fila_est_s.index:
@@ -1141,10 +1145,7 @@ def formulario_principal():
                 unicodigo_seleccionado = st.session_state.unicodigo_actual
 
                 if base_est is not None and not base_est.empty and unicodigo_seleccionado:
-                    def limpiar_cod(cod):
-                        return str(cod).strip().replace('.0', '').lstrip('0')
-                    
-                    busqueda = base_est[base_est['UNICODIGO'].apply(limpiar_cod) == limpiar_cod(unicodigo_seleccionado)]
+                    busqueda = base_est[base_est['UNICODIGO'].apply(limpiar_unicodigo) == limpiar_unicodigo(unicodigo_seleccionado)]
                     
                     if not busqueda.empty:
                         fila_est = busqueda.iloc[0]
@@ -1207,7 +1208,12 @@ def formulario_principal():
             busqueda_cedula = col_ced_b.text_input("Ingrese la Cédula o Identificación del Ciudadano a corregir:", placeholder="Ingrese el número de identificación del ciudadano", key="search_edit_local")
             if busqueda_cedula and not df_global.empty:
                 busqueda_norm = normalizar_id(busqueda_cedula)
-                df_paciente = df_global[(df_global['NUMERO DE IDENTIFICACION'].apply(normalizar_id) == busqueda_norm) & (df_global['UNICODIGO'] == st.session_state.unicodigo_actual)]
+                
+                # APLICACIÓN DE LA LIMPIEZA DE UNICÓDIGO PARA QUE EL USUARIO PUEDA VER SUS PROPIOS PACIENTES
+                df_paciente = df_global[
+                    (df_global['NUMERO DE IDENTIFICACION'].apply(normalizar_id) == busqueda_norm) & 
+                    (df_global['UNICODIGO'].apply(limpiar_unicodigo) == limpiar_unicodigo(st.session_state.unicodigo_actual))
+                ]
                 
                 if df_paciente.empty:
                     st.warning("⚠️ No existen registros médicos para este paciente en su unidad operativa.")
@@ -1319,7 +1325,6 @@ def formulario_principal():
                     row_pac = {}
                     idx_pac_sel = None
                     
-                    # 1. Buscar primero en la hoja de Pacientes
                     if not df_pacientes_cat.empty and "NUMERO DE IDENTIFICACION" in df_pacientes_cat.columns:
                         busqueda_pac = df_pacientes_cat[df_pacientes_cat['NUMERO DE IDENTIFICACION'].apply(normalizar_id) == ced_norm_cat]
                         if not busqueda_pac.empty:
@@ -1327,7 +1332,6 @@ def formulario_principal():
                             row_pac = busqueda_pac.iloc[-1].to_dict()
                             paciente_en_catalogo = True
                             
-                    # 2. Si no está en Pacientes, buscar el salvavidas en Atenciones (Historial)
                     if not paciente_en_catalogo and not df_global.empty and "NUMERO DE IDENTIFICACION" in df_global.columns:
                         busqueda_hist = df_global[df_global['NUMERO DE IDENTIFICACION'].apply(normalizar_id) == ced_norm_cat]
                         if not busqueda_hist.empty:
@@ -1388,19 +1392,16 @@ def formulario_principal():
                                             "PARR_RES": limpiar_texto(ed_par)
                                         }
                                         
-                                        # ACTUALIZAR EN CATÁLOGO PACIENTES
                                         if paciente_en_catalogo:
                                             for k, val in datos_corregidos.items():
                                                 if k in df_pacientes_cat.columns:
                                                     df_pacientes_cat.loc[idx_pac_sel, k] = str(val)
                                             guardar_tabla(HOJA_PACIENTES, df_pacientes_cat)
                                         else:
-                                            # AUTO-SANACIÓN: Inyectar al paciente de vuelta en la hoja si no existía
                                             payload_restaurado = {"NUMERO DE IDENTIFICACION": ced_pac_edit.strip()}
                                             payload_restaurado.update(datos_corregidos)
                                             agregar_fila_nube(HOJA_PACIENTES, payload_restaurado, COLS_PACIENTES_BD)
 
-                                        # ACTUALIZAR EN HISTORIAL DE ATENCIONES
                                         if not df_global.empty and "NUMERO DE IDENTIFICACION" in df_global.columns:
                                             mask_at = df_global["NUMERO DE IDENTIFICACION"].apply(normalizar_id) == ced_norm_cat
                                             if mask_at.any():
@@ -1631,7 +1632,9 @@ def formulario_principal():
                             else:
                                 st.info("No existen establecimientos con registros en este período.")
                 else:
-                    df_usuario_final = df_descarga[df_descarga['UNICODIGO'] == st.session_state.unicodigo_actual]
+                    # LÓGICA CORREGIDA PARA EL USUARIO CON EL UNICÓDIGO LIMPIO
+                    unic_limpio = limpiar_unicodigo(st.session_state.unicodigo_actual)
+                    df_usuario_final = df_descarga[df_descarga['UNICODIGO'].apply(limpiar_unicodigo) == unic_limpio]
                     
                     if df_usuario_final.empty:
                         st.warning(f"⚠️ Su unidad operativa no cuenta con registros dentro del intervalo seleccionado.")
