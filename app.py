@@ -392,10 +392,21 @@ def cargar_tabla(hoja_nombre):
     try:
         client = get_gsheets_client()
         sheet = client.open_by_url(URL_BD_NUBE).worksheet(hoja_nombre)
-        registros = sheet.get_all_records()
+        
+        registros = sheet.get_all_values()
+        
         if not registros:
             return pd.DataFrame()
-        df = pd.DataFrame(registros, dtype=str)
+            
+        encabezados = registros[0]
+        datos = registros[1:] if len(registros) > 1 else []
+        
+        df = pd.DataFrame(datos, columns=encabezados, dtype=str)
+        
+        df = df.loc[:, ~df.columns.duplicated()] 
+        if "" in df.columns:
+            df = df.drop(columns=[""])
+            
         df.columns = (
             df.columns.astype(str)
             .str.strip()
@@ -408,7 +419,6 @@ def cargar_tabla(hoja_nombre):
         )
         return df
     except Exception as e:
-        # AQUÍ ESTÁ EL CAMBIO: Ahora el sistema te muestra por qué Google Sheets está fallando
         st.error(f"🚨 Error técnico al leer la hoja '{hoja_nombre}': {e}")
         return pd.DataFrame()
 
@@ -530,7 +540,7 @@ def login():
 
         st.markdown("""
             <div style='text-align: center; margin-top: 1.2rem; color: #64748b; font-size: 0.78rem;'>
-                🏥 MSP Orellana | Entorno Informático de Escritorio V3.3
+                🏥 MSP Orellana | Entorno Informático de Escritorio V3.4
             </div>
         """, unsafe_allow_html=True)
 
@@ -869,7 +879,6 @@ def renderizar_campos_paciente(fk, prefill=None, df_global=None):
             col10.error("❌ Formato horario inválido (use HH:MM, ejemplo: 08:30 o 21:15).")
             hora_valida = False
 
-        # --- MEJORA: RECALCULAR EDAD DINÁMICAMENTE ---
         fn_val = prefill.get("FECHA DE NACIMIENTO DEL PACIENTE", "")
         if not fn_val:
             for k, v in prefill.items():
@@ -888,7 +897,6 @@ def renderizar_campos_paciente(fk, prefill=None, df_global=None):
             cond_edad_val = prefill.get("CONDICION DE LA EDAD", "AÑO/S")
 
         fecha_nacimiento = col11.date_input("Fecha de Nacimiento", value=fecha_nac_parsed, min_value=date(1900, 1, 1), max_value=fecha_hoy, format="DD/MM/YYYY", key=f"fn_{fk}{dyn_k}", disabled=bloquear_campos)
-        # ---------------------------------------------
 
         col14, col15, col16, col17 = st.columns(4)
         primer_apellido = col14.text_input("Primer Apellido", value=limpiar_texto(prefill.get("PRIMER APELLIDO", "")), placeholder="Ingrese el primer apellido", key=f"pa_{fk}{dyn_k}", disabled=bloquear_campos)
@@ -899,7 +907,6 @@ def renderizar_campos_paciente(fk, prefill=None, df_global=None):
         col18, col19, col20, col21 = st.columns([1.1, 0.6, 1.0, 1.5])
         sexo = col18.selectbox("Sexo", SEXO_OPCIONES, index=safe_index(SEXO_OPCIONES, prefill.get("SEXO")), key=f"sx_{fk}{dyn_k}", disabled=bloquear_campos)
         
-        # Edad recargada automáticamente
         edad = col19.number_input("Edad", min_value=0, max_value=120, step=1, value=edad_val, key=f"ed_{fk}{dyn_k}", disabled=bloquear_campos)
         cond_edad = col20.selectbox("Condición de la Edad", CONDICION_EDAD, index=safe_index(CONDICION_EDAD, cond_edad_val), key=f"ce_{fk}{dyn_k}", disabled=bloquear_campos)
         nacionalidad = col21.selectbox("Nacionalidad", NACIONALIDAD, index=safe_index(NACIONALIDAD, prefill.get("NACIONALIDAD")), key=f"nc_{fk}{dyn_k}", disabled=bloquear_campos)
@@ -1121,7 +1128,6 @@ def formulario_principal():
     df_global = cargar_tabla(HOJA_ATENCIONES)
 
     if st.session_state.rol_actual == "ADMIN":
-        # --- MEJORA: DASHBOARD ESTADÍSTICO PARA ADMIN AL INICIAR ---
         st.markdown("<div class='section-title'>📊 Dashboard: Resumen General de Atenciones</div>", unsafe_allow_html=True)
         if not df_global.empty and "NOMBRE DEL ESTABLECIMIENTO DE SALUD" in df_global.columns:
             with st.container(border=True):
@@ -1131,7 +1137,6 @@ def formulario_principal():
         else:
             st.info("Aún no hay atenciones registradas en el sistema.")
         st.markdown("<br>", unsafe_allow_html=True)
-        # -----------------------------------------------------------
         
         tab1, tab2, tab3, tab4 = st.tabs([
             "🔍 Auditoría y Control de Atenciones", 
@@ -1193,7 +1198,6 @@ def formulario_principal():
                     else:
                         del datos_nuevo["_valido"]
                         
-                        # --- MEJORA: CAPTURA DE FECHA Y HORA REAL DEL SISTEMA ---
                         ahora_real = datetime.now(ZONA_HORARIA_ECUADOR)
                         
                         datos_nuevo.update({
@@ -1584,12 +1588,13 @@ def formulario_principal():
                 df_descarga = sincronizar_descarga_con_catalogos(df_descarga, df_pac_live, df_prof_live)
                 df_descarga = df_descarga.reindex(columns=COLUMNAS_OFICIALES).fillna("")
                 
-                if df_descarga.empty:
-                    st.warning(f"⚠️ No se identificaron atenciones médicas registradas entre el **{f_desc_ini.strftime('%d/%m/%Y')}** y el **{f_desc_fin.strftime('%d/%m/%Y')}**.")
-                else:
-                    st.success(f"✅ Se consolidaron **{len(df_descarga)}** atenciones de emergencia en el intervalo seleccionado (con demografías 100% actualizadas).")
-                    
-                    if st.session_state.rol_actual == "ADMIN":
+                # --- NUEVA LÓGICA DE CONTEO Y MENSAJES SEPARADA POR ROL ---
+                if st.session_state.rol_actual == "ADMIN":
+                    if df_descarga.empty:
+                        st.warning(f"⚠️ No se identificaron atenciones médicas registradas entre el **{f_desc_ini.strftime('%d/%m/%Y')}** y el **{f_desc_fin.strftime('%d/%m/%Y')}**.")
+                    else:
+                        st.success(f"✅ Se consolidaron **{len(df_descarga)}** atenciones a nivel provincial en el intervalo seleccionado (con demografías 100% actualizadas).")
+                        
                         c_des1, c_des2 = st.columns(2)
                         with c_des1:
                             st.markdown("##### 📁 Consolidado Provincial Total")
@@ -1623,25 +1628,29 @@ def formulario_principal():
                                 )
                             else:
                                 st.info("No existen establecimientos con registros en este período.")
+                else:
+                    # Lógica exclusiva para el USUARIO de un centro de salud
+                    df_usuario_final = df_descarga[df_descarga['UNICODIGO'] == st.session_state.unicodigo_actual]
+                    
+                    if df_usuario_final.empty:
+                        st.warning(f"⚠️ Su unidad operativa no cuenta con registros dentro del intervalo seleccionado.")
                     else:
-                        df_usuario_final = df_descarga[df_descarga['UNICODIGO'] == st.session_state.unicodigo_actual]
-                        if not df_usuario_final.empty:
-                            st.dataframe(df_usuario_final.tail(3), use_container_width=True)
-                            buf3 = io.BytesIO()
-                            with pd.ExcelWriter(buf3, engine='openpyxl') as w: 
-                                df_usuario_final.to_excel(w, index=False, sheet_name='Mi_Produccion')
-                            
-                            col_btn_du, col_vacia_du = st.columns([1.5, 4.5])
-                            with col_btn_du:
-                                st.download_button(
-                                    label=f"📥 Descargar Producción de la Unidad ({f_desc_ini.strftime('%d/%m')} al {f_desc_fin.strftime('%d/%m')})", 
-                                    data=buf3.getvalue(), 
-                                    file_name=f"Matriz_{st.session_state.unicodigo_actual}_{f_desc_ini.strftime('%Y%m%d')}_{f_desc_fin.strftime('%Y%m%d')}.xlsx", 
-                                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", 
-                                    use_container_width=True
-                                )
-                        else:
-                            st.info("Su unidad operativa no cuenta con registros dentro del intervalo seleccionado.")
+                        st.success(f"✅ Se consolidaron **{len(df_usuario_final)}** atenciones de su Unidad Operativa en el intervalo seleccionado (con demografías 100% actualizadas).")
+                        
+                        st.dataframe(df_usuario_final.tail(3), use_container_width=True)
+                        buf3 = io.BytesIO()
+                        with pd.ExcelWriter(buf3, engine='openpyxl') as w: 
+                            df_usuario_final.to_excel(w, index=False, sheet_name='Mi_Produccion')
+                        
+                        col_btn_du, col_vacia_du = st.columns([1.5, 4.5])
+                        with col_btn_du:
+                            st.download_button(
+                                label=f"📥 Descargar Producción de la Unidad ({f_desc_ini.strftime('%d/%m')} al {f_desc_fin.strftime('%d/%m')})", 
+                                data=buf3.getvalue(), 
+                                file_name=f"Matriz_{st.session_state.unicodigo_actual}_{f_desc_ini.strftime('%Y%m%d')}_{f_desc_fin.strftime('%Y%m%d')}.xlsx", 
+                                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", 
+                                use_container_width=True
+                            )
     else:
         st.info("El sistema aún no almacena registros en la base central.")
 
