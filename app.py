@@ -413,8 +413,41 @@ def proteger_ceros(val):
         return "'" + val_str
     return val_str
 
+# ==============================================================================
+# 🛡️ NUEVO MOTOR ANTI-BORRADOS: AGREGAR FILA DIRECTA (NUEVOS REGISTROS)
+# ==============================================================================
+def agregar_fila_nube(hoja_nombre, diccionario_datos, columnas):
+    """Inyecta una fila al final de Google Sheets SIN borrar ni descargar toda la hoja."""
+    try:
+        client = get_gsheets_client()
+        sheet = client.open_by_url(URL_BD_NUBE).worksheet(hoja_nombre)
+        
+        # Preparamos la fila exacta en el orden de las columnas oficiales
+        fila = []
+        for col in columnas:
+            val = str(diccionario_datos.get(col, "")).strip()
+            fila.append(proteger_ceros(val))
+            
+        sheet.append_row(fila, value_input_option='USER_ENTERED')
+        
+        # Limpiar el caché de la memoria para que los demás usuarios vean el cambio
+        cargar_tabla.clear()
+        if hoja_nombre == HOJA_PROFESIONALES: 
+            cargar_profesionales.clear()
+    except Exception as e:
+        st.error(f"Error crítico al guardar en Google Sheets: {e}")
+        raise e
+
+# ==============================================================================
+# GUARDADO MASIVO (SOLO PARA EDICIONES, PURGAS Y ELIMINACIONES DEL ADMIN)
+# ==============================================================================
 def guardar_tabla(hoja_nombre, df):
     try:
+        # SEGURO ANTI-BORRADO: Si el DataFrame está vacío misteriosamente, no guardamos nada para evitar borrar la nube
+        if df is None or df.empty:
+            st.error(f"⚠️ SISTEMA PROTEGIDO: Se impidió el borrado masivo de la hoja '{hoja_nombre}' por seguridad.")
+            return
+
         client = get_gsheets_client()
         sheet = client.open_by_url(URL_BD_NUBE).worksheet(hoja_nombre)
         sheet.clear()
@@ -539,6 +572,10 @@ COLUMNAS_OFICIALES = [
     "NOMBRE DEL HOSPITAL AL QUE FUE REFERIDO PARA LA HOSPITALIZACION", "CAUSA DE ATENCION", 
     "NUMERO DE IDENTIFICACION DEL PROFESIONAL DE SALUD", "NOMBRES Y APELLIDOS DEL PROFESIONAL DE SALUD"
 ]
+
+COLS_PACIENTES_BD = ["NUMERO DE IDENTIFICACION", "PRIMER APELLIDO", "SEGUNDO APELLIDO", "PRIMER NOMBRE", "SEGUNDO NOMBRE", "SEXO", "EDAD", "CONDICION DE LA EDAD", "NACIONALIDAD", "ETNIA", "GRUPO PRIORITARIO", "TIPO DE SEGURO", "PROV_RES", "CANT_RES", "PARR_RES", "FECHA DE NACIMIENTO DEL PACIENTE"]
+COLS_PROFESIONALES_BD = ["CEDULA", "PRIMER NOMBRE", "SEGUNDO NOMBRE", "PRIMER APELLIDO", "SEGUNDO APELLIDO", "NOMBRE_COMPLETO"]
+COLS_USUARIOS_BD = ["USUARIO", "CONTRASENA", "ROL", "UNICODIGO"]
 
 @st.cache_data
 def cargar_cie(archivo, sep=';'):
@@ -694,17 +731,16 @@ def modal_nuevo_profesional(cedula_prof):
             else:
                 nom_completo = f"{limpiar_texto(p_nom)} {limpiar_texto(s_nom)} {limpiar_texto(p_ape)} {limpiar_texto(s_ape)}"
                 nom_completo = re.sub(r'\s+', ' ', nom_completo).strip()
-                df_nuevo_p = pd.DataFrame([{
+                payload_prof = {
                     "CEDULA": cedula_prof.strip(), 
                     "PRIMER NOMBRE": limpiar_texto(p_nom),
                     "SEGUNDO NOMBRE": limpiar_texto(s_nom), 
                     "PRIMER APELLIDO": limpiar_texto(p_ape),
                     "SEGUNDO APELLIDO": limpiar_texto(s_ape), 
                     "NOMBRE_COMPLETO": nom_completo
-                }])
-                df_profs = cargar_profesionales()
-                df_final_profs = pd.concat([df_profs, df_nuevo_p], ignore_index=True) if not df_profs.empty else df_nuevo_p
-                guardar_tabla(HOJA_PROFESIONALES, df_final_profs)
+                }
+                # USAR EL NUEVO MOTOR PARA EVITAR BORRAR REGISTROS DE PROFESIONALES
+                agregar_fila_nube(HOJA_PROFESIONALES, payload_prof, COLS_PROFESIONALES_BD)
                 st.rerun()
 
 # ==========================================
@@ -801,7 +837,7 @@ def renderizar_campos_paciente(fk, prefill=None, df_global=None):
                         if not np_pa.strip() or not np_sa.strip() or not np_pn.strip() or not np_sn.strip() or not np_fn or not np_pr.strip() or not np_cr.strip() or not np_par.strip():
                             st.error("❌ TODOS los campos demográficos son OBLIGATORIOS. (Si no posee segundo nombre/apellido, escriba 'N/A').")
                         else:
-                            payload = {
+                            payload_pac = {
                                 "NUMERO DE IDENTIFICACION": current_id, 
                                 "PRIMER APELLIDO": limpiar_texto(np_pa), 
                                 "SEGUNDO APELLIDO": limpiar_texto(np_sa),
@@ -816,12 +852,10 @@ def renderizar_campos_paciente(fk, prefill=None, df_global=None):
                                 "FECHA DE NACIMIENTO DEL PACIENTE": np_fn.strftime("%d/%m/%Y")
                             }
                             try:
-                                df_nuevo_paciente = pd.DataFrame([payload])
-                                df_loc = cargar_tabla(HOJA_PACIENTES)
-                                df_final_p = pd.concat([df_loc, df_nuevo_paciente], ignore_index=True) if not df_loc.empty else df_nuevo_paciente
-                                guardar_tabla(HOJA_PACIENTES, df_final_p)
+                                # USAR EL NUEVO MOTOR PARA EVITAR BORRAR REGISTROS DE PACIENTES
+                                agregar_fila_nube(HOJA_PACIENTES, payload_pac, COLS_PACIENTES_BD)
                                 
-                                st.session_state["prefill_auto"] = payload
+                                st.session_state["prefill_auto"] = payload_pac
                                 st.session_state["rt"] = st.session_state.get("rt", 0) + 1
                                 st.rerun() 
                             except Exception as e:
@@ -1166,11 +1200,8 @@ def formulario_principal():
                             "ZONA": val_zona, "PROVINCIA": val_provincia, "CANTON": val_canton, "DISTRITO": val_distrito, "NIVEL": val_nivel
                         })
                         
-                        df_nuevo = pd.DataFrame([{k: str(v) for k, v in datos_nuevo.items()}], columns=COLUMNAS_OFICIALES)
-                        df_final = pd.concat([df_global, df_nuevo], ignore_index=True) if not df_global.empty else df_nuevo
-                        df_final = df_final.reindex(columns=COLUMNAS_OFICIALES).fillna("")
-                        
-                        guardar_tabla(HOJA_ATENCIONES, df_final)
+                        # USAMOS LA NUEVA FUNCIÓN QUE NO BORRA LA HOJA SINO QUE INYECTA DIRECTO AL FINAL
+                        agregar_fila_nube(HOJA_ATENCIONES, datos_nuevo, COLUMNAS_OFICIALES)
                         
                         st.session_state["prefill_auto"] = {}
                         st.session_state["last_checked_id"] = ""
@@ -1451,9 +1482,9 @@ def formulario_principal():
                     if not n_usr or not n_pwd: st.error("El usuario y la contraseña son requeridos.")
                     elif "USUARIO" in df_usuarios.columns and n_usr in df_usuarios['USUARIO'].values: st.error("⚠️ El usuario ya existe en el sistema.")
                     else:
-                        nuevo_u = pd.DataFrame([{"USUARIO": n_usr.strip(), "CONTRASENA": n_pwd.strip(), "ROL": n_rol, "UNICODIGO": "TODOS" if n_rol=="ADMIN" else n_uni}])
-                        df_final_u = pd.concat([df_usuarios, nuevo_u], ignore_index=True)
-                        guardar_tabla(HOJA_USUARIOS, df_final_u)
+                        nuevo_u_dict = {"USUARIO": n_usr.strip(), "CONTRASENA": n_pwd.strip(), "ROL": n_rol, "UNICODIGO": "TODOS" if n_rol=="ADMIN" else n_uni}
+                        # Usar el motor anti-borrados para usuarios también
+                        agregar_fila_nube(HOJA_USUARIOS, nuevo_u_dict, COLS_USUARIOS_BD)
                         st.success(f"Acceso para el usuario '{n_usr}' habilitado correctamente.")
                         st.rerun()
 
@@ -1528,9 +1559,8 @@ def formulario_principal():
                 col_btn_p2, col_vacia_p2 = st.columns([1.5, 4.5])
                 with col_btn_p2:
                     if st.button("🗑️ Reiniciar Catálogos", disabled=not confirmar_pac_prof, use_container_width=True):
-                        payload_keys = ["NUMERO DE IDENTIFICACION", "PRIMER APELLIDO", "SEGUNDO APELLIDO", "PRIMER NOMBRE", "SEGUNDO NOMBRE", "SEXO", "EDAD", "CONDICION DE LA EDAD", "NACIONALIDAD", "ETNIA", "GRUPO PRIORITARIO", "TIPO DE SEGURO", "PROV_RES", "CANT_RES", "PARR_RES", "FECHA DE NACIMIENTO DEL PACIENTE"]
-                        guardar_tabla(HOJA_PACIENTES, pd.DataFrame(columns=payload_keys))
-                        guardar_tabla(HOJA_PROFESIONALES, pd.DataFrame(columns=["CEDULA", "PRIMER NOMBRE", "SEGUNDO NOMBRE", "PRIMER APELLIDO", "SEGUNDO APELLIDO", "NOMBRE_COMPLETO"]))
+                        guardar_tabla(HOJA_PACIENTES, pd.DataFrame(columns=COLS_PACIENTES_BD))
+                        guardar_tabla(HOJA_PROFESIONALES, pd.DataFrame(columns=COLS_PROFESIONALES_BD))
                         cargar_profesionales.clear()
                         st.success("✅ Catálogos provinciales encerados exitosamente.")
                         st.toast("Bases temporales limpias", icon="🧹")
