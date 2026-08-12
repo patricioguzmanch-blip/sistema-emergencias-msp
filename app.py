@@ -376,7 +376,6 @@ def normalizar_id(val):
     v_no_zeros = v.lstrip("0")
     return v_no_zeros if v_no_zeros != "" else v
 
-# NUEVA FUNCIÓN GLOBAL PARA ELIMINAR CEROS A LA IZQUIERDA EN LOS UNICÓDIGOS
 def limpiar_unicodigo(cod):
     if pd.isna(cod) or cod is None:
         return ""
@@ -542,7 +541,7 @@ def login():
 
         st.markdown("""
             <div style='text-align: center; margin-top: 1.2rem; color: #64748b; font-size: 0.78rem;'>
-                🏥 MSP Orellana | Entorno Informático de Escritorio V3.6
+                🏥 MSP Orellana | Entorno Informático de Escritorio V3.7
             </div>
         """, unsafe_allow_html=True)
 
@@ -1113,23 +1112,46 @@ def formulario_principal():
 
     df_global = cargar_tabla(HOJA_ATENCIONES)
 
-    if st.session_state.rol_actual == "ADMIN":
-        st.markdown("<div class='section-title'>📊 Dashboard: Resumen General de Atenciones</div>", unsafe_allow_html=True)
-        if not df_global.empty and "NOMBRE DEL ESTABLECIMIENTO DE SALUD" in df_global.columns:
+    # --- PESTAÑAS Y DASHBOARD SEGÚN ROL ---
+    if st.session_state.rol_actual in ["ADMIN", "SUPERVISOR"]:
+        st.markdown("<div class='section-title'>📊 Dashboard: Resumen General de Atenciones (Últimos 5 días)</div>", unsafe_allow_html=True)
+        if not df_global.empty and "NOMBRE DEL ESTABLECIMIENTO DE SALUD" in df_global.columns and "FECHA DE ATENCION" in df_global.columns:
+            
+            hoy = obtener_fecha_actual()
+            hace_5_dias = hoy - timedelta(days=5)
+            
+            def check_5_dias(f_str):
+                try:
+                    d = datetime.strptime(str(f_str).strip(), "%d/%m/%Y").date()
+                    return d >= hace_5_dias
+                except:
+                    return False
+            
+            df_dash = df_global[df_global["FECHA DE ATENCION"].apply(check_5_dias)]
+            
             with st.container(border=True):
-                resumen = df_global["NOMBRE DEL ESTABLECIMIENTO DE SALUD"].value_counts().reset_index()
-                resumen.columns = ["Establecimiento de Salud", "Total Atenciones Registradas"]
-                st.dataframe(resumen, use_container_width=True, hide_index=True)
+                if df_dash.empty:
+                    st.info(f"No hay atenciones registradas en la provincia en los últimos 5 días (desde el {hace_5_dias.strftime('%d/%m/%Y')}).")
+                else:
+                    resumen = df_dash["NOMBRE DEL ESTABLECIMIENTO DE SALUD"].value_counts().reset_index()
+                    resumen.columns = ["Establecimiento de Salud", "Atenciones en los últimos 5 días"]
+                    st.dataframe(resumen, use_container_width=True, hide_index=True)
         else:
             st.info("Aún no hay atenciones registradas en el sistema.")
         st.markdown("<br>", unsafe_allow_html=True)
         
-        tab1, tab2, tab3, tab4 = st.tabs([
-            "🔍 Auditoría y Control de Atenciones", 
-            "✏️ Catálogos: Pacientes y Médicos", 
-            "👥 Administración de Accesos", 
-            "⚙️ Mantenimiento y Purgas"
-        ])
+        if st.session_state.rol_actual == "ADMIN":
+            tab1, tab2, tab3, tab4 = st.tabs([
+                "🔍 Auditoría y Control de Atenciones", 
+                "✏️ Catálogos: Pacientes y Médicos", 
+                "👥 Administración de Accesos", 
+                "⚙️ Mantenimiento y Purgas"
+            ])
+        else:
+            tab1, tab2 = st.tabs([
+                "🔍 Auditoría y Control de Atenciones", 
+                "✏️ Catálogos: Pacientes y Médicos"
+            ])
     else:
         tab1, tab2 = st.tabs(["📝 Registro de Nueva Atención Médica", "🔍 Búsqueda y Edición Local"])
 
@@ -1209,7 +1231,6 @@ def formulario_principal():
             if busqueda_cedula and not df_global.empty:
                 busqueda_norm = normalizar_id(busqueda_cedula)
                 
-                # APLICACIÓN DE LA LIMPIEZA DE UNICÓDIGO PARA QUE EL USUARIO PUEDA VER SUS PROPIOS PACIENTES
                 df_paciente = df_global[
                     (df_global['NUMERO DE IDENTIFICACION'].apply(normalizar_id) == busqueda_norm) & 
                     (df_global['UNICODIGO'].apply(limpiar_unicodigo) == limpiar_unicodigo(st.session_state.unicodigo_actual))
@@ -1239,8 +1260,10 @@ def formulario_principal():
                                     guardar_tabla(HOJA_ATENCIONES, df_global)
                                     mostrar_alerta_guardado("✅ ¡Registro médico enmendado exitosamente en el servidor!", "ok")
 
-    # ========================== ROL ADMINISTRADOR ==========================
-    if st.session_state.rol_actual == "ADMIN":
+    # ========================== ROL ADMIN Y SUPERVISOR ==========================
+    if st.session_state.rol_actual in ["ADMIN", "SUPERVISOR"]:
+        
+        # === TAB 1: GESTIÓN INTEGRAL DE ATENCIONES ===
         with tab1:
             st.markdown("<div class='section-title'>🔍 Auditoría, Edición y Eliminación de Atenciones Provinciales</div>", unsafe_allow_html=True)
             col_ced_a, col_ced_av = st.columns([2, 2])
@@ -1249,17 +1272,25 @@ def formulario_principal():
             if cedula_auditoria and not df_global.empty:
                 ced_audit_norm = normalizar_id(cedula_auditoria)
                 df_audit = df_global[df_global['NUMERO DE IDENTIFICACION'].apply(normalizar_id) == ced_audit_norm]
+                
+                # --- CANDADO DEL SUPERVISOR ---
+                if st.session_state.rol_actual == "SUPERVISOR":
+                    df_audit = df_audit[df_audit['UNICODIGO'].apply(limpiar_unicodigo) == limpiar_unicodigo(st.session_state.unicodigo_actual)]
+                
                 if df_audit.empty:
-                    st.error("❌ El ciudadano consultado no presenta atenciones de emergencia registradas en la provincia.")
+                    if st.session_state.rol_actual == "SUPERVISOR":
+                        st.error("❌ El ciudadano consultado no presenta atenciones registradas bajo el Unicódigo de su unidad operativa.")
+                    else:
+                        st.error("❌ El ciudadano consultado no presenta atenciones de emergencia registradas en la provincia.")
                 else:
-                    st.success(f"✅ Se localizaron **{len(df_audit)}** atenciones hospitalarias en la base consolidada.")
+                    st.success(f"✅ Se localizaron **{len(df_audit)}** atenciones hospitalarias disponibles para auditoría.")
                     
                     opciones_audit = df_audit.apply(lambda r: f"🏥 {r.get('NOMBRE DEL ESTABLECIMIENTO DE SALUD','')} | 📅 {r['FECHA DE ATENCION']} {r['HORA ATENCION']} ({r['CIE-10 (PRINCIPAL)']})", axis=1)
-                    seleccion_audit = st.selectbox("Seleccione la atención para auditar, modificar o eliminar:", opciones_audit.tolist(), key="sel_audit_atencion")
+                    seleccion_audit = st.selectbox("Seleccione la atención para auditar o modificar:", opciones_audit.tolist(), key="sel_audit_atencion")
                     idx_audit = df_audit.index[opciones_audit.tolist().index(seleccion_audit)]
                     fila_audit_editar = df_global.iloc[idx_audit].to_dict()
 
-                    with st.expander("✏️ MODIFICAR ATENCIÓN SELECCIONADA (MÓDULO ADMIN)", expanded=False):
+                    with st.expander("✏️ MODIFICAR ATENCIÓN SELECCIONADA (MÓDULO AUDITORÍA)", expanded=False):
                         st.info("⚠️ Los cambios realizados aquí se sobrescribirán directamente sobre la base provincial de Google Sheets.")
                         datos_admin_edit = renderizar_campos_paciente(f"admin_edit_{idx_audit}", prefill=fila_audit_editar, df_global=df_global)
                         
@@ -1296,23 +1327,24 @@ def formulario_principal():
                                     guardar_tabla(HOJA_ATENCIONES, df_global)
                                     mostrar_alerta_guardado("✅ ¡Atención modificada y sincronizada con Google Sheets y catálogos!", "ok")
 
-                    with st.expander("🗑️ ELIMINAR ATENCIÓN SELECCIONADA (MÓDULO ADMIN)", expanded=False):
-                        st.warning("⚠️ **ATENCIÓN:** Esta acción eliminará permanentemente la atención seleccionada de la base de datos oficial del MSP Orellana.")
-                        confirmar_borrado = st.checkbox(f"Confirmo que deseo eliminar la atención del paciente {fila_audit_editar.get('NUMERO DE IDENTIFICACION','')} fechada el {fila_audit_editar.get('FECHA DE ATENCION','')}.", key=f"chk_del_{idx_audit}")
-                        
-                        col_btn_del, col_vacia_del = st.columns([1.5, 4.5])
-                        with col_btn_del:
-                            if st.button("🗑️ Eliminar Definitivamente esta Atención", disabled=not confirmar_borrado, key=f"btn_del_at_{idx_audit}", use_container_width=True):
-                                df_global_borrado = df_global.drop(index=idx_audit).reset_index(drop=True)
-                                guardar_tabla(HOJA_ATENCIONES, df_global_borrado)
-                                mostrar_alerta_guardado("✅ Atención eliminada correctamente del servidor provincial.", "ok")
+                    # --- CANDADO DEL SUPERVISOR PARA NO BORRAR ---
+                    if st.session_state.rol_actual == "ADMIN":
+                        with st.expander("🗑️ ELIMINAR ATENCIÓN SELECCIONADA (MÓDULO ADMIN)", expanded=False):
+                            st.warning("⚠️ **ATENCIÓN:** Esta acción eliminará permanentemente la atención seleccionada de la base de datos oficial del MSP Orellana.")
+                            confirmar_borrado = st.checkbox(f"Confirmo que deseo eliminar la atención del paciente {fila_audit_editar.get('NUMERO DE IDENTIFICACION','')} fechada el {fila_audit_editar.get('FECHA DE ATENCION','')}.", key=f"chk_del_{idx_audit}")
+                            
+                            col_btn_del, col_vacia_del = st.columns([1.5, 4.5])
+                            with col_btn_del:
+                                if st.button("🗑️ Eliminar Definitivamente esta Atención", disabled=not confirmar_borrado, key=f"btn_del_at_{idx_audit}", use_container_width=True):
+                                    df_global_borrado = df_global.drop(index=idx_audit).reset_index(drop=True)
+                                    guardar_tabla(HOJA_ATENCIONES, df_global_borrado)
+                                    mostrar_alerta_guardado("✅ Atención eliminada correctamente del servidor provincial.", "ok")
 
         # === TAB 2: EDICIÓN DE CATÁLOGOS ===
         with tab2:
             st.markdown("<div class='section-title'>✏️ Edición de Catálogos Provinciales (Pacientes y Profesionales)</div>", unsafe_allow_html=True)
             subtab_pac, subtab_med = st.tabs(["👤 Fichas Demográficas de Pacientes", "👨‍⚕️ Catálogo de Profesionales de Salud"])
             
-            # --- SUBTAB 1: EDICIÓN DE PACIENTES ---
             with subtab_pac:
                 df_pacientes_cat = cargar_tabla(HOJA_PACIENTES)
                 st.markdown("#### Búsqueda y Edición de Pacientes Registrados")
@@ -1412,7 +1444,6 @@ def formulario_principal():
 
                                         mostrar_alerta_guardado("✅ ¡Ficha del paciente actualizada en el catálogo y en el historial!", "ok")
 
-            # --- SUBTAB 2: EDICIÓN DE MÉDICOS ---
             with subtab_med:
                 df_prof_cat = cargar_profesionales()
                 st.markdown("#### Búsqueda y Edición de Profesionales de Salud")
@@ -1461,106 +1492,109 @@ def formulario_principal():
 
                                         mostrar_alerta_guardado("✅ ¡Nombre del profesional actualizado en el catálogo y en todas sus atenciones registradas!", "ok")
 
-        # === TAB 3: ADMINISTRACIÓN DE USUARIOS INSTITUCIONALES ===
-        with tab3:
-            st.markdown("<div class='section-title'>👥 Catálogo Provincial de Operadores y Accesos</div>", unsafe_allow_html=True)
-            df_usuarios = cargar_usuarios()
-            st.dataframe(df_usuarios, use_container_width=True)
-            st.markdown("---")
-            st.markdown("#### ➕ Creación de Nuevo Acceso Institucional")
-            c_nu1, c_nu2 = st.columns(2)
-            n_usr = c_nu1.text_input("Nuevo Usuario (Credencial)", placeholder="Ingrese el nombre de usuario")
-            n_pwd = c_nu2.text_input("Contraseña Asignada", placeholder="Ingrese la contraseña asignada")
-            c_nu3, c_nu4 = st.columns(2)
-            n_rol = c_nu3.selectbox("Rol Institucional", ["USUARIO", "ADMIN"])
-            if n_rol == "ADMIN": 
-                n_uni = c_nu4.selectbox("Unicódigo Asignado", ["TODOS"], disabled=True)
-            else:
-                lista_unis = [str(x) for x in base_est['UNICODIGO'].tolist() if str(x).strip() != "" and str(x).lower() != "nan"] if base_est is not None else []
-                n_uni = c_nu4.selectbox("Unicódigo Asignado", lista_unis)
+        # --- CANDADO DEL SUPERVISOR PARA PESTAÑAS ADMINISTRATIVAS ---
+        if st.session_state.rol_actual == "ADMIN":
+            with tab3:
+                st.markdown("<div class='section-title'>👥 Catálogo Provincial de Operadores y Accesos</div>", unsafe_allow_html=True)
+                df_usuarios = cargar_usuarios()
+                st.dataframe(df_usuarios, use_container_width=True)
+                st.markdown("---")
+                st.markdown("#### ➕ Creación de Nuevo Acceso Institucional")
+                c_nu1, c_nu2 = st.columns(2)
+                n_usr = c_nu1.text_input("Nuevo Usuario (Credencial)", placeholder="Ingrese el nombre de usuario")
+                n_pwd = c_nu2.text_input("Contraseña Asignada", placeholder="Ingrese la contraseña asignada")
+                c_nu3, c_nu4 = st.columns(2)
                 
-            col_btn_cu, col_vacia_cu = st.columns([1.5, 4.5])
-            with col_btn_cu:
-                if st.button("Crear Acceso Institucional", use_container_width=True):
-                    if not n_usr or not n_pwd: st.error("El usuario y la contraseña son requeridos.")
-                    elif "USUARIO" in df_usuarios.columns and n_usr in df_usuarios['USUARIO'].values: st.error("⚠️ El usuario ya existe en el sistema.")
-                    else:
-                        nuevo_u_dict = {"USUARIO": n_usr.strip(), "CONTRASENA": n_pwd.strip(), "ROL": n_rol, "UNICODIGO": "TODOS" if n_rol=="ADMIN" else n_uni}
-                        agregar_fila_nube(HOJA_USUARIOS, nuevo_u_dict, COLS_USUARIOS_BD)
-                        mostrar_alerta_guardado(f"Acceso para el usuario '{n_usr}' habilitado correctamente.", "ok")
-
-            st.markdown("---")
-            st.markdown("#### 🗑️ Revocación de Credenciales")
-            
-            usuarios_borrables = (
-                df_usuarios[df_usuarios['USUARIO'] != 'admin']['USUARIO'].tolist()
-                if not df_usuarios.empty and 'USUARIO' in df_usuarios.columns
-                else []
-            )
-
-            if usuarios_borrables:
-                col_usr_e, col_usr_v = st.columns([2, 2])
-                usr_a_eliminar = col_usr_e.selectbox("Seleccione el operador a revocar", usuarios_borrables)
+                # --- NUEVO ROL AÑADIDO AL SELECTOR ---
+                n_rol = c_nu3.selectbox("Rol Institucional", ["USUARIO", "SUPERVISOR", "ADMIN"])
                 
-                col_btn_ru, col_vacia_ru = st.columns([1.5, 4.5])
-                with col_btn_ru:
-                    if st.button("Revocar Acceso Permanentemente", use_container_width=True):
-                        df_usuarios = df_usuarios[df_usuarios['USUARIO'] != usr_a_eliminar]
-                        guardar_tabla(HOJA_USUARIOS, df_usuarios)
-                        mostrar_alerta_guardado(f"Credencial '{usr_a_eliminar}' eliminada del sistema.", "ok")
-            else:
-                st.info("No existen usuarios adicionales para revocar.")
-
-        # === TAB 4: PANEL DE CONTROL Y PURGAS ===
-        with tab4:
-            st.markdown("<div class='section-title'>⚙️ Panel de Control y Mantenimiento de Bases</div>", unsafe_allow_html=True)
-            st.warning("⚠️ **ATENCIÓN - ZONA DE AUDITORÍA:** Las acciones ejecutadas aquí modifican o purgan registros directamente sobre el servidor institucional.")
-
-            with st.expander("🧹 Purga Selectiva por Período / Cierre Estadístico Mensual", expanded=False):
-                st.write("Seleccione el intervalo de fechas para la depuración de registros institucionales. **Los registros fuera del período seleccionado se conservarán intactos.**")
-                
-                col_f1, col_f2, col_f_vacia = st.columns([1.5, 1.5, 1.0])
-                f_inicio_del = col_f1.date_input("📅 Fecha Inicial (Desde)", value=obtener_fecha_actual().replace(day=1), format="DD/MM/YYYY", key="f_del_ini")
-                f_fin_del = col_f2.date_input("📅 Fecha Final (Hasta)", value=obtener_fecha_actual(), format="DD/MM/YYYY", key="f_del_fin")
-                
-                if f_inicio_del > f_fin_del:
-                    st.error("❌ La Fecha Inicial no puede ser posterior a la Fecha Final.")
+                if n_rol == "ADMIN": 
+                    n_uni = c_nu4.selectbox("Unicódigo Asignado", ["TODOS"], disabled=True)
                 else:
-                    st.warning(f"⚠️ Se eliminarán de forma irreversible los registros médicos fechados entre el **{f_inicio_del.strftime('%d/%m/%Y')}** y el **{f_fin_del.strftime('%d/%m/%Y')}**.")
-                    confirmar_rango = st.checkbox("Confirmo la depuración oficial para el rango seleccionado.", key="chk_rango_atenciones")
+                    lista_unis = [str(x) for x in base_est['UNICODIGO'].tolist() if str(x).strip() != "" and str(x).lower() != "nan"] if base_est is not None else []
+                    n_uni = c_nu4.selectbox("Unicódigo Asignado", lista_unis)
                     
-                    col_btn_p1, col_vacia_p1 = st.columns([1.5, 4.5])
-                    with col_btn_p1:
-                        if st.button("🗑️ Ejecutar Depuración del Período", disabled=not confirmar_rango, use_container_width=True):
-                            if not df_global.empty and "FECHA DE ATENCION" in df_global.columns:
-                                def parse_fecha_row(f_str):
-                                    try:
-                                        return datetime.strptime(str(f_str).strip(), "%d/%m/%Y").date()
-                                    except:
-                                        return None
-                                
-                                fechas_parseadas = df_global["FECHA DE ATENCION"].apply(parse_fecha_row)
-                                condicion_conservar = (fechas_parseadas.isna()) | (fechas_parseadas < f_inicio_del) | (fechas_parseadas > f_fin_del)
-                                
-                                df_conservado = df_global[condicion_conservar]
-                                eliminados = len(df_global) - len(df_conservado)
-                                
-                                guardar_tabla(HOJA_ATENCIONES, df_conservado)
-                                mostrar_alerta_guardado(f"✅ ¡Depuración finalizada! Se purgaron {eliminados} registros y se conservaron {len(df_conservado)} atenciones en el histórico.", "ok")
-                            else:
-                                st.info("La matriz no contiene registros para depurar.")
+                col_btn_cu, col_vacia_cu = st.columns([1.5, 4.5])
+                with col_btn_cu:
+                    if st.button("Crear Acceso Institucional", use_container_width=True):
+                        if not n_usr or not n_pwd: st.error("El usuario y la contraseña son requeridos.")
+                        elif "USUARIO" in df_usuarios.columns and n_usr in df_usuarios['USUARIO'].values: st.error("⚠️ El usuario ya existe en el sistema.")
+                        else:
+                            nuevo_u_dict = {"USUARIO": n_usr.strip(), "CONTRASENA": n_pwd.strip(), "ROL": n_rol, "UNICODIGO": "TODOS" if n_rol=="ADMIN" else n_uni}
+                            agregar_fila_nube(HOJA_USUARIOS, nuevo_u_dict, COLS_USUARIOS_BD)
+                            mostrar_alerta_guardado(f"Acceso para el usuario '{n_usr}' habilitado correctamente.", "ok")
 
-            with st.expander("Encerar Catálogos Temporales (Pacientes y Médicos)", expanded=False):
-                st.write("Esta operación vaciará las listas en línea de ciudadanos y médicos para reiniciar catálogos desde cero.")
-                confirmar_pac_prof = st.checkbox("Confirmo el encerado de catálogos demográficos en el sistema.", key="chk_pac_prof")
+                st.markdown("---")
+                st.markdown("#### 🗑️ Revocación de Credenciales")
                 
-                col_btn_p2, col_vacia_p2 = st.columns([1.5, 4.5])
-                with col_btn_p2:
-                    if st.button("🗑️ Reiniciar Catálogos", disabled=not confirmar_pac_prof, use_container_width=True):
-                        guardar_tabla(HOJA_PACIENTES, pd.DataFrame(columns=COLS_PACIENTES_BD))
-                        guardar_tabla(HOJA_PROFESIONALES, pd.DataFrame(columns=COLS_PROFESIONALES_BD))
-                        cargar_profesionales.clear()
-                        mostrar_alerta_guardado("✅ Catálogos provinciales encerados exitosamente.", "ok")
+                usuarios_borrables = (
+                    df_usuarios[df_usuarios['USUARIO'] != 'admin']['USUARIO'].tolist()
+                    if not df_usuarios.empty and 'USUARIO' in df_usuarios.columns
+                    else []
+                )
+
+                if usuarios_borrables:
+                    col_usr_e, col_usr_v = st.columns([2, 2])
+                    usr_a_eliminar = col_usr_e.selectbox("Seleccione el operador a revocar", usuarios_borrables)
+                    
+                    col_btn_ru, col_vacia_ru = st.columns([1.5, 4.5])
+                    with col_btn_ru:
+                        if st.button("Revocar Acceso Permanentemente", use_container_width=True):
+                            df_usuarios = df_usuarios[df_usuarios['USUARIO'] != usr_a_eliminar]
+                            guardar_tabla(HOJA_USUARIOS, df_usuarios)
+                            mostrar_alerta_guardado(f"Credencial '{usr_a_eliminar}' eliminada del sistema.", "ok")
+                else:
+                    st.info("No existen usuarios adicionales para revocar.")
+
+            with tab4:
+                st.markdown("<div class='section-title'>⚙️ Panel de Control y Mantenimiento de Bases</div>", unsafe_allow_html=True)
+                st.warning("⚠️ **ATENCIÓN - ZONA DE AUDITORÍA:** Las acciones ejecutadas aquí modifican o purgan registros directamente sobre el servidor institucional.")
+
+                with st.expander("🧹 Purga Selectiva por Período / Cierre Estadístico Mensual", expanded=False):
+                    st.write("Seleccione el intervalo de fechas para la depuración de registros institucionales. **Los registros fuera del período seleccionado se conservarán intactos.**")
+                    
+                    col_f1, col_f2, col_f_vacia = st.columns([1.5, 1.5, 1.0])
+                    f_inicio_del = col_f1.date_input("📅 Fecha Inicial (Desde)", value=obtener_fecha_actual().replace(day=1), format="DD/MM/YYYY", key="f_del_ini")
+                    f_fin_del = col_f2.date_input("📅 Fecha Final (Hasta)", value=obtener_fecha_actual(), format="DD/MM/YYYY", key="f_del_fin")
+                    
+                    if f_inicio_del > f_fin_del:
+                        st.error("❌ La Fecha Inicial no puede ser posterior a la Fecha Final.")
+                    else:
+                        st.warning(f"⚠️ Se eliminarán de forma irreversible los registros médicos fechados entre el **{f_inicio_del.strftime('%d/%m/%Y')}** y el **{f_fin_del.strftime('%d/%m/%Y')}**.")
+                        confirmar_rango = st.checkbox("Confirmo la depuración oficial para el rango seleccionado.", key="chk_rango_atenciones")
+                        
+                        col_btn_p1, col_vacia_p1 = st.columns([1.5, 4.5])
+                        with col_btn_p1:
+                            if st.button("🗑️ Ejecutar Depuración del Período", disabled=not confirmar_rango, use_container_width=True):
+                                if not df_global.empty and "FECHA DE ATENCION" in df_global.columns:
+                                    def parse_fecha_row(f_str):
+                                        try:
+                                            return datetime.strptime(str(f_str).strip(), "%d/%m/%Y").date()
+                                        except:
+                                            return None
+                                    
+                                    fechas_parseadas = df_global["FECHA DE ATENCION"].apply(parse_fecha_row)
+                                    condicion_conservar = (fechas_parseadas.isna()) | (fechas_parseadas < f_inicio_del) | (fechas_parseadas > f_fin_del)
+                                    
+                                    df_conservado = df_global[condicion_conservar]
+                                    eliminados = len(df_global) - len(df_conservado)
+                                    
+                                    guardar_tabla(HOJA_ATENCIONES, df_conservado)
+                                    mostrar_alerta_guardado(f"✅ ¡Depuración finalizada! Se purgaron {eliminados} registros y se conservaron {len(df_conservado)} atenciones en el histórico.", "ok")
+                                else:
+                                    st.info("La matriz no contiene registros para depurar.")
+
+                with st.expander("Encerar Catálogos Temporales (Pacientes y Médicos)", expanded=False):
+                    st.write("Esta operación vaciará las listas en línea de ciudadanos y médicos para reiniciar catálogos desde cero.")
+                    confirmar_pac_prof = st.checkbox("Confirmo el encerado de catálogos demográficos en el sistema.", key="chk_pac_prof")
+                    
+                    col_btn_p2, col_vacia_p2 = st.columns([1.5, 4.5])
+                    with col_btn_p2:
+                        if st.button("🗑️ Reiniciar Catálogos", disabled=not confirmar_pac_prof, use_container_width=True):
+                            guardar_tabla(HOJA_PACIENTES, pd.DataFrame(columns=COLS_PACIENTES_BD))
+                            guardar_tabla(HOJA_PROFESIONALES, pd.DataFrame(columns=COLS_PROFESIONALES_BD))
+                            cargar_profesionales.clear()
+                            mostrar_alerta_guardado("✅ Catálogos provinciales encerados exitosamente.", "ok")
 
     # ==========================================================================
     # DESCARGAR MATRIZ GLOBAL POR RANGO DE FECHAS (SINCRONIZACIÓN EN TIEMPO DE DESCARGA)
@@ -1632,7 +1666,7 @@ def formulario_principal():
                             else:
                                 st.info("No existen establecimientos con registros en este período.")
                 else:
-                    # LÓGICA CORREGIDA PARA EL USUARIO CON EL UNICÓDIGO LIMPIO
+                    # LÓGICA PARA USUARIOS Y SUPERVISORES (Solo descargan lo de su unidad)
                     unic_limpio = limpiar_unicodigo(st.session_state.unicodigo_actual)
                     df_usuario_final = df_descarga[df_descarga['UNICODIGO'].apply(limpiar_unicodigo) == unic_limpio]
                     
