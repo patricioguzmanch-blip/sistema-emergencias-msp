@@ -381,6 +381,12 @@ def limpiar_unicodigo(cod):
         return ""
     return str(cod).strip().replace('.0', '').lstrip('0')
 
+def obtener_unicodigos_usuario():
+    """Devuelve una lista de todos los unicódigos asignados al usuario actual."""
+    if not st.session_state.unicodigo_actual:
+        return []
+    return [limpiar_unicodigo(x.strip()) for x in str(st.session_state.unicodigo_actual).split(",") if x.strip()]
+
 # ==============================================================================
 # MOTOR DE CONEXIÓN A GOOGLE SHEETS
 # ==============================================================================
@@ -391,7 +397,6 @@ def get_gsheets_client():
     creds = Credentials.from_service_account_info(s_dict, scopes=scopes)
     return gspread.authorize(creds)
 
-# --- MEJORA: AUMENTADO EL TTL A 60 SEGUNDOS PARA EVITAR ERROR 429 QUOTA EXCEEDED ---
 @st.cache_data(ttl=60, show_spinner=False)
 def cargar_tabla(hoja_nombre):
     try:
@@ -422,7 +427,6 @@ def cargar_tabla(hoja_nombre):
         )
         return df
     except Exception as e:
-        # --- MEJORA: MENSAJE AMIGABLE PARA EL USUARIO CUANDO SE ALCANZA EL LÍMITE DE API ---
         error_str = str(e)
         if "429" in error_str or "Quota exceeded" in error_str:
             st.warning("⏳ **Tráfico elevado:** El sistema está procesando demasiadas peticiones simultáneamente. Por favor, **espere 1 minuto** antes de buscar nuevamente.", icon="🚦")
@@ -547,7 +551,7 @@ def login():
 
         st.markdown("""
             <div style='text-align: center; margin-top: 1.2rem; color: #64748b; font-size: 0.78rem;'>
-                🏥 MSP Orellana | Entorno Informático de Escritorio V3.8
+                🏥 MSP Orellana | Entorno Informático de Escritorio V3.9
             </div>
         """, unsafe_allow_html=True)
 
@@ -1061,6 +1065,10 @@ def renderizar_campos_paciente(fk, prefill=None, df_global=None):
 # APLICACIÓN PRINCIPAL (PANEL DE ESCRITORIO POR ROLES)
 # ==============================================================================
 def formulario_principal():
+    
+    # --- HELPER PARA MÚLTIPLES UNICÓDIGOS ---
+    lista_unicodigos_usuario = obtener_unicodigos_usuario()
+    
     with st.sidebar:
         st.markdown("""
             <div style='text-align: center; margin-bottom: 0.6rem;'>
@@ -1070,16 +1078,21 @@ def formulario_principal():
             </div>
         """, unsafe_allow_html=True)
         
-        nom_est_sidebar = "Unidad Provincial"
-        if base_est is not None and not base_est.empty and st.session_state.unicodigo_actual:
-            bus_s = base_est[base_est['UNICODIGO'].apply(limpiar_unicodigo) == limpiar_unicodigo(st.session_state.unicodigo_actual)]
+        nom_est_sidebar = "Unidad Operativa"
+        
+        if st.session_state.rol_actual == "ADMIN":
+            nom_est_sidebar = "Dirección Provincial"
+        elif len(lista_unicodigos_usuario) > 1:
+            nom_est_sidebar = f"Supervisión ({len(lista_unicodigos_usuario)} Unidades)"
+        elif len(lista_unicodigos_usuario) == 1 and base_est is not None and not base_est.empty:
+            bus_s = base_est[base_est['UNICODIGO'].apply(limpiar_unicodigo) == lista_unicodigos_usuario[0]]
             if not bus_s.empty:
                 fila_est_s = bus_s.iloc[0]
                 for col_name in fila_est_s.index:
                     if 'NOMBRE' in str(col_name).upper() and 'ESTABLECIMIENTO' in str(col_name).upper():
                         nom_est_sidebar = str(fila_est_s[col_name])
                         break
-                if nom_est_sidebar == "Unidad Provincial":
+                if nom_est_sidebar == "Unidad Operativa":
                     for col_name in fila_est_s.index:
                         if 'NOMBRE' in str(col_name).upper():
                             nom_est_sidebar = str(fila_est_s[col_name])
@@ -1118,9 +1131,9 @@ def formulario_principal():
 
     df_global = cargar_tabla(HOJA_ATENCIONES)
 
-    # --- PESTAÑAS Y DASHBOARD SEGÚN ROL ---
+    # --- DASHBOARD GRÁFICO (ADMIN Y SUPERVISOR) ---
     if st.session_state.rol_actual in ["ADMIN", "SUPERVISOR"]:
-        st.markdown("<div class='section-title'>📊 Dashboard: Resumen General de Atenciones (Últimos 5 días)</div>", unsafe_allow_html=True)
+        st.markdown("<div class='section-title'>📊 Dashboard: Resumen Operativo (Últimos 5 días)</div>", unsafe_allow_html=True)
         if not df_global.empty and "NOMBRE DEL ESTABLECIMIENTO DE SALUD" in df_global.columns and "FECHA DE ATENCION" in df_global.columns:
             
             hoy = obtener_fecha_actual()
@@ -1135,15 +1148,34 @@ def formulario_principal():
             
             df_dash = df_global[df_global["FECHA DE ATENCION"].apply(check_5_dias)]
             
+            # Si es supervisor, solo le mostramos la gráfica de SUS unidades
+            if st.session_state.rol_actual == "SUPERVISOR":
+                df_dash = df_dash[df_dash['UNICODIGO'].apply(limpiar_unicodigo).isin(lista_unicodigos_usuario)]
+            
             with st.container(border=True):
                 if df_dash.empty:
-                    st.info(f"No hay atenciones registradas en la provincia en los últimos 5 días (desde el {hace_5_dias.strftime('%d/%m/%Y')}).")
+                    st.info(f"No hay atenciones registradas en sus establecimientos asignados en los últimos 5 días (desde el {hace_5_dias.strftime('%d/%m/%Y')}).")
                 else:
-                    resumen = df_dash["NOMBRE DEL ESTABLECIMIENTO DE SALUD"].value_counts().reset_index()
-                    resumen.columns = ["Establecimiento de Salud", "Atenciones en los últimos 5 días"]
-                    st.dataframe(resumen, use_container_width=True, hide_index=True)
+                    c_tabla, c_grafico = st.columns([1.2, 2.5])
+                    with c_tabla:
+                        st.markdown("##### 📋 Tabla de Totales")
+                        resumen = df_dash["NOMBRE DEL ESTABLECIMIENTO DE SALUD"].value_counts().reset_index()
+                        resumen.columns = ["Establecimiento de Salud", "Total 5 días"]
+                        st.dataframe(resumen, use_container_width=True, hide_index=True)
+                    
+                    with c_grafico:
+                        st.markdown("##### 📈 Curva de Ingresos Diarios")
+                        df_chart = df_dash.copy()
+                        df_chart['FECHA_DT'] = pd.to_datetime(df_chart['FECHA DE ATENCION'], format="%d/%m/%Y", errors='coerce')
+                        df_chart = df_chart.dropna(subset=['FECHA_DT'])
+                        
+                        if not df_chart.empty:
+                            chart_data = df_chart.groupby(["FECHA_DT", "NOMBRE DEL ESTABLECIMIENTO DE SALUD"]).size().unstack(fill_value=0)
+                            chart_data.index = chart_data.index.strftime("%d/%m")
+                            # Gráfico de barras apiladas nativo de Streamlit
+                            st.bar_chart(chart_data)
         else:
-            st.info("Aún no hay atenciones registradas en el sistema.")
+            st.info("Aún no hay atenciones registradas en el sistema para generar la gráfica.")
         st.markdown("<br>", unsafe_allow_html=True)
         
         if st.session_state.rol_actual == "ADMIN":
@@ -1269,7 +1301,6 @@ def formulario_principal():
     # ========================== ROL ADMIN Y SUPERVISOR ==========================
     if st.session_state.rol_actual in ["ADMIN", "SUPERVISOR"]:
         
-        # === TAB 1: GESTIÓN INTEGRAL DE ATENCIONES ===
         with tab1:
             st.markdown("<div class='section-title'>🔍 Auditoría, Edición y Eliminación de Atenciones Provinciales</div>", unsafe_allow_html=True)
             col_ced_a, col_ced_av = st.columns([2, 2])
@@ -1279,12 +1310,13 @@ def formulario_principal():
                 ced_audit_norm = normalizar_id(cedula_auditoria)
                 df_audit = df_global[df_global['NUMERO DE IDENTIFICACION'].apply(normalizar_id) == ced_audit_norm]
                 
+                # --- CANDADO DEL SUPERVISOR (Filtro por múltiples unicódigos) ---
                 if st.session_state.rol_actual == "SUPERVISOR":
-                    df_audit = df_audit[df_audit['UNICODIGO'].apply(limpiar_unicodigo) == limpiar_unicodigo(st.session_state.unicodigo_actual)]
+                    df_audit = df_audit[df_audit['UNICODIGO'].apply(limpiar_unicodigo).isin(lista_unicodigos_usuario)]
                 
                 if df_audit.empty:
                     if st.session_state.rol_actual == "SUPERVISOR":
-                        st.error("❌ El ciudadano consultado no presenta atenciones registradas bajo el Unicódigo de su unidad operativa.")
+                        st.error("❌ El ciudadano consultado no presenta atenciones registradas bajo los centros de salud de su supervisión.")
                     else:
                         st.error("❌ El ciudadano consultado no presenta atenciones de emergencia registradas en la provincia.")
                 else:
@@ -1344,7 +1376,6 @@ def formulario_principal():
                                     guardar_tabla(HOJA_ATENCIONES, df_global_borrado)
                                     mostrar_alerta_guardado("✅ Atención eliminada correctamente del servidor provincial.", "ok")
 
-        # === TAB 2: EDICIÓN DE CATÁLOGOS ===
         with tab2:
             st.markdown("<div class='section-title'>✏️ Edición de Catálogos Provinciales (Pacientes y Profesionales)</div>", unsafe_allow_html=True)
             subtab_pac, subtab_med = st.tabs(["👤 Fichas Demográficas de Pacientes", "👨‍⚕️ Catálogo de Profesionales de Salud"])
@@ -1357,96 +1388,109 @@ def formulario_principal():
                 
                 if ced_pac_edit:
                     ced_norm_cat = normalizar_id(ced_pac_edit)
-                    paciente_en_catalogo = False
-                    row_pac = {}
-                    idx_pac_sel = None
                     
-                    if not df_pacientes_cat.empty and "NUMERO DE IDENTIFICACION" in df_pacientes_cat.columns:
-                        busqueda_pac = df_pacientes_cat[df_pacientes_cat['NUMERO DE IDENTIFICACION'].apply(normalizar_id) == ced_norm_cat]
-                        if not busqueda_pac.empty:
-                            idx_pac_sel = busqueda_pac.index[-1]
-                            row_pac = busqueda_pac.iloc[-1].to_dict()
-                            paciente_en_catalogo = True
-                            
-                    if not paciente_en_catalogo and not df_global.empty and "NUMERO DE IDENTIFICACION" in df_global.columns:
-                        busqueda_hist = df_global[df_global['NUMERO DE IDENTIFICACION'].apply(normalizar_id) == ced_norm_cat]
-                        if not busqueda_hist.empty:
-                            row_pac = busqueda_hist.iloc[-1].to_dict()
-                            st.info("ℹ️ Paciente recuperado del historial de atenciones. Al guardar, el sistema lo restaurará automáticamente en el catálogo oficial de pacientes.")
-                    
-                    if not row_pac:
-                        st.warning("⚠️ El paciente no existe en el catálogo ni en el historial de atenciones.")
+                    # --- FILTRO CANDADO PARA EDICIÓN DE PACIENTES DEL SUPERVISOR ---
+                    paciente_permitido = True
+                    if st.session_state.rol_actual == "SUPERVISOR":
+                        paciente_permitido = False
+                        if not df_global.empty and "NUMERO DE IDENTIFICACION" in df_global.columns:
+                            mask = (df_global['NUMERO DE IDENTIFICACION'].apply(normalizar_id) == ced_norm_cat) & (df_global['UNICODIGO'].apply(limpiar_unicodigo).isin(lista_unicodigos_usuario))
+                            if mask.any():
+                                paciente_permitido = True
+
+                    if not paciente_permitido:
+                        st.error("❌ **Acceso Denegado:** Este paciente no ha registrado atenciones en los establecimientos bajo su supervisión. No cuenta con permisos para visualizar ni editar su ficha demográfica.")
                     else:
-                        with st.container(border=True):
-                            st.write(f"Editando ficha del paciente: **{row_pac.get('PRIMER NOMBRE','')} {row_pac.get('PRIMER APELLIDO','')}**")
-                            cp1, cp2, cp3, cp4 = st.columns(4)
-                            ed_pa = cp1.text_input("Primer Apellido", value=row_pac.get("PRIMER APELLIDO",""), placeholder="Ingrese el primer apellido", key="ed_pac_pa")
-                            ed_sa = cp2.text_input("Segundo Apellido", value=row_pac.get("SEGUNDO APELLIDO",""), placeholder="Ingrese el segundo apellido", key="ed_pac_sa")
-                            ed_pn = cp3.text_input("Primer Nombre", value=row_pac.get("PRIMER NOMBRE",""), placeholder="Ingrese el primer nombre", key="ed_pac_pn")
-                            ed_sn = cp4.text_input("Segundo Nombre", value=row_pac.get("SEGUNDO NOMBRE",""), placeholder="Ingrese el segundo nombre", key="ed_pac_sn")
-                            
-                            cp5, cp6, cp7, cp_vacia = st.columns([1.2, 0.8, 1.1, 1.9])
-                            fn_pac_actual = safe_date(row_pac.get("FECHA DE NACIMIENTO DEL PACIENTE", ""), default_today=True)
-                            ed_fn = cp5.date_input("Fecha de Nacimiento", value=fn_pac_actual, min_value=date(1900,1,1), max_value=obtener_fecha_actual(), format="DD/MM/YYYY", key="ed_pac_fn")
-                            c_edad, c_cond = calcular_edad(ed_fn)
-                            cp6.text_input("Edad Calculada", value=str(c_edad), disabled=True, key="ed_pac_edad")
-                            cp7.text_input("Condición de Edad", value=c_cond, disabled=True, key="ed_pac_cond")
-                            
-                            cp8, cp9, cp10, cp11 = st.columns([1.0, 1.3, 1.3, 1.4])
-                            ed_sexo = cp8.selectbox("Sexo", SEXO_OPCIONES, index=safe_index(SEXO_OPCIONES, row_pac.get("SEXO")), key="ed_pac_sx")
-                            ed_nac = cp9.selectbox("Nacionalidad", NACIONALIDAD, index=safe_index(NACIONALIDAD, row_pac.get("NACIONALIDAD")), key="ed_pac_nac")
-                            ed_etn = cp10.selectbox("Etnia", ETNIAS, index=safe_index(ETNIAS, row_pac.get("ETNIA")), key="ed_pac_et")
-                            ed_gp = cp11.selectbox("Grupo Prioritario", GRUPO_PRIORITARIO, index=safe_index(GRUPO_PRIORITARIO, row_pac.get("GRUPO PRIORITARIO")), key="ed_pac_gp")
-                            
-                            cp12, cp13, cp14, cp15 = st.columns(4)
-                            ed_ts = cp12.selectbox("Tipo de Seguro", TIPO_SEGURO, index=safe_index(TIPO_SEGURO, row_pac.get("TIPO DE SEGURO")), key="ed_pac_ts")
-                            ed_pr = cp13.text_input("Provincia", value=row_pac.get("PROV_RES",""), placeholder="Ingrese la provincia de residencia", key="ed_pac_pr")
-                            ed_cr = cp14.text_input("Cantón", value=row_pac.get("CANT_RES",""), placeholder="Ingrese el cantón de residencia", key="ed_pac_cr")
-                            ed_par = cp15.text_input("Parroquia", value=row_pac.get("PARR_RES",""), placeholder="Ingrese la parroquia de residencia", key="ed_pac_par")
-                            
-                            col_btn_ep, col_vacia_ep = st.columns([1.5, 4.5])
-                            with col_btn_ep:
-                                if st.button("💾 Guardar Actualización del Paciente", use_container_width=True, key="btn_save_edit_pac"):
-                                    if not ed_pa or not ed_pn or not ed_pr:
-                                        mostrar_alerta_guardado("❌ Apellidos, Nombres y Residencia son obligatorios.", "error")
-                                    else:
-                                        datos_corregidos = {
-                                            "PRIMER APELLIDO": limpiar_texto(ed_pa),
-                                            "SEGUNDO APELLIDO": limpiar_texto(ed_sa),
-                                            "PRIMER NOMBRE": limpiar_texto(ed_pn),
-                                            "SEGUNDO NOMBRE": limpiar_texto(ed_sn),
-                                            "FECHA DE NACIMIENTO DEL PACIENTE": ed_fn.strftime("%d/%m/%Y"),
-                                            "EDAD": str(c_edad),
-                                            "CONDICION DE LA EDAD": c_cond,
-                                            "SEXO": ed_sexo,
-                                            "NACIONALIDAD": ed_nac,
-                                            "ETNIA": ed_etn,
-                                            "GRUPO PRIORITARIO": ed_gp,
-                                            "TIPO DE SEGURO": ed_ts,
-                                            "PROV_RES": limpiar_texto(ed_pr),
-                                            "CANT_RES": limpiar_texto(ed_cr),
-                                            "PARR_RES": limpiar_texto(ed_par)
-                                        }
-                                        
-                                        if paciente_en_catalogo:
-                                            for k, val in datos_corregidos.items():
-                                                if k in df_pacientes_cat.columns:
-                                                    df_pacientes_cat.loc[idx_pac_sel, k] = str(val)
-                                            guardar_tabla(HOJA_PACIENTES, df_pacientes_cat)
+                        paciente_en_catalogo = False
+                        row_pac = {}
+                        idx_pac_sel = None
+                        
+                        if not df_pacientes_cat.empty and "NUMERO DE IDENTIFICACION" in df_pacientes_cat.columns:
+                            busqueda_pac = df_pacientes_cat[df_pacientes_cat['NUMERO DE IDENTIFICACION'].apply(normalizar_id) == ced_norm_cat]
+                            if not busqueda_pac.empty:
+                                idx_pac_sel = busqueda_pac.index[-1]
+                                row_pac = busqueda_pac.iloc[-1].to_dict()
+                                paciente_en_catalogo = True
+                                
+                        if not paciente_en_catalogo and not df_global.empty and "NUMERO DE IDENTIFICACION" in df_global.columns:
+                            busqueda_hist = df_global[df_global['NUMERO DE IDENTIFICACION'].apply(normalizar_id) == ced_norm_cat]
+                            if not busqueda_hist.empty:
+                                row_pac = busqueda_hist.iloc[-1].to_dict()
+                                st.info("ℹ️ Paciente recuperado del historial de atenciones. Al guardar, el sistema lo restaurará automáticamente en el catálogo oficial de pacientes.")
+                        
+                        if not row_pac:
+                            st.warning("⚠️ El paciente no existe en el catálogo ni en el historial de atenciones.")
+                        else:
+                            with st.container(border=True):
+                                st.write(f"Editando ficha del paciente: **{row_pac.get('PRIMER NOMBRE','')} {row_pac.get('PRIMER APELLIDO','')}**")
+                                cp1, cp2, cp3, cp4 = st.columns(4)
+                                ed_pa = cp1.text_input("Primer Apellido", value=row_pac.get("PRIMER APELLIDO",""), placeholder="Ingrese el primer apellido", key="ed_pac_pa")
+                                ed_sa = cp2.text_input("Segundo Apellido", value=row_pac.get("SEGUNDO APELLIDO",""), placeholder="Ingrese el segundo apellido", key="ed_pac_sa")
+                                ed_pn = cp3.text_input("Primer Nombre", value=row_pac.get("PRIMER NOMBRE",""), placeholder="Ingrese el primer nombre", key="ed_pac_pn")
+                                ed_sn = cp4.text_input("Segundo Nombre", value=row_pac.get("SEGUNDO NOMBRE",""), placeholder="Ingrese el segundo nombre", key="ed_pac_sn")
+                                
+                                cp5, cp6, cp7, cp_vacia = st.columns([1.2, 0.8, 1.1, 1.9])
+                                fn_pac_actual = safe_date(row_pac.get("FECHA DE NACIMIENTO DEL PACIENTE", ""), default_today=True)
+                                ed_fn = cp5.date_input("Fecha de Nacimiento", value=fn_pac_actual, min_value=date(1900,1,1), max_value=obtener_fecha_actual(), format="DD/MM/YYYY", key="ed_pac_fn")
+                                c_edad, c_cond = calcular_edad(ed_fn)
+                                cp6.text_input("Edad Calculada", value=str(c_edad), disabled=True, key="ed_pac_edad")
+                                cp7.text_input("Condición de Edad", value=c_cond, disabled=True, key="ed_pac_cond")
+                                
+                                cp8, cp9, cp10, cp11 = st.columns([1.0, 1.3, 1.3, 1.4])
+                                ed_sexo = cp8.selectbox("Sexo", SEXO_OPCIONES, index=safe_index(SEXO_OPCIONES, row_pac.get("SEXO")), key="ed_pac_sx")
+                                ed_nac = cp9.selectbox("Nacionalidad", NACIONALIDAD, index=safe_index(NACIONALIDAD, row_pac.get("NACIONALIDAD")), key="ed_pac_nac")
+                                ed_etn = cp10.selectbox("Etnia", ETNIAS, index=safe_index(ETNIAS, row_pac.get("ETNIA")), key="ed_pac_et")
+                                ed_gp = cp11.selectbox("Grupo Prioritario", GRUPO_PRIORITARIO, index=safe_index(GRUPO_PRIORITARIO, row_pac.get("GRUPO PRIORITARIO")), key="ed_pac_gp")
+                                
+                                cp12, cp13, cp14, cp15 = st.columns(4)
+                                ed_ts = cp12.selectbox("Tipo de Seguro", TIPO_SEGURO, index=safe_index(TIPO_SEGURO, row_pac.get("TIPO DE SEGURO")), key="ed_pac_ts")
+                                ed_pr = cp13.text_input("Provincia", value=row_pac.get("PROV_RES",""), placeholder="Ingrese la provincia de residencia", key="ed_pac_pr")
+                                ed_cr = cp14.text_input("Cantón", value=row_pac.get("CANT_RES",""), placeholder="Ingrese el cantón de residencia", key="ed_pac_cr")
+                                ed_par = cp15.text_input("Parroquia", value=row_pac.get("PARR_RES",""), placeholder="Ingrese la parroquia de residencia", key="ed_pac_par")
+                                
+                                col_btn_ep, col_vacia_ep = st.columns([1.5, 4.5])
+                                with col_btn_ep:
+                                    if st.button("💾 Guardar Actualización del Paciente", use_container_width=True, key="btn_save_edit_pac"):
+                                        if not ed_pa or not ed_pn or not ed_pr:
+                                            mostrar_alerta_guardado("❌ Apellidos, Nombres y Residencia son obligatorios.", "error")
                                         else:
-                                            payload_restaurado = {"NUMERO DE IDENTIFICACION": ced_pac_edit.strip()}
-                                            payload_restaurado.update(datos_corregidos)
-                                            agregar_fila_nube(HOJA_PACIENTES, payload_restaurado, COLS_PACIENTES_BD)
-
-                                        if not df_global.empty and "NUMERO DE IDENTIFICACION" in df_global.columns:
-                                            mask_at = df_global["NUMERO DE IDENTIFICACION"].apply(normalizar_id) == ced_norm_cat
-                                            if mask_at.any():
+                                            datos_corregidos = {
+                                                "PRIMER APELLIDO": limpiar_texto(ed_pa),
+                                                "SEGUNDO APELLIDO": limpiar_texto(ed_sa),
+                                                "PRIMER NOMBRE": limpiar_texto(ed_pn),
+                                                "SEGUNDO NOMBRE": limpiar_texto(ed_sn),
+                                                "FECHA DE NACIMIENTO DEL PACIENTE": ed_fn.strftime("%d/%m/%Y"),
+                                                "EDAD": str(c_edad),
+                                                "CONDICION DE LA EDAD": c_cond,
+                                                "SEXO": ed_sexo,
+                                                "NACIONALIDAD": ed_nac,
+                                                "ETNIA": ed_etn,
+                                                "GRUPO PRIORITARIO": ed_gp,
+                                                "TIPO DE SEGURO": ed_ts,
+                                                "PROV_RES": limpiar_texto(ed_pr),
+                                                "CANT_RES": limpiar_texto(ed_cr),
+                                                "PARR_RES": limpiar_texto(ed_par)
+                                            }
+                                            
+                                            if paciente_en_catalogo:
                                                 for k, val in datos_corregidos.items():
-                                                    if k in df_global.columns:
-                                                        df_global.loc[mask_at, k] = str(val)
-                                                guardar_tabla(HOJA_ATENCIONES, df_global)
+                                                    if k in df_pacientes_cat.columns:
+                                                        df_pacientes_cat.loc[idx_pac_sel, k] = str(val)
+                                                guardar_tabla(HOJA_PACIENTES, df_pacientes_cat)
+                                            else:
+                                                payload_restaurado = {"NUMERO DE IDENTIFICACION": ced_pac_edit.strip()}
+                                                payload_restaurado.update(datos_corregidos)
+                                                agregar_fila_nube(HOJA_PACIENTES, payload_restaurado, COLS_PACIENTES_BD)
 
-                                        mostrar_alerta_guardado("✅ ¡Ficha del paciente actualizada en el catálogo y en el historial!", "ok")
+                                            if not df_global.empty and "NUMERO DE IDENTIFICACION" in df_global.columns:
+                                                mask_at = df_global["NUMERO DE IDENTIFICACION"].apply(normalizar_id) == ced_norm_cat
+                                                if mask_at.any():
+                                                    for k, val in datos_corregidos.items():
+                                                        if k in df_global.columns:
+                                                            df_global.loc[mask_at, k] = str(val)
+                                                    guardar_tabla(HOJA_ATENCIONES, df_global)
+
+                                            mostrar_alerta_guardado("✅ ¡Ficha del paciente actualizada en el catálogo y en el historial!", "ok")
 
             with subtab_med:
                 df_prof_cat = cargar_profesionales()
@@ -1454,47 +1498,60 @@ def formulario_principal():
                 col_med_b, col_med_v = st.columns([2, 2])
                 ced_prof_edit = col_med_b.text_input("Ingrese la Cédula Profesional del Médico/Obstetriz a modificar:", placeholder="Ingrese el número de cédula del profesional", key="search_med_cat")
                 
-                if ced_prof_edit and not df_prof_cat.empty and "CEDULA" in df_prof_cat.columns:
+                if ced_prof_edit:
                     ced_norm_med = normalizar_id(ced_prof_edit)
-                    busqueda_med = df_prof_cat[df_prof_cat['CEDULA'].apply(normalizar_id) == ced_norm_med]
                     
-                    if busqueda_med.empty:
-                        st.warning("⚠️ El profesional no existe en el catálogo.")
+                    # --- FILTRO CANDADO PARA EDICIÓN DE PROFESIONALES DEL SUPERVISOR ---
+                    medico_permitido = True
+                    if st.session_state.rol_actual == "SUPERVISOR":
+                        medico_permitido = False
+                        if not df_global.empty and "NUMERO DE IDENTIFICACION DEL PROFESIONAL DE SALUD" in df_global.columns:
+                            mask_med = (df_global['NUMERO DE IDENTIFICACION DEL PROFESIONAL DE SALUD'].apply(normalizar_id) == ced_norm_med) & (df_global['UNICODIGO'].apply(limpiar_unicodigo).isin(lista_unicodigos_usuario))
+                            if mask_med.any():
+                                medico_permitido = True
+
+                    if not medico_permitido:
+                        st.error("❌ **Acceso Denegado:** Este profesional de salud no ha registrado atenciones en los establecimientos bajo su supervisión. No cuenta con permisos para modificar sus datos.")
                     else:
-                        idx_med_sel = busqueda_med.index[-1]
-                        row_med = busqueda_med.iloc[-1].to_dict()
+                        busqueda_med = df_prof_cat[df_prof_cat['CEDULA'].apply(normalizar_id) == ced_norm_med] if not df_prof_cat.empty and "CEDULA" in df_prof_cat.columns else pd.DataFrame()
                         
-                        with st.container(border=True):
-                            st.write(f"Editando ficha del profesional: **{row_med.get('NOMBRE_COMPLETO','')}**")
-                            cm1, cm2, cm3, cm4 = st.columns(4)
-                            ed_m_pn = cm1.text_input("Primer Nombre", value=row_med.get("PRIMER NOMBRE",""), placeholder="Ingrese el primer nombre", key="ed_med_pn")
-                            ed_m_sn = cm2.text_input("Segundo Nombre", value=row_med.get("SEGUNDO NOMBRE",""), placeholder="Ingrese el segundo nombre", key="ed_med_sn")
-                            ed_m_pa = cm3.text_input("Primer Apellido", value=row_med.get("PRIMER APELLIDO",""), placeholder="Ingrese el primer apellido", key="ed_med_pa")
-                            ed_m_sa = cm4.text_input("Segundo Apellido", value=row_med.get("SEGUNDO APELLIDO",""), placeholder="Ingrese el segundo apellido", key="ed_med_sa")
+                        if busqueda_med.empty:
+                            st.warning("⚠️ El profesional no existe en el catálogo.")
+                        else:
+                            idx_med_sel = busqueda_med.index[-1]
+                            row_med = busqueda_med.iloc[-1].to_dict()
                             
-                            col_btn_em, col_vacia_em = st.columns([1.5, 4.5])
-                            with col_btn_em:
-                                if st.button("💾 Guardar Actualización del Profesional", use_container_width=True, key="btn_save_edit_med"):
-                                    if not ed_m_pn or not ed_m_pa:
-                                        mostrar_alerta_guardado("❌ Primer Nombre y Primer Apellido son obligatorios.", "error")
-                                    else:
-                                        nom_com = re.sub(r'\s+', ' ', f"{limpiar_texto(ed_m_pn)} {limpiar_texto(ed_m_sn)} {limpiar_texto(ed_m_pa)} {limpiar_texto(ed_m_sa)}").strip()
-                                        df_prof_cat.loc[idx_med_sel, "PRIMER NOMBRE"] = limpiar_texto(ed_m_pn)
-                                        df_prof_cat.loc[idx_med_sel, "SEGUNDO NOMBRE"] = limpiar_texto(ed_m_sn)
-                                        df_prof_cat.loc[idx_med_sel, "PRIMER APELLIDO"] = limpiar_texto(ed_m_pa)
-                                        df_prof_cat.loc[idx_med_sel, "SEGUNDO APELLIDO"] = limpiar_texto(ed_m_sa)
-                                        df_prof_cat.loc[idx_med_sel, "NOMBRE_COMPLETO"] = nom_com
-                                        guardar_tabla(HOJA_PROFESIONALES, df_prof_cat)
+                            with st.container(border=True):
+                                st.write(f"Editando ficha del profesional: **{row_med.get('NOMBRE_COMPLETO','')}**")
+                                cm1, cm2, cm3, cm4 = st.columns(4)
+                                ed_m_pn = cm1.text_input("Primer Nombre", value=row_med.get("PRIMER NOMBRE",""), placeholder="Ingrese el primer nombre", key="ed_med_pn")
+                                ed_m_sn = cm2.text_input("Segundo Nombre", value=row_med.get("SEGUNDO NOMBRE",""), placeholder="Ingrese el segundo nombre", key="ed_med_sn")
+                                ed_m_pa = cm3.text_input("Primer Apellido", value=row_med.get("PRIMER APELLIDO",""), placeholder="Ingrese el primer apellido", key="ed_med_pa")
+                                ed_m_sa = cm4.text_input("Segundo Apellido", value=row_med.get("SEGUNDO APELLIDO",""), placeholder="Ingrese el segundo apellido", key="ed_med_sa")
+                                
+                                col_btn_em, col_vacia_em = st.columns([1.5, 4.5])
+                                with col_btn_em:
+                                    if st.button("💾 Guardar Actualización del Profesional", use_container_width=True, key="btn_save_edit_med"):
+                                        if not ed_m_pn or not ed_m_pa:
+                                            mostrar_alerta_guardado("❌ Primer Nombre y Primer Apellido son obligatorios.", "error")
+                                        else:
+                                            nom_com = re.sub(r'\s+', ' ', f"{limpiar_texto(ed_m_pn)} {limpiar_texto(ed_m_sn)} {limpiar_texto(ed_m_pa)} {limpiar_texto(ed_m_sa)}").strip()
+                                            df_prof_cat.loc[idx_med_sel, "PRIMER NOMBRE"] = limpiar_texto(ed_m_pn)
+                                            df_prof_cat.loc[idx_med_sel, "SEGUNDO NOMBRE"] = limpiar_texto(ed_m_sn)
+                                            df_prof_cat.loc[idx_med_sel, "PRIMER APELLIDO"] = limpiar_texto(ed_m_pa)
+                                            df_prof_cat.loc[idx_med_sel, "SEGUNDO APELLIDO"] = limpiar_texto(ed_m_sa)
+                                            df_prof_cat.loc[idx_med_sel, "NOMBRE_COMPLETO"] = nom_com
+                                            guardar_tabla(HOJA_PROFESIONALES, df_prof_cat)
 
-                                        df_at = cargar_tabla(HOJA_ATENCIONES)
-                                        if not df_at.empty and "NUMERO DE IDENTIFICACION DEL PROFESIONAL DE SALUD" in df_at.columns:
-                                            mask_med = df_at["NUMERO DE IDENTIFICACION DEL PROFESIONAL DE SALUD"].apply(normalizar_id) == ced_norm_med
-                                            if mask_med.any():
-                                                if "NOMBRES Y APELLIDOS DEL PROFESIONAL DE SALUD" in df_at.columns:
-                                                    df_at.loc[mask_med, "NOMBRES Y APELLIDOS DEL PROFESIONAL DE SALUD"] = nom_com
-                                                guardar_tabla(HOJA_ATENCIONES, df_at)
+                                            df_at = cargar_tabla(HOJA_ATENCIONES)
+                                            if not df_at.empty and "NUMERO DE IDENTIFICACION DEL PROFESIONAL DE SALUD" in df_at.columns:
+                                                mask_med_at = df_at["NUMERO DE IDENTIFICACION DEL PROFESIONAL DE SALUD"].apply(normalizar_id) == ced_norm_med
+                                                if mask_med_at.any():
+                                                    if "NOMBRES Y APELLIDOS DEL PROFESIONAL DE SALUD" in df_at.columns:
+                                                        df_at.loc[mask_med_at, "NOMBRES Y APELLIDOS DEL PROFESIONAL DE SALUD"] = nom_com
+                                                    guardar_tabla(HOJA_ATENCIONES, df_at)
 
-                                        mostrar_alerta_guardado("✅ ¡Nombre del profesional actualizado en el catálogo y en todas sus atenciones registradas!", "ok")
+                                            mostrar_alerta_guardado("✅ ¡Nombre del profesional actualizado en el catálogo y en todas sus atenciones registradas!", "ok")
 
         if st.session_state.rol_actual == "ADMIN":
             with tab3:
@@ -1510,19 +1567,30 @@ def formulario_principal():
                 
                 n_rol = c_nu3.selectbox("Rol Institucional", ["USUARIO", "SUPERVISOR", "ADMIN"])
                 
+                # --- SELECTORES DINÁMICOS SEGÚN EL ROL ---
                 if n_rol == "ADMIN": 
                     n_uni = c_nu4.selectbox("Unicódigo Asignado", ["TODOS"], disabled=True)
+                    uni_final = "TODOS"
+                elif n_rol == "SUPERVISOR":
+                    lista_unis = [str(x) for x in base_est['UNICODIGO'].tolist() if str(x).strip() != "" and str(x).lower() != "nan"] if base_est is not None else []
+                    n_uni_multi = c_nu4.multiselect("Unicódigos Asignados (Puede elegir varios)", lista_unis)
+                    uni_final = ",".join(n_uni_multi)
                 else:
                     lista_unis = [str(x) for x in base_est['UNICODIGO'].tolist() if str(x).strip() != "" and str(x).lower() != "nan"] if base_est is not None else []
                     n_uni = c_nu4.selectbox("Unicódigo Asignado", lista_unis)
+                    uni_final = n_uni
                     
                 col_btn_cu, col_vacia_cu = st.columns([1.5, 4.5])
                 with col_btn_cu:
                     if st.button("Crear Acceso Institucional", use_container_width=True):
-                        if not n_usr or not n_pwd: st.error("El usuario y la contraseña son requeridos.")
-                        elif "USUARIO" in df_usuarios.columns and n_usr in df_usuarios['USUARIO'].values: st.error("⚠️ El usuario ya existe en el sistema.")
+                        if not n_usr or not n_pwd: 
+                            st.error("El usuario y la contraseña son requeridos.")
+                        elif n_rol == "SUPERVISOR" and not uni_final:
+                            st.error("Debe seleccionar al menos un Unicódigo para el Supervisor.")
+                        elif "USUARIO" in df_usuarios.columns and n_usr in df_usuarios['USUARIO'].values: 
+                            st.error("⚠️ El usuario ya existe en el sistema.")
                         else:
-                            nuevo_u_dict = {"USUARIO": n_usr.strip(), "CONTRASENA": n_pwd.strip(), "ROL": n_rol, "UNICODIGO": "TODOS" if n_rol=="ADMIN" else n_uni}
+                            nuevo_u_dict = {"USUARIO": n_usr.strip(), "CONTRASENA": n_pwd.strip(), "ROL": n_rol, "UNICODIGO": uni_final}
                             agregar_fila_nube(HOJA_USUARIOS, nuevo_u_dict, COLS_USUARIOS_BD)
                             mostrar_alerta_guardado(f"Acceso para el usuario '{n_usr}' habilitado correctamente.", "ok")
 
@@ -1668,13 +1736,13 @@ def formulario_principal():
                             else:
                                 st.info("No existen establecimientos con registros en este período.")
                 else:
-                    unic_limpio = limpiar_unicodigo(st.session_state.unicodigo_actual)
-                    df_usuario_final = df_descarga[df_descarga['UNICODIGO'].apply(limpiar_unicodigo) == unic_limpio]
+                    # LÓGICA DE DESCARGA PARA SUPERVISORES Y USUARIOS
+                    df_usuario_final = df_descarga[df_descarga['UNICODIGO'].apply(limpiar_unicodigo).isin(lista_unicodigos_usuario)]
                     
                     if df_usuario_final.empty:
                         st.warning(f"⚠️ Su unidad operativa no cuenta con registros dentro del intervalo seleccionado.")
                     else:
-                        st.success(f"✅ Se consolidaron **{len(df_usuario_final)}** atenciones de su Unidad Operativa en el intervalo seleccionado (con demografías 100% actualizadas).")
+                        st.success(f"✅ Se consolidaron **{len(df_usuario_final)}** atenciones de su(s) Unidad(es) Operativa(s) en el intervalo seleccionado (con demografías 100% actualizadas).")
                         
                         st.dataframe(df_usuario_final.tail(3), use_container_width=True)
                         buf3 = io.BytesIO()
@@ -1684,9 +1752,9 @@ def formulario_principal():
                         col_btn_du, col_vacia_du = st.columns([1.5, 4.5])
                         with col_btn_du:
                             st.download_button(
-                                label=f"📥 Descargar Producción de la Unidad ({f_desc_ini.strftime('%d/%m')} al {f_desc_fin.strftime('%d/%m')})", 
+                                label=f"📥 Descargar Producción Consolidada ({f_desc_ini.strftime('%d/%m')} al {f_desc_fin.strftime('%d/%m')})", 
                                 data=buf3.getvalue(), 
-                                file_name=f"Matriz_{st.session_state.unicodigo_actual}_{f_desc_ini.strftime('%Y%m%d')}_{f_desc_fin.strftime('%Y%m%d')}.xlsx", 
+                                file_name=f"Matriz_Produccion_{f_desc_ini.strftime('%Y%m%d')}_{f_desc_fin.strftime('%Y%m%d')}.xlsx", 
                                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", 
                                 use_container_width=True
                             )
