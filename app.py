@@ -551,7 +551,7 @@ def login():
 
         st.markdown("""
             <div style='text-align: center; margin-top: 1.2rem; color: #64748b; font-size: 0.78rem;'>
-                🏥 MSP Orellana | Entorno Informático de Escritorio V3.9
+                🏥 MSP Orellana | Entorno Informático de Escritorio V4.0
             </div>
         """, unsafe_allow_html=True)
 
@@ -747,15 +747,20 @@ def modal_nuevo_profesional(cedula_prof):
 def renderizar_campos_paciente(fk, prefill=None, df_global=None):
     if prefill is None: prefill = {}
     
-    es_edicion_usuario = bool(st.session_state.rol_actual == "USUARIO" and fk.startswith("edit"))
+    # --- MEJORA: REGLA UNIVERSAL DE MODO EDICIÓN ---
+    # Si la clave "fk" empieza con edit o admin_edit, estamos en modo modificación
+    es_modo_edicion = bool(fk.startswith("edit") or fk.startswith("admin_edit"))
     
     st.markdown("<div class='section-title'>👤 2. Identificación y Demografía del Ciudadano</div>", unsafe_allow_html=True)
     
     with st.container(border=True):
         col_ser, col_doc1, col_doc2 = st.columns([1.0, 1.3, 1.7])
-        numero_serie = col_ser.text_input("Número de Serie", value=prefill.get("NUMERO DE SERIE", ""), placeholder="Ingrese el número de serie (Opcional)", key=f"ser_{fk}", disabled=es_edicion_usuario)
-        tipo_doc = col_doc1.selectbox("Tipo de Documento", TIPOS_DOCUMENTO, index=safe_index(TIPOS_DOCUMENTO, prefill.get("TIPO DE DOCUMENTO DE IDENTIFICACION")), key=f"td_{fk}", disabled=es_edicion_usuario)
-        identificacion = col_doc2.text_input("Número de Identificación (Presione ENTER para verificar en el sistema)", placeholder="Ingrese el número de cédula y presione ENTER", value=prefill.get("NUMERO DE IDENTIFICACION", ""), key=f"id_{fk}", disabled=es_edicion_usuario)
+        # Número de Serie AHORA SIEMPRE EDITABLE (Incluso en modo edición)
+        numero_serie = col_ser.text_input("Número de Serie", value=prefill.get("NUMERO DE SERIE", ""), placeholder="Ingrese el número de serie (Opcional)", key=f"ser_{fk}", disabled=False)
+        
+        # Identificación BLOQUEADA en modo edición
+        tipo_doc = col_doc1.selectbox("Tipo de Documento", TIPOS_DOCUMENTO, index=safe_index(TIPOS_DOCUMENTO, prefill.get("TIPO DE DOCUMENTO DE IDENTIFICACION")), key=f"td_{fk}", disabled=es_modo_edicion)
+        identificacion = col_doc2.text_input("Número de Identificación (Presione ENTER para verificar en el sistema)", placeholder="Ingrese el número de cédula y presione ENTER", value=prefill.get("NUMERO DE IDENTIFICACION", ""), key=f"id_{fk}", disabled=es_modo_edicion)
         
         id_valida = False
         if identificacion:
@@ -795,7 +800,9 @@ def renderizar_campos_paciente(fk, prefill=None, df_global=None):
         dyn_k = f"_{st.session_state.get('last_checked_id', '')}_{rt}" if fk.startswith("nuevo") else ""
         
         paciente_encontrado = True if st.session_state.get("prefill_auto") else False
-        bloquear_campos = True if ((fk.startswith("nuevo") and st.session_state.rol_actual == "USUARIO" and paciente_encontrado) or es_edicion_usuario) else False
+        
+        # --- BLOQUEO GENERAL DE DEMOGRAFÍA ---
+        bloquear_campos = True if (es_modo_edicion or (fk.startswith("nuevo") and st.session_state.rol_actual == "USUARIO" and paciente_encontrado)) else False
 
         if identificacion and id_valida and fk.startswith("nuevo") and paciente_encontrado:
             st.success("✅ **Ciudadano verificado:** Sus datos demográficos fueron cargados automáticamente desde el historial de la provincia.")
@@ -868,9 +875,10 @@ def renderizar_campos_paciente(fk, prefill=None, df_global=None):
         else:
             min_calendario = limite_inferior
 
-        fecha_atencion = col9.date_input("Fecha de Atención", value=valor_fecha_atencion, min_value=min_calendario, max_value=fecha_hoy, format="DD/MM/YYYY", key=f"fa_{fk}", disabled=es_edicion_usuario)
-
-        hora_atencion = col10.text_input("Hora de Atención (HH:MM - formato 24h)", value=prefill.get("HORA ATENCION", ""), placeholder="HH:MM (Ej: 14:30)", key=f"ha_{fk}", disabled=es_edicion_usuario)
+        # Fecha y Hora bloqueadas en modo edición
+        fecha_atencion = col9.date_input("Fecha de Atención", value=valor_fecha_atencion, min_value=min_calendario, max_value=fecha_hoy, format="DD/MM/YYYY", key=f"fa_{fk}", disabled=es_modo_edicion)
+        hora_atencion = col10.text_input("Hora de Atención (HH:MM - formato 24h)", value=prefill.get("HORA ATENCION", ""), placeholder="HH:MM (Ej: 14:30)", key=f"ha_{fk}", disabled=es_modo_edicion)
+        
         hora_valida = True
         if hora_atencion and not re.match(r"^(?:[01]\d|2[0-3]):[0-5]\d$", str(hora_atencion)):
             col10.error("❌ Formato horario inválido (use HH:MM, ejemplo: 08:30 o 21:15).")
@@ -910,8 +918,8 @@ def renderizar_campos_paciente(fk, prefill=None, df_global=None):
 
         col22, col23, col24 = st.columns([1.2, 1.8, 1.8])
         etnia = col22.selectbox("Etnia", ETNIAS, index=safe_index(ETNIAS, prefill.get("ETNIA")), key=f"et_{fk}{dyn_k}", disabled=bloquear_campos)
-        grupo_prio = col23.selectbox("Grupo Prioritario", GRUPO_PRIORITARIO, index=safe_index(GRUPO_PRIORITARIO, prefill.get("GRUPO PRIORITARIO")), key=f"gp_{fk}{dyn_k}", disabled=es_edicion_usuario)
-        tipo_seguro = col24.selectbox("Tipo de Seguro / Cobertura", TIPO_SEGURO, index=safe_index(TIPO_SEGURO, prefill.get("TIPO DE SEGURO")), key=f"ts_{fk}{dyn_k}", disabled=es_edicion_usuario)
+        grupo_prio = col23.selectbox("Grupo Prioritario", GRUPO_PRIORITARIO, index=safe_index(GRUPO_PRIORITARIO, prefill.get("GRUPO PRIORITARIO")), key=f"gp_{fk}{dyn_k}", disabled=bloquear_campos)
+        tipo_seguro = col24.selectbox("Tipo de Seguro / Cobertura", TIPO_SEGURO, index=safe_index(TIPO_SEGURO, prefill.get("TIPO DE SEGURO")), key=f"ts_{fk}{dyn_k}", disabled=bloquear_campos)
 
     st.markdown("<div class='section-title'>📍 3. Información de Residencia del Ciudadano</div>", unsafe_allow_html=True)
     with st.container(border=True):
@@ -921,7 +929,7 @@ def renderizar_campos_paciente(fk, prefill=None, df_global=None):
         parr_res = col27.text_input("Parroquia de Residencia", value=limpiar_texto(prefill.get("PARR_RES", "")), placeholder="Ingrese la parroquia de residencia", key=f"par_{fk}{dyn_k}", disabled=bloquear_campos)
 
     # =========================================================================
-    # SECCIÓN 4: SIEMPRE DISPONIBLE PARA MODIFICACIÓN DEL USUARIO OPERADOR
+    # SECCIÓN 4: SIEMPRE DISPONIBLE PARA MODIFICACIÓN CLÍNICA
     # =========================================================================
     st.markdown("<div class='section-title'>🩺 4. Diagnóstico CIE-10 y Profesional Tratante</div>", unsafe_allow_html=True)
     with st.container(border=True):
@@ -998,7 +1006,8 @@ def renderizar_campos_paciente(fk, prefill=None, df_global=None):
             valido_hosp = False
 
         col37, col38 = st.columns([1.5, 2.5])
-        id_profesional = col37.text_input("Cédula Profesional del Médico (Presione ENTER)", placeholder="Ingrese el número de cédula del médico y presione ENTER", value=prefill.get("NUMERO DE IDENTIFICACION DEL PROFESIONAL DE SALUD", ""), key=f"ip_{fk}", disabled=False)
+        # --- CÉDULA MÉDICA BLOQUEADA EN MODO EDICIÓN ---
+        id_profesional = col37.text_input("Cédula Profesional del Médico (Presione ENTER)", placeholder="Ingrese el número de cédula del médico y presione ENTER", value=prefill.get("NUMERO DE IDENTIFICACION DEL PROFESIONAL DE SALUD", ""), key=f"ip_{fk}", disabled=es_modo_edicion)
         
         id_prof_valida = False
         nombre_prof_auto = prefill.get("NOMBRES Y APELLIDOS DEL PROFESIONAL DE SALUD", "")
@@ -1027,7 +1036,9 @@ def renderizar_campos_paciente(fk, prefill=None, df_global=None):
         else:
             if fk.startswith("nuevo") and f"np_{fk}" in st.session_state: st.session_state[f"np_{fk}"] = ""
 
-        nombre_profesional = col38.text_input("Nombres y Apellidos del Profesional", value=limpiar_texto(nombre_prof_auto), placeholder="Ingrese los nombres y apellidos del profesional de salud", key=f"np_{fk}", disabled=(profesional_encontrado and fk.startswith("nuevo")))
+        # --- NOMBRE DEL MÉDICO BLOQUEADO ---
+        nombre_profesional_disabled = True if es_modo_edicion else (profesional_encontrado and fk.startswith("nuevo"))
+        nombre_profesional = col38.text_input("Nombres y Apellidos del Profesional", value=limpiar_texto(nombre_prof_auto), placeholder="Ingrese los nombres y apellidos del profesional de salud", key=f"np_{fk}", disabled=nombre_profesional_disabled)
 
         val_fecha_nacimiento = fecha_nacimiento.strftime("%d/%m/%Y") if fecha_nacimiento else "N/A"
         val_fecha_atencion = fecha_atencion.strftime("%d/%m/%Y") if fecha_atencion else ""
@@ -1172,7 +1183,6 @@ def formulario_principal():
                         if not df_chart.empty:
                             chart_data = df_chart.groupby(["FECHA_DT", "NOMBRE DEL ESTABLECIMIENTO DE SALUD"]).size().unstack(fill_value=0)
                             chart_data.index = chart_data.index.strftime("%d/%m")
-                            # Gráfico de barras apiladas nativo de Streamlit
                             st.bar_chart(chart_data)
         else:
             st.info("Aún no hay atenciones registradas en el sistema para generar la gráfica.")
@@ -1283,7 +1293,7 @@ def formulario_principal():
                     fila_editar = df_global.iloc[idx_original].to_dict()
 
                     with st.container(border=True):
-                        st.info("🔒 **Modo Edición Operador:** Los datos de identificación, demografía y residencia se muestran bloqueados. Solo está permitida la modification de la sección **4. Diagnóstico CIE-10 y Profesional Tratante**.")
+                        st.info("🔒 **Modo Edición:** La fecha, hora, demografía y profesional están bloqueados por seguridad. Solo puede modificar el **Número de Serie** y los datos clínicos de la **Sección 4**.")
                         datos_editados = renderizar_campos_paciente(f"edit_{idx_original}", prefill=fila_editar, df_global=df_global)
                         
                         col_btn_e, col_vacia_e = st.columns([1.2, 4.8])
@@ -1328,7 +1338,7 @@ def formulario_principal():
                     fila_audit_editar = df_global.iloc[idx_audit].to_dict()
 
                     with st.expander("✏️ MODIFICAR ATENCIÓN SELECCIONADA (MÓDULO AUDITORÍA)", expanded=False):
-                        st.info("⚠️ Los cambios realizados aquí se sobrescribirán directamente sobre la base provincial de Google Sheets.")
+                        st.info("🔒 **Modo Auditoría:** La fecha, hora, demografía y profesional están bloqueados por seguridad. Solo puede modificar el **Número de Serie** y los datos clínicos de la **Sección 4**.")
                         datos_admin_edit = renderizar_campos_paciente(f"admin_edit_{idx_audit}", prefill=fila_audit_editar, df_global=df_global)
                         
                         col_btn_ae, col_vacia_ae = st.columns([1.5, 4.5])
