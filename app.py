@@ -551,7 +551,7 @@ def login():
 
         st.markdown("""
             <div style='text-align: center; margin-top: 1.2rem; color: #64748b; font-size: 0.78rem;'>
-                🏥 MSP Orellana | Entorno Informático de Escritorio V4.0
+                🏥 MSP Orellana | Entorno Informático de Escritorio V4.1
             </div>
         """, unsafe_allow_html=True)
 
@@ -747,33 +747,34 @@ def modal_nuevo_profesional(cedula_prof):
 def renderizar_campos_paciente(fk, prefill=None, df_global=None):
     if prefill is None: prefill = {}
     
-    # --- MEJORA: REGLA UNIVERSAL DE MODO EDICIÓN ---
-    # Si la clave "fk" empieza con edit o admin_edit, estamos en modo modificación
     es_modo_edicion = bool(fk.startswith("edit") or fk.startswith("admin_edit"))
+    
+    # --- LIMPIEZA DE COMILLAS PARA PREFILL ---
+    id_pac_prefill = str(prefill.get("NUMERO DE IDENTIFICACION", "")).replace("'", "").strip()
+    id_prof_prefill = str(prefill.get("NUMERO DE IDENTIFICACION DEL PROFESIONAL DE SALUD", "")).replace("'", "").strip()
     
     st.markdown("<div class='section-title'>👤 2. Identificación y Demografía del Ciudadano</div>", unsafe_allow_html=True)
     
     with st.container(border=True):
         col_ser, col_doc1, col_doc2 = st.columns([1.0, 1.3, 1.7])
-        # Número de Serie AHORA SIEMPRE EDITABLE (Incluso en modo edición)
         numero_serie = col_ser.text_input("Número de Serie", value=prefill.get("NUMERO DE SERIE", ""), placeholder="Ingrese el número de serie (Opcional)", key=f"ser_{fk}", disabled=False)
         
-        # Identificación BLOQUEADA en modo edición
         tipo_doc = col_doc1.selectbox("Tipo de Documento", TIPOS_DOCUMENTO, index=safe_index(TIPOS_DOCUMENTO, prefill.get("TIPO DE DOCUMENTO DE IDENTIFICACION")), key=f"td_{fk}", disabled=es_modo_edicion)
-        identificacion = col_doc2.text_input("Número de Identificación (Presione ENTER para verificar en el sistema)", placeholder="Ingrese el número de cédula y presione ENTER", value=prefill.get("NUMERO DE IDENTIFICACION", ""), key=f"id_{fk}", disabled=es_modo_edicion)
+        identificacion = col_doc2.text_input("Número de Identificación (Presione ENTER para verificar en el sistema)", placeholder="Ingrese el número de cédula y presione ENTER", value=id_pac_prefill, key=f"id_{fk}", disabled=es_modo_edicion)
         
+        identificacion_clean = identificacion.replace("'", "").strip()
         id_valida = False
-        if identificacion:
+        if identificacion_clean:
             if tipo_doc == "CEDULA DE IDENTIDAD O CIUDADANÍA":
-                if not validar_cedula_ecuatoriana(identificacion): col_doc2.error("❌ Cédula ecuatoriana inválida según algoritmo oficial.")
+                if not validar_cedula_ecuatoriana(identificacion_clean): col_doc2.error("❌ Cédula ecuatoriana inválida según algoritmo oficial.")
                 else: id_valida = True
             elif tipo_doc == "SIN DOCUMENTO DE IDENTIFICACION":
-                if len(identificacion) != 17: col_doc2.error("❌ El código temporal debe contener exactos 17 caracteres.")
+                if len(identificacion_clean) != 17: col_doc2.error("❌ El código temporal debe contener exactos 17 caracteres.")
                 else: id_valida = True
             else:
                 id_valida = True
 
-        current_id = identificacion.strip()
+        current_id = identificacion_clean
         
         if fk.startswith("nuevo") and current_id and id_valida:
             if st.session_state.get("last_checked_id") != current_id:
@@ -800,14 +801,12 @@ def renderizar_campos_paciente(fk, prefill=None, df_global=None):
         dyn_k = f"_{st.session_state.get('last_checked_id', '')}_{rt}" if fk.startswith("nuevo") else ""
         
         paciente_encontrado = True if st.session_state.get("prefill_auto") else False
-        
-        # --- BLOQUEO GENERAL DE DEMOGRAFÍA ---
         bloquear_campos = True if (es_modo_edicion or (fk.startswith("nuevo") and st.session_state.rol_actual == "USUARIO" and paciente_encontrado)) else False
 
-        if identificacion and id_valida and fk.startswith("nuevo") and paciente_encontrado:
+        if identificacion_clean and id_valida and fk.startswith("nuevo") and paciente_encontrado:
             st.success("✅ **Ciudadano verificado:** Sus datos demográficos fueron cargados automáticamente desde el historial de la provincia.")
 
-        if identificacion and id_valida and fk.startswith("nuevo") and not paciente_encontrado:
+        if identificacion_clean and id_valida and fk.startswith("nuevo") and not paciente_encontrado:
             st.warning("⚠️ Ciudadano no registrado en el catálogo provincial. Por favor ingrese su ficha demográfica:")
             with st.expander("📝 INGRESO DE NUEVA FICHA DEMOGRÁFICA DEL PACIENTE", expanded=True):
                 st.markdown("Los campos demográficos son obligatorios de acuerdo a la normativa ministerial.")
@@ -875,7 +874,6 @@ def renderizar_campos_paciente(fk, prefill=None, df_global=None):
         else:
             min_calendario = limite_inferior
 
-        # Fecha y Hora bloqueadas en modo edición
         fecha_atencion = col9.date_input("Fecha de Atención", value=valor_fecha_atencion, min_value=min_calendario, max_value=fecha_hoy, format="DD/MM/YYYY", key=f"fa_{fk}", disabled=es_modo_edicion)
         hora_atencion = col10.text_input("Hora de Atención (HH:MM - formato 24h)", value=prefill.get("HORA ATENCION", ""), placeholder="HH:MM (Ej: 14:30)", key=f"ha_{fk}", disabled=es_modo_edicion)
         
@@ -1006,22 +1004,22 @@ def renderizar_campos_paciente(fk, prefill=None, df_global=None):
             valido_hosp = False
 
         col37, col38 = st.columns([1.5, 2.5])
-        # --- CÉDULA MÉDICA BLOQUEADA EN MODO EDICIÓN ---
-        id_profesional = col37.text_input("Cédula Profesional del Médico (Presione ENTER)", placeholder="Ingrese el número de cédula del médico y presione ENTER", value=prefill.get("NUMERO DE IDENTIFICACION DEL PROFESIONAL DE SALUD", ""), key=f"ip_{fk}", disabled=es_modo_edicion)
+        id_profesional = col37.text_input("Cédula Profesional del Médico (Presione ENTER)", placeholder="Ingrese el número de cédula del médico y presione ENTER", value=id_prof_prefill, key=f"ip_{fk}", disabled=es_modo_edicion)
         
+        id_prof_clean = id_profesional.replace("'", "").strip()
         id_prof_valida = False
         nombre_prof_auto = prefill.get("NOMBRES Y APELLIDOS DEL PROFESIONAL DE SALUD", "")
         profesional_encontrado = False
 
-        if id_profesional:
-            if not validar_cedula_ecuatoriana(id_profesional):
+        if id_prof_clean:
+            if not validar_cedula_ecuatoriana(id_prof_clean):
                 col37.error("❌ Cédula del profesional incorrecta.")
                 if fk.startswith("nuevo") and f"np_{fk}" in st.session_state: st.session_state[f"np_{fk}"] = ""
             else:
                 id_prof_valida = True
                 df_profs = cargar_profesionales()
                 
-                id_prof_norm = normalizar_id(id_profesional)
+                id_prof_norm = normalizar_id(id_prof_clean)
                 match_p = df_profs[df_profs["CEDULA"].apply(normalizar_id) == id_prof_norm]
                 
                 if not match_p.empty:
@@ -1032,11 +1030,10 @@ def renderizar_campos_paciente(fk, prefill=None, df_global=None):
                     if f"np_{fk}" in st.session_state: st.session_state[f"np_{fk}"] = ""
                     col37.warning("⚠️ Profesional de salud no registrado.")
                     if col37.button("➕ Registrar Profesional en el Catálogo", key=f"btn_add_p_{fk}"):
-                        modal_nuevo_profesional(id_profesional.strip())
+                        modal_nuevo_profesional(id_prof_clean)
         else:
             if fk.startswith("nuevo") and f"np_{fk}" in st.session_state: st.session_state[f"np_{fk}"] = ""
 
-        # --- NOMBRE DEL MÉDICO BLOQUEADO ---
         nombre_profesional_disabled = True if es_modo_edicion else (profesional_encontrado and fk.startswith("nuevo"))
         nombre_profesional = col38.text_input("Nombres y Apellidos del Profesional", value=limpiar_texto(nombre_prof_auto), placeholder="Ingrese los nombres y apellidos del profesional de salud", key=f"np_{fk}", disabled=nombre_profesional_disabled)
 
@@ -1048,7 +1045,7 @@ def renderizar_campos_paciente(fk, prefill=None, df_global=None):
     return {
         "NUMERO DE SERIE": limpiar_texto(numero_serie),
         "FECHA DE ATENCION": val_fecha_atencion, "HORA ATENCION": hora_atencion, "FECHA DE NACIMIENTO DEL PACIENTE": val_fecha_nacimiento,
-        "TIPO DE DOCUMENTO DE IDENTIFICACION": tipo_doc, "NUMERO DE IDENTIFICACION": identificacion.strip(),
+        "TIPO DE DOCUMENTO DE IDENTIFICACION": tipo_doc, "NUMERO DE IDENTIFICACION": identificacion_clean,
         "PRIMER APELLIDO": limpiar_texto(primer_apellido), 
         "SEGUNDO APELLIDO": limpiar_texto(segundo_apellido), 
         "PRIMER NOMBRE": limpiar_texto(primer_nombre), 
@@ -1067,9 +1064,9 @@ def renderizar_campos_paciente(fk, prefill=None, df_global=None):
         "CONDICION DEL ALTA": condicion_alta,
         "REQUIERE HOSPITALIZACION": req_hosp, 
         "NOMBRE DEL HOSPITAL AL QUE FUE REFERIDO PARA LA HOSPITALIZACION": limpiar_texto(hosp_referido) if req_hosp == "SI" else "",
-        "CAUSA DE ATENCION": causa_atencion, "NUMERO DE IDENTIFICACION DEL PROFESIONAL DE SALUD": id_profesional, 
+        "CAUSA DE ATENCION": causa_atencion, "NUMERO DE IDENTIFICACION DEL PROFESIONAL DE SALUD": id_prof_clean, 
         "NOMBRES Y APELLIDOS DEL PROFESIONAL DE SALUD": limpiar_texto(nombre_profesional),
-        "_valido": valido_fecha and hora_valida and id_valida and id_prof_valida and identificacion and primer_apellido and primer_nombre and hora_atencion and (val_fecha_nacimiento != "N/A") and valido_sexo and bool(nombre_profesional.strip()) and bool(cod_p.strip()) and valido_diag and valido_hosp
+        "_valido": valido_fecha and hora_valida and id_valida and id_prof_valida and identificacion_clean and primer_apellido and primer_nombre and hora_atencion and (val_fecha_nacimiento != "N/A") and valido_sexo and bool(nombre_profesional.strip()) and bool(cod_p.strip()) and valido_diag and valido_hosp
     }
 
 # ==============================================================================
@@ -1077,7 +1074,6 @@ def renderizar_campos_paciente(fk, prefill=None, df_global=None):
 # ==============================================================================
 def formulario_principal():
     
-    # --- HELPER PARA MÚLTIPLES UNICÓDIGOS ---
     lista_unicodigos_usuario = obtener_unicodigos_usuario()
     
     with st.sidebar:
@@ -1142,64 +1138,69 @@ def formulario_principal():
 
     df_global = cargar_tabla(HOJA_ATENCIONES)
 
-    # --- DASHBOARD GRÁFICO (ADMIN Y SUPERVISOR) ---
-    if st.session_state.rol_actual in ["ADMIN", "SUPERVISOR"]:
-        st.markdown("<div class='section-title'>📊 Dashboard: Resumen Operativo (Últimos 5 días)</div>", unsafe_allow_html=True)
-        if not df_global.empty and "NOMBRE DEL ESTABLECIMIENTO DE SALUD" in df_global.columns and "FECHA DE ATENCION" in df_global.columns:
-            
-            hoy = obtener_fecha_actual()
-            hace_5_dias = hoy - timedelta(days=5)
-            
-            def check_5_dias(f_str):
-                try:
-                    d = datetime.strptime(str(f_str).strip(), "%d/%m/%Y").date()
-                    return d >= hace_5_dias
-                except:
-                    return False
-            
-            df_dash = df_global[df_global["FECHA DE ATENCION"].apply(check_5_dias)]
-            
-            # Si es supervisor, solo le mostramos la gráfica de SUS unidades
-            if st.session_state.rol_actual == "SUPERVISOR":
-                df_dash = df_dash[df_dash['UNICODIGO'].apply(limpiar_unicodigo).isin(lista_unicodigos_usuario)]
-            
-            with st.container(border=True):
-                if df_dash.empty:
-                    st.info(f"No hay atenciones registradas en sus establecimientos asignados en los últimos 5 días (desde el {hace_5_dias.strftime('%d/%m/%Y')}).")
-                else:
-                    c_tabla, c_grafico = st.columns([1.2, 2.5])
-                    with c_tabla:
-                        st.markdown("##### 📋 Tabla de Totales")
-                        resumen = df_dash["NOMBRE DEL ESTABLECIMIENTO DE SALUD"].value_counts().reset_index()
-                        resumen.columns = ["Establecimiento de Salud", "Total 5 días"]
-                        st.dataframe(resumen, use_container_width=True, hide_index=True)
-                    
-                    with c_grafico:
-                        st.markdown("##### 📈 Curva de Ingresos Diarios")
-                        df_chart = df_dash.copy()
-                        df_chart['FECHA_DT'] = pd.to_datetime(df_chart['FECHA DE ATENCION'], format="%d/%m/%Y", errors='coerce')
-                        df_chart = df_chart.dropna(subset=['FECHA_DT'])
-                        
-                        if not df_chart.empty:
-                            chart_data = df_chart.groupby(["FECHA_DT", "NOMBRE DEL ESTABLECIMIENTO DE SALUD"]).size().unstack(fill_value=0)
-                            chart_data.index = chart_data.index.strftime("%d/%m")
-                            st.bar_chart(chart_data)
-        else:
-            st.info("Aún no hay atenciones registradas en el sistema para generar la gráfica.")
-        st.markdown("<br>", unsafe_allow_html=True)
+    # --- DASHBOARD GLOBAL (PARA TODOS LOS ROLES) ---
+    st.markdown("<div class='section-title'>📊 Dashboard: Resumen Estadístico e Incidencias Médicas</div>", unsafe_allow_html=True)
+    if not df_global.empty and "NOMBRE DEL ESTABLECIMIENTO DE SALUD" in df_global.columns:
         
-        if st.session_state.rol_actual == "ADMIN":
-            tab1, tab2, tab3, tab4 = st.tabs([
-                "🔍 Auditoría y Control de Atenciones", 
-                "✏️ Catálogos: Pacientes y Médicos", 
-                "👥 Administración de Accesos", 
-                "⚙️ Mantenimiento y Purgas"
-            ])
-        else:
-            tab1, tab2 = st.tabs([
-                "🔍 Auditoría y Control de Atenciones", 
-                "✏️ Catálogos: Pacientes y Médicos"
-            ])
+        df_dash = df_global.copy()
+        
+        if st.session_state.rol_actual == "SUPERVISOR":
+            df_dash = df_dash[df_dash['UNICODIGO'].apply(limpiar_unicodigo).isin(lista_unicodigos_usuario)]
+        elif st.session_state.rol_actual == "USUARIO":
+            unic_limpio = limpiar_unicodigo(st.session_state.unicodigo_actual)
+            df_dash = df_dash[df_dash['UNICODIGO'].apply(limpiar_unicodigo) == unic_limpio]
+            
+        with st.container(border=True):
+            if df_dash.empty:
+                st.info("No hay atenciones registradas en su(s) unidad(es) operativa(s).")
+            else:
+                c_tabla, c_grafico = st.columns([1.2, 2.5])
+                with c_tabla:
+                    st.markdown("##### 📋 Atenciones Totales")
+                    resumen = df_dash["NOMBRE DEL ESTABLECIMIENTO DE SALUD"].value_counts().reset_index()
+                    resumen.columns = ["Establecimiento de Salud", "Total"]
+                    st.dataframe(resumen, use_container_width=True, hide_index=True)
+                
+                with c_grafico:
+                    st.markdown("##### 🦠 Top 5 Enfermedades (Diagnósticos)")
+                    if "DIAGNOSTICO 1 (PRINCIPAL)" in df_dash.columns:
+                        top_enf = df_dash["DIAGNOSTICO 1 (PRINCIPAL)"].replace("", pd.NA).dropna().value_counts().head(5).reset_index()
+                        top_enf.columns = ["Enfermedad / Diagnóstico", "Casos Registrados"]
+                        
+                        if not top_enf.empty:
+                            st.dataframe(
+                                top_enf,
+                                column_config={
+                                    "Enfermedad / Diagnóstico": st.column_config.TextColumn("Enfermedad / Diagnóstico"),
+                                    "Casos Registrados": st.column_config.ProgressColumn(
+                                        "Casos Registrados",
+                                        format="%d",
+                                        min_value=0,
+                                        max_value=int(top_enf["Casos Registrados"].max())
+                                    )
+                                },
+                                hide_index=True,
+                                use_container_width=True
+                            )
+                        else:
+                            st.info("No hay diagnósticos registrados para mostrar.")
+    else:
+        st.info("Aún no hay atenciones registradas en el sistema para generar el dashboard.")
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # --- PESTAÑAS SEGÚN ROL ---
+    if st.session_state.rol_actual == "ADMIN":
+        tab1, tab2, tab3, tab4 = st.tabs([
+            "🔍 Auditoría y Control de Atenciones", 
+            "✏️ Catálogos: Pacientes y Médicos", 
+            "👥 Administración de Accesos", 
+            "⚙️ Mantenimiento y Purgas"
+        ])
+    elif st.session_state.rol_actual == "SUPERVISOR":
+        tab1, tab2 = st.tabs([
+            "🔍 Auditoría y Control de Atenciones", 
+            "✏️ Catálogos: Pacientes y Médicos"
+        ])
     else:
         tab1, tab2 = st.tabs(["📝 Registro de Nueva Atención Médica", "🔍 Búsqueda y Edición Local"])
 
@@ -1508,7 +1509,7 @@ def formulario_principal():
                 col_med_b, col_med_v = st.columns([2, 2])
                 ced_prof_edit = col_med_b.text_input("Ingrese la Cédula Profesional del Médico/Obstetriz a modificar:", placeholder="Ingrese el número de cédula del profesional", key="search_med_cat")
                 
-                if ced_prof_edit:
+                if ced_prof_edit and not df_prof_cat.empty and "CEDULA" in df_prof_cat.columns:
                     ced_norm_med = normalizar_id(ced_prof_edit)
                     
                     # --- FILTRO CANDADO PARA EDICIÓN DE PROFESIONALES DEL SUPERVISOR ---
@@ -1746,7 +1747,6 @@ def formulario_principal():
                             else:
                                 st.info("No existen establecimientos con registros en este período.")
                 else:
-                    # LÓGICA DE DESCARGA PARA SUPERVISORES Y USUARIOS
                     df_usuario_final = df_descarga[df_descarga['UNICODIGO'].apply(limpiar_unicodigo).isin(lista_unicodigos_usuario)]
                     
                     if df_usuario_final.empty:
