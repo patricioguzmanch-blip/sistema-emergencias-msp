@@ -23,6 +23,7 @@ HOJA_ATENCIONES = "Atenciones"
 HOJA_USUARIOS = "Usuarios"
 HOJA_PACIENTES = "Pacientes"
 HOJA_PROFESIONALES = "Profesionales"
+HOJA_AUDITORIA = "Auditoria" # --- NUEVA HOJA ---
 
 # ==============================================================================
 # CONFIGURACIÓN GENERAL Y ESTILO "DESKTOP APP" (SOFTWARE DE ESCRITORIO)
@@ -388,7 +389,7 @@ def obtener_unicodigos_usuario():
     return [limpiar_unicodigo(x.strip()) for x in str(st.session_state.unicodigo_actual).split(",") if x.strip()]
 
 # ==============================================================================
-# MOTOR DE CONEXIÓN A GOOGLE SHEETS
+# MOTOR DE CONEXIÓN A GOOGLE SHEETS Y AUDITORÍA
 # ==============================================================================
 @st.cache_resource
 def get_gsheets_client():
@@ -431,7 +432,9 @@ def cargar_tabla(hoja_nombre):
         if "429" in error_str or "Quota exceeded" in error_str:
             st.warning("⏳ **Tráfico elevado:** El sistema está procesando demasiadas peticiones simultáneamente. Por favor, **espere 1 minuto** antes de buscar nuevamente.", icon="🚦")
         else:
-            st.error(f"🚨 Error técnico al leer la base de datos: {error_str}")
+            # Solo muestra error si no es la hoja de auditoría (para no asustar si el usuario olvidó crearla)
+            if hoja_nombre != HOJA_AUDITORIA:
+                st.error(f"🚨 Error técnico al leer la base de datos: {error_str}")
         return pd.DataFrame()
 
 def proteger_ceros(val):
@@ -439,6 +442,29 @@ def proteger_ceros(val):
     if val_str.isdigit() and val_str.startswith("0"):
         return "'" + val_str
     return val_str
+
+COLS_AUDITORIA_BD = ["FECHA", "HORA", "USUARIO", "ROL", "ACCION", "DETALLE"]
+
+def registrar_auditoria(accion, detalle):
+    """Guarda silenciosamente un registro de la acción realizada en la hoja 'Auditoria'"""
+    try:
+        ahora = datetime.now(ZONA_HORARIA_ECUADOR)
+        fecha_str = ahora.strftime("%d/%m/%Y")
+        hora_str = ahora.strftime("%H:%M:%S")
+        usuario = st.session_state.get("usuario_actual", "SISTEMA")
+        rol = st.session_state.get("rol_actual", "SISTEMA")
+        
+        payload = {
+            "FECHA": fecha_str,
+            "HORA": hora_str,
+            "USUARIO": usuario,
+            "ROL": rol,
+            "ACCION": accion,
+            "DETALLE": limpiar_texto(detalle)
+        }
+        agregar_fila_nube(HOJA_AUDITORIA, payload, COLS_AUDITORIA_BD)
+    except Exception as e:
+        pass # Falla silenciosa para no interrumpir el guardado principal si la hoja no existe
 
 def agregar_fila_nube(hoja_nombre, diccionario_datos, columnas):
     try:
@@ -543,6 +569,7 @@ def login():
                         st.session_state.unicodigo_actual = user_match.iloc[0]['UNICODIGO']
                         st.session_state.prefill_auto = {}
                         st.session_state.last_checked_id = ""
+                        registrar_auditoria("INICIO DE SESIÓN", "El usuario accedió al sistema")
                         st.rerun()
                     else:
                         st.error("❌ Credenciales incorrectas. Verifique el usuario o la contraseña asignada.")
@@ -551,7 +578,7 @@ def login():
 
         st.markdown("""
             <div style='text-align: center; margin-top: 1.2rem; color: #64748b; font-size: 0.78rem;'>
-                🏥 MSP Orellana | Entorno Informático de Escritorio V4.1
+                🏥 MSP Orellana | Entorno Informático de Escritorio V4.2
             </div>
         """, unsafe_allow_html=True)
 
@@ -742,6 +769,7 @@ def modal_nuevo_profesional(cedula_prof):
                     "NOMBRE_COMPLETO": nom_completo
                 }
                 agregar_fila_nube(HOJA_PROFESIONALES, payload_prof, COLS_PROFESIONALES_BD)
+                registrar_auditoria("NUEVO MEDICO", f"Registrada nueva cédula profesional {cedula_prof.strip()}")
                 st.rerun()
 
 def renderizar_campos_paciente(fk, prefill=None, df_global=None):
@@ -749,7 +777,6 @@ def renderizar_campos_paciente(fk, prefill=None, df_global=None):
     
     es_modo_edicion = bool(fk.startswith("edit") or fk.startswith("admin_edit"))
     
-    # --- LIMPIEZA DE COMILLAS PARA PREFILL ---
     id_pac_prefill = str(prefill.get("NUMERO DE IDENTIFICACION", "")).replace("'", "").strip()
     id_prof_prefill = str(prefill.get("NUMERO DE IDENTIFICACION DEL PROFESIONAL DE SALUD", "")).replace("'", "").strip()
     
@@ -1138,7 +1165,7 @@ def formulario_principal():
 
     df_global = cargar_tabla(HOJA_ATENCIONES)
 
-    # --- DASHBOARD GLOBAL (PARA TODOS LOS ROLES) ---
+    # --- DASHBOARD GLOBAL (TOP 5 ENFERMEDADES) ---
     st.markdown("<div class='section-title'>📊 Dashboard: Resumen Estadístico e Incidencias Médicas</div>", unsafe_allow_html=True)
     if not df_global.empty and "NOMBRE DEL ESTABLECIMIENTO DE SALUD" in df_global.columns:
         
@@ -1190,11 +1217,12 @@ def formulario_principal():
 
     # --- PESTAÑAS SEGÚN ROL ---
     if st.session_state.rol_actual == "ADMIN":
-        tab1, tab2, tab3, tab4 = st.tabs([
+        tab1, tab2, tab3, tab4, tab5 = st.tabs([
             "🔍 Auditoría y Control de Atenciones", 
             "✏️ Catálogos: Pacientes y Médicos", 
             "👥 Administración de Accesos", 
-            "⚙️ Mantenimiento y Purgas"
+            "⚙️ Mantenimiento y Purgas",
+            "📜 Historial de Auditoría"
         ])
     elif st.session_state.rol_actual == "SUPERVISOR":
         tab1, tab2 = st.tabs([
@@ -1262,6 +1290,7 @@ def formulario_principal():
                         })
                         
                         agregar_fila_nube(HOJA_ATENCIONES, datos_nuevo, COLUMNAS_OFICIALES)
+                        registrar_auditoria("NUEVO REGISTRO", f"Atención registrada para paciente CI: {datos_nuevo['NUMERO DE IDENTIFICACION']}")
                         
                         st.session_state["prefill_auto"] = {}
                         st.session_state["last_checked_id"] = ""
@@ -1307,6 +1336,7 @@ def formulario_principal():
                                     for k, v in datos_editados.items(): df_global.loc[idx_original, k] = str(v)
                                     df_global = df_global.reindex(columns=COLUMNAS_OFICIALES).fillna("")
                                     guardar_tabla(HOJA_ATENCIONES, df_global)
+                                    registrar_auditoria("MODIFICACIÓN", f"Atención del paciente CI: {busqueda_norm} editada localmente")
                                     mostrar_alerta_guardado("✅ ¡Registro médico enmendado exitosamente en el servidor!", "ok")
 
     # ========================== ROL ADMIN Y SUPERVISOR ==========================
@@ -1321,7 +1351,6 @@ def formulario_principal():
                 ced_audit_norm = normalizar_id(cedula_auditoria)
                 df_audit = df_global[df_global['NUMERO DE IDENTIFICACION'].apply(normalizar_id) == ced_audit_norm]
                 
-                # --- CANDADO DEL SUPERVISOR (Filtro por múltiples unicódigos) ---
                 if st.session_state.rol_actual == "SUPERVISOR":
                     df_audit = df_audit[df_audit['UNICODIGO'].apply(limpiar_unicodigo).isin(lista_unicodigos_usuario)]
                 
@@ -1373,6 +1402,7 @@ def formulario_principal():
 
                                     df_global = df_global.reindex(columns=COLUMNAS_OFICIALES).fillna("")
                                     guardar_tabla(HOJA_ATENCIONES, df_global)
+                                    registrar_auditoria("AUDITORÍA (MODIFICAR)", f"Atención del paciente CI: {ced_audit_norm} editada en matriz provincial")
                                     mostrar_alerta_guardado("✅ ¡Atención modificada y sincronizada con Google Sheets y catálogos!", "ok")
 
                     if st.session_state.rol_actual == "ADMIN":
@@ -1385,6 +1415,7 @@ def formulario_principal():
                                 if st.button("🗑️ Eliminar Definitivamente esta Atención", disabled=not confirmar_borrado, key=f"btn_del_at_{idx_audit}", use_container_width=True):
                                     df_global_borrado = df_global.drop(index=idx_audit).reset_index(drop=True)
                                     guardar_tabla(HOJA_ATENCIONES, df_global_borrado)
+                                    registrar_auditoria("ELIMINACIÓN", f"Atención del paciente CI: {ced_audit_norm} eliminada permanentemente")
                                     mostrar_alerta_guardado("✅ Atención eliminada correctamente del servidor provincial.", "ok")
 
         with tab2:
@@ -1400,7 +1431,6 @@ def formulario_principal():
                 if ced_pac_edit:
                     ced_norm_cat = normalizar_id(ced_pac_edit)
                     
-                    # --- FILTRO CANDADO PARA EDICIÓN DE PACIENTES DEL SUPERVISOR ---
                     paciente_permitido = True
                     if st.session_state.rol_actual == "SUPERVISOR":
                         paciente_permitido = False
@@ -1501,6 +1531,7 @@ def formulario_principal():
                                                             df_global.loc[mask_at, k] = str(val)
                                                     guardar_tabla(HOJA_ATENCIONES, df_global)
 
+                                            registrar_auditoria("CATÁLOGO (EDITAR)", f"Demografía actualizada para paciente CI: {ced_norm_cat}")
                                             mostrar_alerta_guardado("✅ ¡Ficha del paciente actualizada en el catálogo y en el historial!", "ok")
 
             with subtab_med:
@@ -1509,10 +1540,9 @@ def formulario_principal():
                 col_med_b, col_med_v = st.columns([2, 2])
                 ced_prof_edit = col_med_b.text_input("Ingrese la Cédula Profesional del Médico/Obstetriz a modificar:", placeholder="Ingrese el número de cédula del profesional", key="search_med_cat")
                 
-                if ced_prof_edit and not df_prof_cat.empty and "CEDULA" in df_prof_cat.columns:
+                if ced_prof_edit:
                     ced_norm_med = normalizar_id(ced_prof_edit)
                     
-                    # --- FILTRO CANDADO PARA EDICIÓN DE PROFESIONALES DEL SUPERVISOR ---
                     medico_permitido = True
                     if st.session_state.rol_actual == "SUPERVISOR":
                         medico_permitido = False
@@ -1562,6 +1592,7 @@ def formulario_principal():
                                                         df_at.loc[mask_med_at, "NOMBRES Y APELLIDOS DEL PROFESIONAL DE SALUD"] = nom_com
                                                     guardar_tabla(HOJA_ATENCIONES, df_at)
 
+                                            registrar_auditoria("CATÁLOGO (EDITAR)", f"Datos actualizados para profesional CI: {ced_norm_med}")
                                             mostrar_alerta_guardado("✅ ¡Nombre del profesional actualizado en el catálogo y en todas sus atenciones registradas!", "ok")
 
         if st.session_state.rol_actual == "ADMIN":
@@ -1578,7 +1609,6 @@ def formulario_principal():
                 
                 n_rol = c_nu3.selectbox("Rol Institucional", ["USUARIO", "SUPERVISOR", "ADMIN"])
                 
-                # --- SELECTORES DINÁMICOS SEGÚN EL ROL ---
                 if n_rol == "ADMIN": 
                     n_uni = c_nu4.selectbox("Unicódigo Asignado", ["TODOS"], disabled=True)
                     uni_final = "TODOS"
@@ -1603,6 +1633,7 @@ def formulario_principal():
                         else:
                             nuevo_u_dict = {"USUARIO": n_usr.strip(), "CONTRASENA": n_pwd.strip(), "ROL": n_rol, "UNICODIGO": uni_final}
                             agregar_fila_nube(HOJA_USUARIOS, nuevo_u_dict, COLS_USUARIOS_BD)
+                            registrar_auditoria("ACCESO (CREAR)", f"Usuario '{n_usr}' creado con rol {n_rol}")
                             mostrar_alerta_guardado(f"Acceso para el usuario '{n_usr}' habilitado correctamente.", "ok")
 
                 st.markdown("---")
@@ -1623,6 +1654,7 @@ def formulario_principal():
                         if st.button("Revocar Acceso Permanentemente", use_container_width=True):
                             df_usuarios = df_usuarios[df_usuarios['USUARIO'] != usr_a_eliminar]
                             guardar_tabla(HOJA_USUARIOS, df_usuarios)
+                            registrar_auditoria("ACCESO (REVOCAR)", f"Usuario '{usr_a_eliminar}' eliminado del sistema")
                             mostrar_alerta_guardado(f"Credencial '{usr_a_eliminar}' eliminada del sistema.", "ok")
                 else:
                     st.info("No existen usuarios adicionales para revocar.")
@@ -1661,6 +1693,7 @@ def formulario_principal():
                                     eliminados = len(df_global) - len(df_conservado)
                                     
                                     guardar_tabla(HOJA_ATENCIONES, df_conservado)
+                                    registrar_auditoria("PURGA (SISTEMA)", f"Purga ejecutada: {eliminados} registros eliminados fuera del rango {f_inicio_del.strftime('%d/%m/%Y')} al {f_fin_del.strftime('%d/%m/%Y')}")
                                     mostrar_alerta_guardado(f"✅ ¡Depuración finalizada! Se purgaron {eliminados} registros y se conservaron {len(df_conservado)} atenciones en el histórico.", "ok")
                                 else:
                                     st.info("La matriz no contiene registros para depurar.")
@@ -1675,7 +1708,20 @@ def formulario_principal():
                             guardar_tabla(HOJA_PACIENTES, pd.DataFrame(columns=COLS_PACIENTES_BD))
                             guardar_tabla(HOJA_PROFESIONALES, pd.DataFrame(columns=COLS_PROFESIONALES_BD))
                             cargar_profesionales.clear()
+                            registrar_auditoria("ENCERADO (SISTEMA)", "Catálogos de Pacientes y Profesionales reiniciados a cero")
                             mostrar_alerta_guardado("✅ Catálogos provinciales encerados exitosamente.", "ok")
+
+            # --- NUEVA PESTAÑA 5: HISTORIAL DE AUDITORÍA (SOLO ADMIN) ---
+            with tab5:
+                st.markdown("<div class='section-title'>📜 Registro Central de Movimientos del Sistema</div>", unsafe_allow_html=True)
+                st.info("Este panel es de uso exclusivo del Administrador Provincial. Muestra el historial inmutable de todas las acciones críticas ejecutadas por los operadores.")
+                
+                df_auditoria = cargar_tabla(HOJA_AUDITORIA)
+                if df_auditoria.empty:
+                    st.warning("No hay registros de auditoría disponibles en la base de datos.")
+                else:
+                    # Invertir el dataframe para mostrar lo más reciente arriba
+                    st.dataframe(df_auditoria.iloc[::-1], use_container_width=True, hide_index=True)
 
     # ==========================================================================
     # DESCARGAR MATRIZ GLOBAL POR RANGO DE FECHAS (SINCRONIZACIÓN EN TIEMPO DE DESCARGA)
