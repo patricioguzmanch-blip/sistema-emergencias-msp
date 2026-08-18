@@ -24,7 +24,7 @@ HOJA_USUARIOS = "Usuarios"
 HOJA_PACIENTES = "Pacientes"
 HOJA_PROFESIONALES = "Profesionales"
 HOJA_AUDITORIA = "Auditoria" 
-HOJA_CONFIGURACION = "Configuracion" # --- NUEVA HOJA ---
+HOJA_CONFIGURACION = "Configuracion" 
 
 # ==============================================================================
 # CONFIGURACIÓN GENERAL Y ESTILO "DESKTOP APP" (SOFTWARE DE ESCRITORIO)
@@ -378,16 +378,16 @@ def normalizar_id(val):
     v_no_zeros = v.lstrip("0")
     return v_no_zeros if v_no_zeros != "" else v
 
+# --- MEJORA V4.5: DESTRUCTOR DE COMILLAS FANTASMAS EN EL UNICÓDIGO ---
 def limpiar_unicodigo(cod):
     if pd.isna(cod) or cod is None:
         return ""
-    return str(cod).strip().replace('.0', '').lstrip('0')
+    return str(cod).replace("'", "").strip().replace('.0', '').lstrip('0')
 
 def obtener_unicodigos_usuario():
     if not st.session_state.unicodigo_actual:
         return []
     raw = str(st.session_state.unicodigo_actual)
-    # Expresión regular mejorada: separa por comas, guiones, punto y coma o espacios múltiples
     parts = re.split(r'[,\-;\s|]+', raw)
     return [limpiar_unicodigo(x) for x in parts if x.strip()]
 
@@ -440,7 +440,6 @@ def cargar_tabla(hoja_nombre):
                 st.error(f"🚨 Error técnico al leer la base de datos: {error_str}")
         return pd.DataFrame()
 
-# --- NUEVO: FUNCIÓN PARA CARGAR LA CONFIGURACIÓN ---
 @st.cache_data(ttl=60, show_spinner=False)
 def cargar_configuracion():
     df = cargar_tabla(HOJA_CONFIGURACION)
@@ -595,7 +594,7 @@ def login():
 
         st.markdown("""
             <div style='text-align: center; margin-top: 1.2rem; color: #64748b; font-size: 0.78rem;'>
-                🏥 MSP Orellana | Entorno Informático de Escritorio V4.4
+                🏥 MSP Orellana | Entorno Informático de Escritorio V4.5
             </div>
         """, unsafe_allow_html=True)
 
@@ -909,7 +908,6 @@ def renderizar_campos_paciente(fk, prefill=None, df_global=None):
 
         col9, col10, col11, col12_vacia = st.columns([1.3, 1.1, 1.3, 1.3])
         
-        # --- NUEVA LÓGICA DE DÍAS RETROACTIVOS PARAMETRIZABLES ---
         config_sis = cargar_configuracion()
         try:
             dias_permitidos = int(config_sis.get("DIAS_RETROACTIVOS", 4))
@@ -1153,12 +1151,14 @@ def formulario_principal():
                             nom_est_sidebar = str(fila_est_s[col_name])
                             break
 
+        unicodigo_visual = str(st.session_state.unicodigo_actual).replace("'", "").strip()
+
         st.markdown(f"""
             <div class="sidebar-user-card">
                 <div style="font-size: 0.72rem; font-weight: 700; opacity: 0.8; text-transform: uppercase; letter-spacing: 0.8px;">Operador Conectado</div>
                 <div style="font-size: 1.05rem; font-weight: 800; margin-bottom: 6px; margin-top: 2px;">👤 {st.session_state.usuario_actual}</div>
                 <div style="font-size: 0.8rem; font-weight: 600; margin-bottom: 3px;">🛡️ Rol: <b>{st.session_state.rol_actual}</b></div>
-                <div style="font-size: 0.8rem; font-weight: 600;">📍 Cód: <b>{st.session_state.unicodigo_actual}</b></div>
+                <div style="font-size: 0.8rem; font-weight: 600;">📍 Cód: <b>{unicodigo_visual}</b></div>
                 <div style="font-size: 0.75rem; margin-top: 8px; border-top: 1px solid rgba(255,255,255,0.18); padding-top: 6px; color: #cbd5e1;">🏥 {nom_est_sidebar}</div>
             </div>
         """, unsafe_allow_html=True)
@@ -1186,6 +1186,7 @@ def formulario_principal():
 
     df_global = cargar_tabla(HOJA_ATENCIONES)
 
+    # --- DASHBOARD GLOBAL (TOP 5 ENFERMEDADES) ---
     st.markdown("<div class='section-title'>📊 Dashboard: Resumen Estadístico e Incidencias Médicas</div>", unsafe_allow_html=True)
     if not df_global.empty and "NOMBRE DEL ESTABLECIMIENTO DE SALUD" in df_global.columns:
         
@@ -1261,7 +1262,7 @@ def formulario_principal():
             st.markdown("<div class='section-title'>🏥 1. Datos de la Unidad Operativa (MSP)</div>", unsafe_allow_html=True)
             with st.container(border=True):
                 val_institucion, val_nombre, val_nivel, val_zona, val_provincia, val_canton, val_distrito = "MSP", "", "", "", "", "", ""
-                unicodigo_seleccionado = st.session_state.unicodigo_actual
+                unicodigo_seleccionado = str(st.session_state.unicodigo_actual).replace("'", "").strip()
 
                 if base_est is not None and not base_est.empty and unicodigo_seleccionado:
                     busqueda = base_est[base_est['UNICODIGO'].apply(limpiar_unicodigo) == limpiar_unicodigo(unicodigo_seleccionado)]
@@ -1682,7 +1683,6 @@ def formulario_principal():
             with tab4:
                 st.markdown("<div class='section-title'>⚙️ Panel de Control y Mantenimiento de Bases</div>", unsafe_allow_html=True)
                 
-                # --- NUEVO: MÓDULO PARA CONFIGURAR DÍAS RETROACTIVOS ---
                 with st.expander("⏱️ Configuración de Días Retroactivos Permitidos", expanded=True):
                     st.write("Defina cuántos días hacia atrás puede seleccionar un operador al registrar una nueva atención.")
                     config_actual = cargar_configuracion()
