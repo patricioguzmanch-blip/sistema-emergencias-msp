@@ -23,7 +23,8 @@ HOJA_ATENCIONES = "Atenciones"
 HOJA_USUARIOS = "Usuarios"
 HOJA_PACIENTES = "Pacientes"
 HOJA_PROFESIONALES = "Profesionales"
-HOJA_AUDITORIA = "Auditoria" # --- NUEVA HOJA ---
+HOJA_AUDITORIA = "Auditoria" 
+HOJA_CONFIGURACION = "Configuracion" # --- NUEVA HOJA ---
 
 # ==============================================================================
 # CONFIGURACIÓN GENERAL Y ESTILO "DESKTOP APP" (SOFTWARE DE ESCRITORIO)
@@ -383,10 +384,12 @@ def limpiar_unicodigo(cod):
     return str(cod).strip().replace('.0', '').lstrip('0')
 
 def obtener_unicodigos_usuario():
-    """Devuelve una lista de todos los unicódigos asignados al usuario actual."""
     if not st.session_state.unicodigo_actual:
         return []
-    return [limpiar_unicodigo(x.strip()) for x in str(st.session_state.unicodigo_actual).split(",") if x.strip()]
+    raw = str(st.session_state.unicodigo_actual)
+    # Expresión regular mejorada: separa por comas, guiones, punto y coma o espacios múltiples
+    parts = re.split(r'[,\-;\s|]+', raw)
+    return [limpiar_unicodigo(x) for x in parts if x.strip()]
 
 # ==============================================================================
 # MOTOR DE CONEXIÓN A GOOGLE SHEETS Y AUDITORÍA
@@ -428,14 +431,25 @@ def cargar_tabla(hoja_nombre):
         )
         return df
     except Exception as e:
+        cargar_tabla.clear()
         error_str = str(e)
         if "429" in error_str or "Quota exceeded" in error_str:
-            st.warning("⏳ **Tráfico elevado:** El sistema está procesando demasiadas peticiones simultáneamente. Por favor, **espere 1 minuto** antes de buscar nuevamente.", icon="🚦")
+            st.warning("⏳ **Tráfico elevado:** El sistema está procesando demasiadas peticiones. Por favor, **espere 1 minuto** antes de buscar nuevamente.", icon="🚦")
         else:
-            # Solo muestra error si no es la hoja de auditoría (para no asustar si el usuario olvidó crearla)
-            if hoja_nombre != HOJA_AUDITORIA:
+            if hoja_nombre not in [HOJA_AUDITORIA, HOJA_CONFIGURACION]:
                 st.error(f"🚨 Error técnico al leer la base de datos: {error_str}")
         return pd.DataFrame()
+
+# --- NUEVO: FUNCIÓN PARA CARGAR LA CONFIGURACIÓN ---
+@st.cache_data(ttl=60, show_spinner=False)
+def cargar_configuracion():
+    df = cargar_tabla(HOJA_CONFIGURACION)
+    if df.empty or "PARAMETRO" not in df.columns:
+        return {"DIAS_RETROACTIVOS": "4"} 
+    config = {}
+    for _, row in df.iterrows():
+        config[str(row.get("PARAMETRO", "")).strip()] = str(row.get("VALOR", "")).strip()
+    return config
 
 def proteger_ceros(val):
     val_str = str(val).strip()
@@ -446,7 +460,6 @@ def proteger_ceros(val):
 COLS_AUDITORIA_BD = ["FECHA", "HORA", "USUARIO", "ROL", "ACCION", "DETALLE"]
 
 def registrar_auditoria(accion, detalle):
-    """Guarda silenciosamente un registro de la acción realizada en la hoja 'Auditoria'"""
     try:
         ahora = datetime.now(ZONA_HORARIA_ECUADOR)
         fecha_str = ahora.strftime("%d/%m/%Y")
@@ -464,7 +477,7 @@ def registrar_auditoria(accion, detalle):
         }
         agregar_fila_nube(HOJA_AUDITORIA, payload, COLS_AUDITORIA_BD)
     except Exception as e:
-        pass # Falla silenciosa para no interrumpir el guardado principal si la hoja no existe
+        pass 
 
 def agregar_fila_nube(hoja_nombre, diccionario_datos, columnas):
     try:
@@ -479,6 +492,8 @@ def agregar_fila_nube(hoja_nombre, diccionario_datos, columnas):
         cargar_tabla.clear()
         if hoja_nombre == HOJA_PROFESIONALES: 
             cargar_profesionales.clear()
+        if hoja_nombre == HOJA_CONFIGURACION:
+            cargar_configuracion.clear()
     except Exception as e:
         st.error(f"Error crítico al guardar en Google Sheets: {e}")
         raise e
@@ -503,6 +518,8 @@ def guardar_tabla(hoja_nombre, df):
             sheet.update("A1", datos)
         cargar_tabla.clear()
         cargar_profesionales.clear()
+        if hoja_nombre == HOJA_CONFIGURACION:
+            cargar_configuracion.clear()
     except Exception as e:
         st.error(f"Error guardando {hoja_nombre}: {e}")
 
@@ -554,8 +571,8 @@ def login():
                 </div>
             """, unsafe_allow_html=True)
             
-            usuario = st.text_input("👤 Credencial de Usuario", placeholder="Ingrese su nombre de usuario")
-            contrasena = st.text_input("🔑 Contraseña Asignada", type="password", placeholder="Ingrese su contraseña asignada")
+            usuario = st.text_input("👤 Credencial de Usuario", placeholder="Ingrese su nombre de usuario").strip()
+            contrasena = st.text_input("🔑 Contraseña Asignada", type="password", placeholder="Ingrese su contraseña asignada").strip()
             
             st.markdown("<br>", unsafe_allow_html=True)
             if st.button("Iniciar Sesión en el Software", use_container_width=True):
@@ -572,13 +589,13 @@ def login():
                         registrar_auditoria("INICIO DE SESIÓN", "El usuario accedió al sistema")
                         st.rerun()
                     else:
-                        st.error("❌ Credenciales incorrectas. Verifique el usuario o la contraseña asignada.")
+                        st.error("❌ **CREDENCIALES INCORRECTAS:** El usuario o la contraseña no coinciden.")
                 else:
-                    st.error("⚠️ Error temporal al sincronizar con el servidor institucional. Por favor reintente en unos segundos.")
+                    st.error("🔌 **FALLO DE CONEXIÓN:** El sistema no pudo comunicarse con la base de datos. Espere unos segundos y vuelva a intentarlo.")
 
         st.markdown("""
             <div style='text-align: center; margin-top: 1.2rem; color: #64748b; font-size: 0.78rem;'>
-                🏥 MSP Orellana | Entorno Informático de Escritorio V4.2
+                🏥 MSP Orellana | Entorno Informático de Escritorio V4.4
             </div>
         """, unsafe_allow_html=True)
 
@@ -892,8 +909,15 @@ def renderizar_campos_paciente(fk, prefill=None, df_global=None):
 
         col9, col10, col11, col12_vacia = st.columns([1.3, 1.1, 1.3, 1.3])
         
+        # --- NUEVA LÓGICA DE DÍAS RETROACTIVOS PARAMETRIZABLES ---
+        config_sis = cargar_configuracion()
+        try:
+            dias_permitidos = int(config_sis.get("DIAS_RETROACTIVOS", 4))
+        except:
+            dias_permitidos = 4
+
         fecha_hoy = obtener_fecha_actual()
-        limite_inferior = fecha_hoy - timedelta(days=4)
+        limite_inferior = fecha_hoy - timedelta(days=dias_permitidos)
         valor_fecha_atencion = safe_date(prefill.get("FECHA DE ATENCION", ""), default_today=False)
         
         if valor_fecha_atencion and valor_fecha_atencion < limite_inferior:
@@ -953,9 +977,6 @@ def renderizar_campos_paciente(fk, prefill=None, df_global=None):
         cant_res = col26.text_input("Cantón de Residencia", value=limpiar_texto(prefill.get("CANT_RES", "")), placeholder="Ingrese el cantón de residencia", key=f"cr_{fk}{dyn_k}", disabled=bloquear_campos)
         parr_res = col27.text_input("Parroquia de Residencia", value=limpiar_texto(prefill.get("PARR_RES", "")), placeholder="Ingrese la parroquia de residencia", key=f"par_{fk}{dyn_k}", disabled=bloquear_campos)
 
-    # =========================================================================
-    # SECCIÓN 4: SIEMPRE DISPONIBLE PARA MODIFICACIÓN CLÍNICA
-    # =========================================================================
     st.markdown("<div class='section-title'>🩺 4. Diagnóstico CIE-10 y Profesional Tratante</div>", unsafe_allow_html=True)
     with st.container(border=True):
         col_esp, col_esp_vacia = st.columns([1.5, 2.5])
@@ -1165,7 +1186,6 @@ def formulario_principal():
 
     df_global = cargar_tabla(HOJA_ATENCIONES)
 
-    # --- DASHBOARD GLOBAL (TOP 5 ENFERMEDADES) ---
     st.markdown("<div class='section-title'>📊 Dashboard: Resumen Estadístico e Incidencias Médicas</div>", unsafe_allow_html=True)
     if not df_global.empty and "NOMBRE DEL ESTABLECIMIENTO DE SALUD" in df_global.columns:
         
@@ -1661,6 +1681,26 @@ def formulario_principal():
 
             with tab4:
                 st.markdown("<div class='section-title'>⚙️ Panel de Control y Mantenimiento de Bases</div>", unsafe_allow_html=True)
+                
+                # --- NUEVO: MÓDULO PARA CONFIGURAR DÍAS RETROACTIVOS ---
+                with st.expander("⏱️ Configuración de Días Retroactivos Permitidos", expanded=True):
+                    st.write("Defina cuántos días hacia atrás puede seleccionar un operador al registrar una nueva atención.")
+                    config_actual = cargar_configuracion()
+                    try:
+                        dias_actuales = int(config_actual.get("DIAS_RETROACTIVOS", 4))
+                    except:
+                        dias_actuales = 4
+                    
+                    nuevo_limite = st.number_input("Días permitidos hacia atrás (Ej: 0 = solo hoy, 4 = hoy y 4 días anteriores)", min_value=0, max_value=365, value=dias_actuales)
+                    
+                    col_btn_conf, col_vacia_conf = st.columns([1.5, 4.5])
+                    with col_btn_conf:
+                        if st.button("💾 Guardar Límite de Tiempo", use_container_width=True):
+                            df_conf = pd.DataFrame([{"PARAMETRO": "DIAS_RETROACTIVOS", "VALOR": str(nuevo_limite)}])
+                            guardar_tabla(HOJA_CONFIGURACION, df_conf)
+                            registrar_auditoria("CONFIGURACIÓN", f"Límite de días retroactivos cambiado a {nuevo_limite} días")
+                            mostrar_alerta_guardado(f"✅ Configuración actualizada. Límite fijado en {nuevo_limite} días.", "ok")
+
                 st.warning("⚠️ **ATENCIÓN - ZONA DE AUDITORÍA:** Las acciones ejecutadas aquí modifican o purgan registros directamente sobre el servidor institucional.")
 
                 with st.expander("🧹 Purga Selectiva por Período / Cierre Estadístico Mensual", expanded=False):
@@ -1711,7 +1751,6 @@ def formulario_principal():
                             registrar_auditoria("ENCERADO (SISTEMA)", "Catálogos de Pacientes y Profesionales reiniciados a cero")
                             mostrar_alerta_guardado("✅ Catálogos provinciales encerados exitosamente.", "ok")
 
-            # --- NUEVA PESTAÑA 5: HISTORIAL DE AUDITORÍA (SOLO ADMIN) ---
             with tab5:
                 st.markdown("<div class='section-title'>📜 Registro Central de Movimientos del Sistema</div>", unsafe_allow_html=True)
                 st.info("Este panel es de uso exclusivo del Administrador Provincial. Muestra el historial inmutable de todas las acciones críticas ejecutadas por los operadores.")
@@ -1720,7 +1759,6 @@ def formulario_principal():
                 if df_auditoria.empty:
                     st.warning("No hay registros de auditoría disponibles en la base de datos.")
                 else:
-                    # Invertir el dataframe para mostrar lo más reciente arriba
                     st.dataframe(df_auditoria.iloc[::-1], use_container_width=True, hide_index=True)
 
     # ==========================================================================
