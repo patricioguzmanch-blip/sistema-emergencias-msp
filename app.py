@@ -52,10 +52,11 @@ st.markdown("""
         background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
     }
     
-    /* Ocultar barras nativas web de Streamlit para simular ventana nativa */
+    /* --- CORRECCIÓN V5.4: MOSTRAR LA FLECHA DEL PANEL IZQUIERDO --- */
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
-    header {visibility: hidden;}
+    header {background-color: transparent !important;}
+    [data-testid="stToolbar"] {visibility: hidden !important;}
     
     /* Aprovechamiento del marco visual */
     div.block-container {
@@ -590,7 +591,7 @@ def login():
 
             st.markdown("""
                 <div style='text-align: center; margin-top: 2.5rem; color: #94a3b8; font-size: 0.75rem; font-weight: 500;'>
-                    © 2026 MSP Orellana | Entorno Informático V5.3<br>
+                    © 2026 MSP Orellana | Entorno Informático V5.4<br>
                     Plataforma de Emergencias Médicas
                 </div>
             """, unsafe_allow_html=True)
@@ -1153,7 +1154,6 @@ def formulario_principal():
         else:
             nom_est_sidebar = "Unidad Operativa"
 
-        # --- MEJORA V5.3: TARJETA DE USUARIO LIMPIA SIN UNICÓDIGOS ---
         st.markdown(f"""
             <div class="sidebar-user-card">
                 <div style="font-size: 0.72rem; font-weight: 700; opacity: 0.8; text-transform: uppercase; letter-spacing: 0.8px;">Operador Conectado</div>
@@ -1614,7 +1614,6 @@ def formulario_principal():
                 
                 n_rol = c_nu3.selectbox("Rol Institucional", ["USUARIO", "SUPERVISOR", "ADMIN"])
                 
-                # --- MEJORA V5.3: FILTRO ANTI-DUPLICADOS PARA LA ASIGNACIÓN DE ESTABLECIMIENTOS ---
                 lista_unis_raw = [str(x).strip() for x in base_est['UNICODIGO'].tolist() if str(x).strip() != "" and str(x).lower() != "nan"] if base_est is not None else []
                 lista_unis = list(dict.fromkeys(lista_unis_raw))
                 
