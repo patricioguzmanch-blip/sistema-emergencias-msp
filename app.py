@@ -157,7 +157,6 @@ st.markdown("""
     /* ==========================================================================
        5. MENÚ LATERAL SEGURO Y VISIBLE
        ========================================================================== */
-    /* Estilizar el contenedor general del radio button para que parezca un menú táctil */
     [data-testid="stSidebar"] [data-testid="stRadio"] div[role="radiogroup"] > label {
         background-color: rgba(255, 255, 255, 0.05);
         border: 1px solid rgba(255, 255, 255, 0.1);
@@ -177,14 +176,12 @@ st.markdown("""
         transform: translateX(4px);
     }
     
-    /* Efecto de Menú Seleccionado */
     [data-testid="stSidebar"] [data-testid="stRadio"] div[role="radiogroup"] > label[data-checked="true"] {
         background: linear-gradient(90deg, #3b82f6 0%, #1d4ed8 100%) !important;
         border-color: transparent !important;
         box-shadow: 0 4px 10px rgba(29, 78, 216, 0.4) !important;
     }
     
-    /* Forzar color de texto blanco brillante en las letras del menú */
     [data-testid="stSidebar"] [data-testid="stRadio"] div[role="radiogroup"] > label p {
         font-weight: 700 !important;
         color: #ffffff !important;
@@ -593,7 +590,7 @@ def login():
 
             st.markdown("""
                 <div style='text-align: center; margin-top: 2.5rem; color: #94a3b8; font-size: 0.75rem; font-weight: 500;'>
-                    © 2026 MSP Orellana | Entorno Informático V5.0<br>
+                    © 2026 MSP Orellana | Entorno Informático V5.1<br>
                     Plataforma de Emergencias Médicas
                 </div>
             """, unsafe_allow_html=True)
@@ -674,6 +671,22 @@ def cargar_base_establecimientos():
     return None
 
 base_est = cargar_base_establecimientos()
+
+# --- MEJORA V5.1: FUNCIÓN TRADUCTORA DE UNICÓDIGOS ---
+def obtener_nombre_establecimiento(unicodigo):
+    if not unicodigo or str(unicodigo).upper() == "TODOS": return "Todas las Unidades (Provincial)"
+    uni_limpio = limpiar_unicodigo(unicodigo)
+    if base_est is not None and not base_est.empty:
+        bus = base_est[base_est['UNICODIGO'].apply(limpiar_unicodigo) == uni_limpio]
+        if not bus.empty:
+            fila = bus.iloc[0]
+            for col in fila.index:
+                if 'NOMBRE' in str(col).upper() and 'ESTABLECIMIENTO' in str(col).upper():
+                    return str(fila[col])
+            for col in fila.index:
+                if 'NOMBRE' in str(col).upper():
+                    return str(fila[col])
+    return "Establecimiento Desconocido"
 
 def validar_cedula_ecuatoriana(cedula):
     if len(cedula) != 10 or not cedula.isdigit(): return False
@@ -1132,25 +1145,14 @@ def formulario_principal():
             </div>
         """, unsafe_allow_html=True)
         
-        nom_est_sidebar = "Unidad Operativa"
-        
         if st.session_state.rol_actual == "ADMIN":
             nom_est_sidebar = "Dirección Provincial"
         elif len(lista_unicodigos_usuario) > 1:
             nom_est_sidebar = f"Supervisión ({len(lista_unicodigos_usuario)} Unidades)"
-        elif len(lista_unicodigos_usuario) == 1 and base_est is not None and not base_est.empty:
-            bus_s = base_est[base_est['UNICODIGO'].apply(limpiar_unicodigo) == lista_unicodigos_usuario[0]]
-            if not bus_s.empty:
-                fila_est_s = bus_s.iloc[0]
-                for col_name in fila_est_s.index:
-                    if 'NOMBRE' in str(col_name).upper() and 'ESTABLECIMIENTO' in str(col_name).upper():
-                        nom_est_sidebar = str(fila_est_s[col_name])
-                        break
-                if nom_est_sidebar == "Unidad Operativa":
-                    for col_name in fila_est_s.index:
-                        if 'NOMBRE' in str(col_name).upper():
-                            nom_est_sidebar = str(fila_est_s[col_name])
-                            break
+        elif len(lista_unicodigos_usuario) == 1:
+            nom_est_sidebar = obtener_nombre_establecimiento(lista_unicodigos_usuario[0])
+        else:
+            nom_est_sidebar = "Unidad Operativa"
 
         unicodigo_visual = str(st.session_state.unicodigo_actual).replace("'", "").strip()
 
@@ -1405,7 +1407,6 @@ def formulario_principal():
                                     registrar_auditoria("AUDITORÍA (MODIFICAR)", f"Atención del paciente CI: {ced_audit_norm} editada en matriz provincial")
                                     mostrar_alerta_guardado("✅ ¡Atención modificada y sincronizada con Google Sheets y catálogos!", "ok")
 
-                    # --- MEJORA V5.0: ELIMINACIÓN HABILITADA PARA ADMIN Y SUPERVISOR ---
                     with st.expander("🗑️ ELIMINAR ATENCIÓN SELECCIONADA", expanded=False):
                         st.warning("⚠️ **ATENCIÓN:** Esta acción eliminará permanentemente la atención seleccionada de la base de datos oficial.")
                         confirmar_borrado = st.checkbox(f"Confirmo que deseo eliminar la atención del paciente {fila_audit_editar.get('NUMERO DE IDENTIFICACION','')} fechada el {fila_audit_editar.get('FECHA DE ATENCION','')}.", key=f"chk_del_{idx_audit}")
@@ -1594,7 +1595,20 @@ def formulario_principal():
             st.markdown("<div class='section-title'>👥 Catálogo Provincial de Operadores y Accesos</div>", unsafe_allow_html=True)
             df_usuarios = cargar_usuarios()
             with st.container(border=True):
-                st.dataframe(df_usuarios, use_container_width=True)
+                # --- MEJORA V5.1: COLUMNA DE ESTABLECIMIENTO EN LA TABLA ---
+                df_usuarios_display = df_usuarios.copy()
+                if not df_usuarios_display.empty and "UNICODIGO" in df_usuarios_display.columns:
+                    df_usuarios_display["ESTABLECIMIENTO"] = df_usuarios_display["UNICODIGO"].apply(
+                        lambda x: "Todas las Unidades" if str(x).upper() == "TODOS" else ", ".join([obtener_nombre_establecimiento(u) for u in str(x).split(",") if u.strip()])
+                    )
+                    cols = list(df_usuarios_display.columns)
+                    cols.remove("ESTABLECIMIENTO")
+                    idx_uni = cols.index("UNICODIGO")
+                    cols.insert(idx_uni + 1, "ESTABLECIMIENTO")
+                    df_usuarios_display = df_usuarios_display[cols]
+                
+                st.dataframe(df_usuarios_display, use_container_width=True, hide_index=True)
+                
             st.markdown("#### ➕ Creación de Nuevo Acceso Institucional")
             with st.container(border=True):
                 c_nu1, c_nu2 = st.columns(2)
@@ -1604,16 +1618,18 @@ def formulario_principal():
                 
                 n_rol = c_nu3.selectbox("Rol Institucional", ["USUARIO", "SUPERVISOR", "ADMIN"])
                 
+                # --- MEJORA V5.1: SELECTORES CON NOMBRE DE ESTABLECIMIENTO ---
+                lista_unis = [str(x) for x in base_est['UNICODIGO'].tolist() if str(x).strip() != "" and str(x).lower() != "nan"] if base_est is not None else []
+                def formato_uni(x): return f"{x} - {obtener_nombre_establecimiento(x)}"
+                
                 if n_rol == "ADMIN": 
                     n_uni = c_nu4.selectbox("Unicódigo Asignado", ["TODOS"], disabled=True)
                     uni_final = "TODOS"
                 elif n_rol == "SUPERVISOR":
-                    lista_unis = [str(x) for x in base_est['UNICODIGO'].tolist() if str(x).strip() != "" and str(x).lower() != "nan"] if base_est is not None else []
-                    n_uni_multi = c_nu4.multiselect("Unicódigos Asignados (Puede elegir varios)", lista_unis)
+                    n_uni_multi = c_nu4.multiselect("Unicódigos Asignados (Puede elegir varios)", lista_unis, format_func=formato_uni)
                     uni_final = ",".join(n_uni_multi)
                 else:
-                    lista_unis = [str(x) for x in base_est['UNICODIGO'].tolist() if str(x).strip() != "" and str(x).lower() != "nan"] if base_est is not None else []
-                    n_uni = c_nu4.selectbox("Unicódigo Asignado", lista_unis)
+                    n_uni = c_nu4.selectbox("Unicódigo Asignado", lista_unis, format_func=formato_uni)
                     uni_final = n_uni
                     
                 col_btn_cu, col_vacia_cu = st.columns([1.5, 4.5])
@@ -1752,7 +1768,6 @@ def formulario_principal():
                         
                         df_pac_live = cargar_tabla(HOJA_PACIENTES)
                         df_prof_live = cargar_tabla(HOJA_PROFESIONALES)
-                        
                         df_descarga = sincronizar_descarga_con_catalogos(df_descarga, df_pac_live, df_prof_live)
                         df_descarga = df_descarga.reindex(columns=COLUMNAS_OFICIALES).fillna("")
                         
