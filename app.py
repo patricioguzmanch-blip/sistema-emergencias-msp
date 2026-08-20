@@ -52,11 +52,22 @@ st.markdown("""
         background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
     }
     
-    /* --- CORRECCIÓN V5.4: MOSTRAR LA FLECHA DEL PANEL IZQUIERDO --- */
+    /* --- CORRECCIÓN V5.5: FORZAR APARICIÓN DE LA FLECHA Y HEADER --- */
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
-    header {background-color: transparent !important;}
+    header {
+        visibility: visible !important; 
+        background-color: transparent !important;
+    }
     [data-testid="stToolbar"] {visibility: hidden !important;}
+    
+    /* Rescate del Botón del Panel Izquierdo */
+    [data-testid="collapsedControl"] {
+        display: flex !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        z-index: 999999 !important;
+    }
     
     /* Aprovechamiento del marco visual */
     div.block-container {
@@ -545,12 +556,7 @@ if 'autenticado' not in st.session_state:
     st.session_state.last_checked_id = ""
 
 def login():
-    st.markdown("""
-        <style>
-        [data-testid="collapsedControl"] { display: none !important; }
-        </style>
-    """, unsafe_allow_html=True)
-    
+    # ELIMINADO EL CÓDIGO QUE OCULTABA EL MENÚ LATERAL AQUÍ
     st.markdown("<br><br>", unsafe_allow_html=True)
     col1, col2, col3 = st.columns([1, 1.4, 1])
     
@@ -591,7 +597,7 @@ def login():
 
             st.markdown("""
                 <div style='text-align: center; margin-top: 2.5rem; color: #94a3b8; font-size: 0.75rem; font-weight: 500;'>
-                    © 2026 MSP Orellana | Entorno Informático V5.4<br>
+                    © 2026 MSP Orellana | Entorno Informático V5.5<br>
                     Plataforma de Emergencias Médicas
                 </div>
             """, unsafe_allow_html=True)
