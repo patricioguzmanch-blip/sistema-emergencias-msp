@@ -590,7 +590,7 @@ def login():
 
             st.markdown("""
                 <div style='text-align: center; margin-top: 2.5rem; color: #94a3b8; font-size: 0.75rem; font-weight: 500;'>
-                    © 2026 MSP Orellana | Entorno Informático V5.1<br>
+                    © 2026 MSP Orellana | Entorno Informático V5.2<br>
                     Plataforma de Emergencias Médicas
                 </div>
             """, unsafe_allow_html=True)
@@ -672,7 +672,6 @@ def cargar_base_establecimientos():
 
 base_est = cargar_base_establecimientos()
 
-# --- MEJORA V5.1: FUNCIÓN TRADUCTORA DE UNICÓDIGOS ---
 def obtener_nombre_establecimiento(unicodigo):
     if not unicodigo or str(unicodigo).upper() == "TODOS": return "Todas las Unidades (Provincial)"
     uni_limpio = limpiar_unicodigo(unicodigo)
@@ -1154,14 +1153,12 @@ def formulario_principal():
         else:
             nom_est_sidebar = "Unidad Operativa"
 
-        unicodigo_visual = str(st.session_state.unicodigo_actual).replace("'", "").strip()
-
+        # ELIMINAMOS LA LÍNEA DEL CÓDIGO (UNICÓDIGO) DE LA CREDENCIAL VISUAL
         st.markdown(f"""
             <div class="sidebar-user-card">
                 <div style="font-size: 0.72rem; font-weight: 700; opacity: 0.8; text-transform: uppercase; letter-spacing: 0.8px;">Operador Conectado</div>
                 <div style="font-size: 1.05rem; font-weight: 800; margin-bottom: 6px; margin-top: 2px;">👤 {st.session_state.usuario_actual}</div>
                 <div style="font-size: 0.8rem; font-weight: 600; margin-bottom: 3px;">🛡️ Rol: <b>{st.session_state.rol_actual}</b></div>
-                <div style="font-size: 0.8rem; font-weight: 600;">📍 Cód: <b>{unicodigo_visual}</b></div>
                 <div style="font-size: 0.75rem; margin-top: 8px; border-top: 1px solid rgba(255,255,255,0.18); padding-top: 6px; color: #cbd5e1;">🏥 {nom_est_sidebar}</div>
             </div>
         """, unsafe_allow_html=True)
@@ -1595,7 +1592,6 @@ def formulario_principal():
             st.markdown("<div class='section-title'>👥 Catálogo Provincial de Operadores y Accesos</div>", unsafe_allow_html=True)
             df_usuarios = cargar_usuarios()
             with st.container(border=True):
-                # --- MEJORA V5.1: COLUMNA DE ESTABLECIMIENTO EN LA TABLA ---
                 df_usuarios_display = df_usuarios.copy()
                 if not df_usuarios_display.empty and "UNICODIGO" in df_usuarios_display.columns:
                     df_usuarios_display["ESTABLECIMIENTO"] = df_usuarios_display["UNICODIGO"].apply(
@@ -1618,7 +1614,6 @@ def formulario_principal():
                 
                 n_rol = c_nu3.selectbox("Rol Institucional", ["USUARIO", "SUPERVISOR", "ADMIN"])
                 
-                # --- MEJORA V5.1: SELECTORES CON NOMBRE DE ESTABLECIMIENTO ---
                 lista_unis = [str(x) for x in base_est['UNICODIGO'].tolist() if str(x).strip() != "" and str(x).lower() != "nan"] if base_est is not None else []
                 def formato_uni(x): return f"{x} - {obtener_nombre_establecimiento(x)}"
                 
@@ -1768,6 +1763,7 @@ def formulario_principal():
                         
                         df_pac_live = cargar_tabla(HOJA_PACIENTES)
                         df_prof_live = cargar_tabla(HOJA_PROFESIONALES)
+                        
                         df_descarga = sincronizar_descarga_con_catalogos(df_descarga, df_pac_live, df_prof_live)
                         df_descarga = df_descarga.reindex(columns=COLUMNAS_OFICIALES).fillna("")
                         
