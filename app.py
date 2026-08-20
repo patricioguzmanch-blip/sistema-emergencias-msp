@@ -590,7 +590,7 @@ def login():
 
             st.markdown("""
                 <div style='text-align: center; margin-top: 2.5rem; color: #94a3b8; font-size: 0.75rem; font-weight: 500;'>
-                    © 2026 MSP Orellana | Entorno Informático V5.2<br>
+                    © 2026 MSP Orellana | Entorno Informático V5.3<br>
                     Plataforma de Emergencias Médicas
                 </div>
             """, unsafe_allow_html=True)
@@ -1153,7 +1153,7 @@ def formulario_principal():
         else:
             nom_est_sidebar = "Unidad Operativa"
 
-        # ELIMINAMOS LA LÍNEA DEL CÓDIGO (UNICÓDIGO) DE LA CREDENCIAL VISUAL
+        # --- MEJORA V5.3: TARJETA DE USUARIO LIMPIA SIN UNICÓDIGOS ---
         st.markdown(f"""
             <div class="sidebar-user-card">
                 <div style="font-size: 0.72rem; font-weight: 700; opacity: 0.8; text-transform: uppercase; letter-spacing: 0.8px;">Operador Conectado</div>
@@ -1614,7 +1614,10 @@ def formulario_principal():
                 
                 n_rol = c_nu3.selectbox("Rol Institucional", ["USUARIO", "SUPERVISOR", "ADMIN"])
                 
-                lista_unis = [str(x) for x in base_est['UNICODIGO'].tolist() if str(x).strip() != "" and str(x).lower() != "nan"] if base_est is not None else []
+                # --- MEJORA V5.3: FILTRO ANTI-DUPLICADOS PARA LA ASIGNACIÓN DE ESTABLECIMIENTOS ---
+                lista_unis_raw = [str(x).strip() for x in base_est['UNICODIGO'].tolist() if str(x).strip() != "" and str(x).lower() != "nan"] if base_est is not None else []
+                lista_unis = list(dict.fromkeys(lista_unis_raw))
+                
                 def formato_uni(x): return f"{x} - {obtener_nombre_establecimiento(x)}"
                 
                 if n_rol == "ADMIN": 
@@ -1763,7 +1766,6 @@ def formulario_principal():
                         
                         df_pac_live = cargar_tabla(HOJA_PACIENTES)
                         df_prof_live = cargar_tabla(HOJA_PROFESIONALES)
-                        
                         df_descarga = sincronizar_descarga_con_catalogos(df_descarga, df_pac_live, df_prof_live)
                         df_descarga = df_descarga.reindex(columns=COLUMNAS_OFICIALES).fillna("")
                         
