@@ -593,7 +593,7 @@ def login():
 
             st.markdown("""
                 <div style='text-align: center; margin-top: 2.5rem; color: #94a3b8; font-size: 0.75rem; font-weight: 500;'>
-                    © 2026 MSP Orellana | Entorno Informático V4.9<br>
+                    © 2026 MSP Orellana | Entorno Informático V5.0<br>
                     Plataforma de Emergencias Médicas
                 </div>
             """, unsafe_allow_html=True)
@@ -723,7 +723,6 @@ def calcular_edad(fecha_nacimiento):
     elif meses >= 1: return meses, "MES/ES"
     else: return max(0, dias), "DIA/S"
 
-# --- DE VUELTA AL CÓDIGO (LA FUNCIÓN DE EXPORTACIÓN QUE SE HABÍA BORRADO) ---
 def sincronizar_descarga_con_catalogos(df_target, df_pacientes, df_profesionales):
     if df_target.empty:
         return df_target
@@ -1406,18 +1405,18 @@ def formulario_principal():
                                     registrar_auditoria("AUDITORÍA (MODIFICAR)", f"Atención del paciente CI: {ced_audit_norm} editada en matriz provincial")
                                     mostrar_alerta_guardado("✅ ¡Atención modificada y sincronizada con Google Sheets y catálogos!", "ok")
 
-                    if st.session_state.rol_actual == "ADMIN":
-                        with st.expander("🗑️ ELIMINAR ATENCIÓN SELECCIONADA (MÓDULO ADMIN)", expanded=False):
-                            st.warning("⚠️ **ATENCIÓN:** Esta acción eliminará permanentemente la atención seleccionada de la base de datos oficial del MSP Orellana.")
-                            confirmar_borrado = st.checkbox(f"Confirmo que deseo eliminar la atención del paciente {fila_audit_editar.get('NUMERO DE IDENTIFICACION','')} fechada el {fila_audit_editar.get('FECHA DE ATENCION','')}.", key=f"chk_del_{idx_audit}")
-                            
-                            col_btn_del, col_vacia_del = st.columns([1.8, 4.2])
-                            with col_btn_del:
-                                if st.button("🗑️ Eliminar Definitivamente", disabled=not confirmar_borrado, key=f"btn_del_at_{idx_audit}", use_container_width=True):
-                                    df_global_borrado = df_global.drop(index=idx_audit).reset_index(drop=True)
-                                    guardar_tabla(HOJA_ATENCIONES, df_global_borrado)
-                                    registrar_auditoria("ELIMINACIÓN", f"Atención del paciente CI: {ced_audit_norm} eliminada permanentemente")
-                                    mostrar_alerta_guardado("✅ Atención eliminada correctamente del servidor provincial.", "ok")
+                    # --- MEJORA V5.0: ELIMINACIÓN HABILITADA PARA ADMIN Y SUPERVISOR ---
+                    with st.expander("🗑️ ELIMINAR ATENCIÓN SELECCIONADA", expanded=False):
+                        st.warning("⚠️ **ATENCIÓN:** Esta acción eliminará permanentemente la atención seleccionada de la base de datos oficial.")
+                        confirmar_borrado = st.checkbox(f"Confirmo que deseo eliminar la atención del paciente {fila_audit_editar.get('NUMERO DE IDENTIFICACION','')} fechada el {fila_audit_editar.get('FECHA DE ATENCION','')}.", key=f"chk_del_{idx_audit}")
+                        
+                        col_btn_del, col_vacia_del = st.columns([1.8, 4.2])
+                        with col_btn_del:
+                            if st.button("🗑️ Eliminar Definitivamente", disabled=not confirmar_borrado, key=f"btn_del_at_{idx_audit}", use_container_width=True):
+                                df_global_borrado = df_global.drop(index=idx_audit).reset_index(drop=True)
+                                guardar_tabla(HOJA_ATENCIONES, df_global_borrado)
+                                registrar_auditoria("ELIMINACIÓN", f"Atención del paciente CI: {ced_audit_norm} eliminada permanentemente")
+                                mostrar_alerta_guardado("✅ Atención eliminada correctamente del servidor provincial.", "ok")
 
         if menu_sel == "✏️ Catálogos":
             st.markdown("<div class='section-title'>✏️ Edición de Catálogos (Pacientes y Profesionales)</div>", unsafe_allow_html=True)
@@ -1754,7 +1753,6 @@ def formulario_principal():
                         df_pac_live = cargar_tabla(HOJA_PACIENTES)
                         df_prof_live = cargar_tabla(HOJA_PROFESIONALES)
                         
-                        # AQUÍ ESTÁ LA FUNCIÓN RESTAURADA QUE EVITA EL ERROR ROJO
                         df_descarga = sincronizar_descarga_con_catalogos(df_descarga, df_pac_live, df_prof_live)
                         df_descarga = df_descarga.reindex(columns=COLUMNAS_OFICIALES).fillna("")
                         
