@@ -155,41 +155,40 @@ st.markdown("""
     }
     
     /* ==========================================================================
-       5. MENÚ LATERAL "CHÉVERE" (RADIO BUTTONS HACK)
+       5. MENÚ LATERAL SEGURO Y VISIBLE
        ========================================================================== */
-    /* Ocultar el círculo nativo */
-    [data-testid="stSidebar"] [data-testid="stRadio"] div[role="radiogroup"] label div:first-child {
-        display: none !important;
-    }
-    
-    /* Estilizar el botón del menú */
-    [data-testid="stSidebar"] [data-testid="stRadio"] div[role="radiogroup"] label {
+    /* Estilizar el contenedor general del radio button para que parezca un menú táctil */
+    [data-testid="stSidebar"] [data-testid="stRadio"] div[role="radiogroup"] > label {
         background-color: rgba(255, 255, 255, 0.05);
         border: 1px solid rgba(255, 255, 255, 0.1);
-        padding: 12px 16px;
+        padding: 10px 14px;
         border-radius: 10px;
-        margin-bottom: 8px;
-        font-weight: 600 !important;
-        color: #f8fafc !important;
+        margin-bottom: 6px;
         transition: all 0.2s ease;
         box-shadow: 0 2px 4px rgba(0,0,0,0.02);
         cursor: pointer;
+        width: 100%;
+        align-items: center;
     }
     
-    /* Efecto al pasar el mouse */
-    [data-testid="stSidebar"] [data-testid="stRadio"] div[role="radiogroup"] label:hover {
+    [data-testid="stSidebar"] [data-testid="stRadio"] div[role="radiogroup"] > label:hover {
         border-color: rgba(255, 255, 255, 0.3);
         background-color: rgba(255, 255, 255, 0.1);
         transform: translateX(4px);
     }
     
     /* Efecto de Menú Seleccionado */
-    [data-testid="stSidebar"] [data-testid="stRadio"] div[role="radiogroup"] label[data-checked="true"] {
+    [data-testid="stSidebar"] [data-testid="stRadio"] div[role="radiogroup"] > label[data-checked="true"] {
         background: linear-gradient(90deg, #3b82f6 0%, #1d4ed8 100%) !important;
-        color: white !important;
-        border: none !important;
+        border-color: transparent !important;
         box-shadow: 0 4px 10px rgba(29, 78, 216, 0.4) !important;
-        font-weight: 800 !important;
+    }
+    
+    /* Forzar color de texto blanco brillante en las letras del menú */
+    [data-testid="stSidebar"] [data-testid="stRadio"] div[role="radiogroup"] > label p {
+        font-weight: 700 !important;
+        color: #ffffff !important;
+        font-size: 0.92rem !important;
     }
 
     /* ==========================================================================
@@ -594,7 +593,7 @@ def login():
 
             st.markdown("""
                 <div style='text-align: center; margin-top: 2.5rem; color: #94a3b8; font-size: 0.75rem; font-weight: 500;'>
-                    © 2026 MSP Orellana | Entorno Informático V4.8<br>
+                    © 2026 MSP Orellana | Entorno Informático V4.9<br>
                     Plataforma de Emergencias Médicas
                 </div>
             """, unsafe_allow_html=True)
@@ -723,6 +722,44 @@ def calcular_edad(fecha_nacimiento):
     if anios >= 1: return anios, "AÑO/S"
     elif meses >= 1: return meses, "MES/ES"
     else: return max(0, dias), "DIA/S"
+
+# --- DE VUELTA AL CÓDIGO (LA FUNCIÓN DE EXPORTACIÓN QUE SE HABÍA BORRADO) ---
+def sincronizar_descarga_con_catalogos(df_target, df_pacientes, df_profesionales):
+    if df_target.empty:
+        return df_target
+    
+    map_pac = {}
+    if not df_pacientes.empty and "NUMERO DE IDENTIFICACION" in df_pacientes.columns:
+        for _, row_p in df_pacientes.iterrows():
+            nid_p = normalizar_id(row_p.get("NUMERO DE IDENTIFICACION", ""))
+            if nid_p:
+                map_pac[nid_p] = row_p.to_dict()
+                
+    map_prof = {}
+    if not df_profesionales.empty and "CEDULA" in df_profesionales.columns:
+        for _, row_m in df_profesionales.iterrows():
+            nid_m = normalizar_id(row_m.get("CEDULA", ""))
+            if nid_m:
+                map_prof[nid_m] = row_m.to_dict()
+                
+    cols_demo = ["PRIMER APELLIDO", "SEGUNDO APELLIDO", "PRIMER NOMBRE", "SEGUNDO NOMBRE", "SEXO", "EDAD", "CONDICION DE LA EDAD", "NACIONALIDAD", "ETNIA", "GRUPO PRIORITARIO", "TIPO DE SEGURO", "PROV_RES", "CANT_RES", "PARR_RES", "FECHA DE NACIMIENTO DEL PACIENTE"]
+
+    def enriq_row(row):
+        nid_p = normalizar_id(row.get("NUMERO DE IDENTIFICACION", ""))
+        if nid_p in map_pac:
+            p_data = map_pac[nid_p]
+            for c in cols_demo:
+                if c in p_data and pd.notna(p_data[c]) and str(p_data[c]).strip() != "":
+                    row[c] = p_data[c]
+                    
+        nid_m = normalizar_id(row.get("NUMERO DE IDENTIFICACION DEL PROFESIONAL DE SALUD", ""))
+        if nid_m in map_prof:
+            m_data = map_prof[nid_m]
+            if "NOMBRE_COMPLETO" in m_data and pd.notna(m_data["NOMBRE_COMPLETO"]) and str(m_data["NOMBRE_COMPLETO"]).strip() != "":
+                row["NOMBRES Y APELLIDOS DEL PROFESIONAL DE SALUD"] = m_data["NOMBRE_COMPLETO"]
+        return row
+
+    return df_target.apply(enriq_row, axis=1)
 
 @st.dialog("👨‍⚕️ Registro de Nuevo Profesional de Salud")
 def modal_nuevo_profesional(cedula_prof):
@@ -1716,6 +1753,8 @@ def formulario_principal():
                         
                         df_pac_live = cargar_tabla(HOJA_PACIENTES)
                         df_prof_live = cargar_tabla(HOJA_PROFESIONALES)
+                        
+                        # AQUÍ ESTÁ LA FUNCIÓN RESTAURADA QUE EVITA EL ERROR ROJO
                         df_descarga = sincronizar_descarga_con_catalogos(df_descarga, df_pac_live, df_prof_live)
                         df_descarga = df_descarga.reindex(columns=COLUMNAS_OFICIALES).fillna("")
                         
