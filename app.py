@@ -52,30 +52,32 @@ st.markdown("""
         background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
     }
     
-    /* --- CORRECCIÓN V5.5: FORZAR APARICIÓN DE LA FLECHA Y HEADER --- */
-    #MainMenu {visibility: hidden;}
+    /* Ocultar SOLO el pie de página nativo */
     footer {visibility: hidden;}
-    header {
-        visibility: visible !important; 
-        background-color: transparent !important;
-    }
-    [data-testid="stToolbar"] {visibility: hidden !important;}
     
-    /* Rescate del Botón del Panel Izquierdo */
-    [data-testid="collapsedControl"] {
-        display: flex !important;
-        visibility: visible !important;
-        opacity: 1 !important;
-        z-index: 999999 !important;
-    }
-    
-    /* Aprovechamiento del marco visual */
+    /* --- RESCATE V5.6: ESPACIO SUPERIOR DESPEJADO Y BOTÓN RESALTADO --- */
     div.block-container {
-        padding-top: 1.2rem !important;
+        padding-top: 3.5rem !important; /* <--- ESTO EVITA QUE LA PANTALLA TAPE LA FLECHA */
         padding-bottom: 1.5rem !important;
         padding-left: 1.8rem !important;
         padding-right: 1.8rem !important;
         max-width: 98% !important;
+    }
+    
+    /* Hacer que la flecha de abrir el menú sea un botón azul gigante e imposible de tapar */
+    [data-testid="collapsedControl"] {
+        display: flex !important;
+        visibility: visible !important;
+        background-color: #0f4c81 !important;
+        border-radius: 8px !important;
+        border: 2px solid white !important;
+        padding: 5px !important;
+        z-index: 999999 !important;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.3) !important;
+    }
+    [data-testid="collapsedControl"] svg {
+        fill: white !important;
+        color: white !important;
     }
     
     h1, h2, h3, h4 {
@@ -556,7 +558,7 @@ if 'autenticado' not in st.session_state:
     st.session_state.last_checked_id = ""
 
 def login():
-    # ELIMINADO EL CÓDIGO QUE OCULTABA EL MENÚ LATERAL AQUÍ
+    # --- RESCATE V5.6: ELIMINADO TOTALMENTE EL CÓDIGO QUE OCULTA MENÚS AQUÍ ---
     st.markdown("<br><br>", unsafe_allow_html=True)
     col1, col2, col3 = st.columns([1, 1.4, 1])
     
@@ -597,7 +599,7 @@ def login():
 
             st.markdown("""
                 <div style='text-align: center; margin-top: 2.5rem; color: #94a3b8; font-size: 0.75rem; font-weight: 500;'>
-                    © 2026 MSP Orellana | Entorno Informático V5.5<br>
+                    © 2026 MSP Orellana | Entorno Informático V5.6<br>
                     Plataforma de Emergencias Médicas
                 </div>
             """, unsafe_allow_html=True)
@@ -1747,7 +1749,7 @@ def formulario_principal():
                 else:
                     st.dataframe(df_auditoria.iloc[::-1], use_container_width=True, hide_index=True)
 
-        # ------------------- MÓDULO GLOBAL DE EXPORTACIÓN -------------------
+        # ------------------- MÓDULOS GLOBAL DE EXPORTACIÓN -------------------
         if menu_sel == "📥 Exportar Matriz":
             st.markdown("<div class='section-title'>📥 Centro de Exportación de Datos Estadísticos</div>", unsafe_allow_html=True)
             if not df_global.empty and "FECHA DE ATENCION" in df_global.columns:
