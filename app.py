@@ -47,8 +47,9 @@ st.markdown("""
         font-size: 0.88rem;
     }
     
+    /* Fondo global sutil */
     .stApp {
-        background-color: #f1f5f9;
+        background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
     }
     
     /* Ocultar barras nativas web de Streamlit para simular ventana nativa */
@@ -56,7 +57,7 @@ st.markdown("""
     footer {visibility: hidden;}
     header {visibility: hidden;}
     
-    /* Aprovechamiento del 98% del marco visual (estilo software pantalla completa) */
+    /* Aprovechamiento del marco visual */
     div.block-container {
         padding-top: 1.2rem !important;
         padding-bottom: 1.5rem !important;
@@ -67,59 +68,177 @@ st.markdown("""
     
     h1, h2, h3, h4 {
         color: #0f172a;
-        font-weight: 700 !important;
+        font-weight: 800 !important;
         letter-spacing: -0.01em;
         margin-bottom: 0.4rem !important;
     }
     
     /* 2. LABELS EN NEGRITA */
-    div[data-testid="stWidgetLabel"] p,
-    div[data-testid="stWidgetLabel"] label,
-    label[data-testid="stWidgetLabel"],
-    .stTextInput label,
-    .stSelectbox label,
-    .stNumberInput label,
-    .stDateInput label,
-    .stPasswordInput label,
-    div[class*="st-"] > label,
-    div[class*="st-"] label p,
-    label p,
-    label {
+    div[data-testid="stWidgetLabel"] p, label p, label {
         font-weight: 700 !important;
         color: #0f172a !important;
         font-size: 0.89rem !important;
     }
     
-    /* 3. Botones Estilo Software Ejecutivo */
+    /* ==========================================================================
+       3. EFECTO CRISTAL PARA LOGIN Y TARJETAS FLOTANTES PARA INTERIOR
+       ========================================================================== */
+    /* Login Card Glassmorphism */
+    div[data-testid="stVerticalBlockBorderWrapper"]:has(.login-title) {
+        background-color: rgba(255, 255, 255, 0.85) !important;
+        backdrop-filter: blur(16px);
+        border-radius: 20px !important;
+        padding: 3rem 2.5rem !important;
+        box-shadow: 0 20px 40px rgba(15, 76, 129, 0.08), 0 1px 3px rgba(0,0,0,0.05) !important;
+        border: 1px solid rgba(255, 255, 255, 0.6) !important;
+        margin-top: 4vh;
+    }
+    
+    /* Formularios Internos (Tarjetas Flotantes limpias) */
+    div[data-testid="stVerticalBlockBorderWrapper"]:not(:has(.login-title)) {
+        background-color: #ffffff !important;
+        border: 1px solid #e2e8f0 !important;
+        border-radius: 12px !important;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.02) !important;
+        padding: 1.5rem !important;
+        transition: all 0.3s ease;
+    }
+    div[data-testid="stVerticalBlockBorderWrapper"]:not(:has(.login-title)):hover {
+        box-shadow: 0 10px 15px -3px rgba(15, 76, 129, 0.08), 0 4px 6px -2px rgba(15, 76, 129, 0.04) !important;
+        border-color: #cbd5e1 !important;
+    }
+
+    /* ==========================================================================
+       4. BOTONES DINÁMICOS GLOBAL
+       ========================================================================== */
     .stButton > button {
-        background: #0f4c81;
-        color: #ffffff !important;
-        border: 1px solid #083b66;
-        border-radius: 6px;
-        padding: 0.45rem 1rem;
-        font-weight: 600;
-        font-size: 0.85rem;
-        box-shadow: 0 1px 2px rgba(0,0,0,0.08);
-        transition: all 0.15s ease-in-out;
+        background: linear-gradient(180deg, #0f4c81 0%, #0a355c 100%) !important;
+        color: white !important;
+        border: none !important;
+        padding: 0.6rem 1.2rem !important;
+        font-size: 0.95rem !important;
+        font-weight: 600 !important;
+        border-radius: 8px !important;
+        box-shadow: 0 4px 6px rgba(15, 76, 129, 0.2) !important;
+        transition: all 0.25s ease !important;
         width: 100%;
     }
     .stButton > button:hover {
-        background: #0b3a63;
-        border-color: #072a4a;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.14);
-    }
-    
-    /* 4. Contenedores de Ventana */
-    div[data-testid="stVerticalBlockBorderWrapper"] {
-        background-color: #ffffff !important;
-        border: 1px solid #cbd5e1 !important;
-        border-radius: 8px !important;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04) !important;
-        padding: 1.1rem !important;
+        transform: translateY(-2px);
+        box-shadow: 0 8px 15px rgba(15, 76, 129, 0.3) !important;
+        background: linear-gradient(180deg, #115999 0%, #0d4273 100%) !important;
     }
     
     /* ==========================================================================
-       5. REGLA EXPLÍCITA PARA BORDE AZUL Y FONDO CELESTE (#f0f8ff)
+       5. ESTILOS ESPECÍFICOS DE LOGIN
+       ========================================================================== */
+    .login-tag {
+        background: linear-gradient(90deg, #0f4c81 0%, #1d4ed8 100%);
+        color: #ffffff;
+        display: inline-block;
+        padding: 6px 18px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 700;
+        margin-bottom: 16px;
+        letter-spacing: 0.8px;
+        text-transform: uppercase;
+        box-shadow: 0 2px 6px rgba(15, 76, 129, 0.25);
+    }
+    .login-title {
+        color: #0f172a;
+        font-size: 1.85rem;
+        font-weight: 800;
+        margin-bottom: 0.3rem;
+        letter-spacing: -0.5px;
+    }
+    .login-subtitle {
+        color: #64748b;
+        font-size: 0.95rem;
+        font-weight: 500;
+    }
+
+    /* ==========================================================================
+       6. ESTILOS DE PESTAÑAS (TABS NATIVAS) Y TÍTULOS DE SECCIÓN
+       ========================================================================== */
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 6px;
+        background-color: #f1f5f9;
+        padding: 6px;
+        border-radius: 12px;
+        border: 1px solid #e2e8f0;
+    }
+    .stTabs [data-baseweb="tab"] {
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 0.88rem;
+        color: #475569;
+        padding: 6px 18px;
+        transition: all 0.2s ease;
+        border: none !important;
+        background: transparent;
+    }
+    .stTabs [aria-selected="true"] {
+        background-color: #ffffff !important;
+        color: #0f4c81 !important;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.06);
+        border-bottom: none !important; /* Estilo de botón completo */
+    }
+    
+    .section-title {
+        color: #0f172a;
+        font-size: 1.1rem;
+        font-weight: 800;
+        margin-top: 1.8rem;
+        margin-bottom: 1.2rem;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        border-left: 5px solid #1d4ed8;
+        padding-left: 15px;
+        background: linear-gradient(90deg, #f1f5f9 0%, transparent 100%);
+        padding-top: 10px;
+        padding-bottom: 10px;
+        border-radius: 0 8px 8px 0;
+    }
+    
+    /* ==========================================================================
+       7. BARRA LATERAL (SIDEBAR) PREMIUM
+       ========================================================================== */
+    .sidebar-user-card {
+        background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+        color: #f8fafc;
+        padding: 1.25rem;
+        border-radius: 12px;
+        margin-bottom: 1.5rem;
+        border: 1px solid #334155;
+        box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+        position: relative;
+        overflow: hidden;
+    }
+    .sidebar-user-card::before {
+        content: '';
+        position: absolute;
+        top: 0; left: 0; right: 0; height: 4px;
+        background: linear-gradient(90deg, #3b82f6, #06b6d4);
+    }
+    
+    .desktop-app-header {
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        border-bottom: 2px solid #0f4c81;
+        padding: 0.8rem 1.2rem;
+        margin-bottom: 1.5rem;
+        border-radius: 12px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+        border: 1px solid #e2e8f0;
+    }
+
+    /* ==========================================================================
+       8. CAMPOS CON BORDE AZUL SUAVE Y FONDO CELESTE (#f0f8ff)
        ========================================================================== */
     div[data-testid="stDateInput"] div[data-baseweb="input"],
     div[data-testid="stDateInput"] div[data-baseweb="base-input"],
@@ -152,16 +271,14 @@ st.markdown("""
     div[data-testid="stSelectbox"]:has([aria-label*="Establecimiento" i]) div[data-baseweb="select"],
     div[data-testid="stSelectbox"]:has([aria-label*="Establecimiento" i]) [role="combobox"] {
         background-color: #f0f8ff !important;
-        border: 2px solid #3b82f6 !important;
-        border-radius: 6px !important;
-        min-height: 38px !important;
+        border: 1px solid #bfdbfe !important;
+        border-radius: 8px !important;
+        min-height: 40px !important;
         box-shadow: none !important;
-        transition: all 0.15s ease-in-out !important;
+        transition: all 0.2s ease-in-out !important;
     }
 
-    /* ==========================================================================
-       6. CAMPOS EN BLANCO SIN BORDE AZUL (FONDO BLANCO PURO Y BORDE GRIS NEUTRO #cbd5e1)
-       ========================================================================== */
+    /* CAMPOS EN BLANCO SIN BORDE AZUL */
     div[data-testid="stTextInput"]:has([aria-label*="Primer Apellido" i]) div[data-baseweb="input"],
     div[data-testid="stTextInput"]:has([aria-label*="Primer Apellido" i]) div[data-baseweb="base-input"],
     div[data-testid="stTextInput"]:has([aria-label*="Segundo Apellido" i]) div[data-baseweb="input"],
@@ -194,43 +311,27 @@ st.markdown("""
     div[data-testid="stSelectbox"]:has([aria-label*="Cobertura" i]) [role="combobox"] {
         background-color: #ffffff !important;
         border: 1px solid #cbd5e1 !important;
-        border-radius: 6px !important;
+        border-radius: 8px !important;
         box-shadow: none !important;
     }
     
-    /* ==========================================================================
-       7. RESALTADO LLAMATIVO Y VIBRANTE PARA NÚMERO DE IDENTIFICACIÓN / CÉDULA
-       ========================================================================== */
+    /* RESALTADO LLAMATIVO PARA IDENTIFICACIÓN / CÉDULA */
     div[data-testid="stTextInput"]:has([aria-label*="Número de Identificación" i]) div[data-baseweb="input"],
     div[data-testid="stTextInput"]:has([aria-label*="Número de Identificación" i]) div[data-baseweb="base-input"],
     div[data-testid="stTextInput"]:has([aria-label*="Identificación" i]) div[data-baseweb="input"],
     div[data-testid="stTextInput"]:has([aria-label*="Identificación" i]) div[data-baseweb="base-input"] {
         background-color: #fff1f2 !important;
-        border: 3px solid #e11d48 !important;
+        border: 2px solid #e11d48 !important;
         border-radius: 8px !important;
         min-height: 44px !important;
-        box-shadow: 0 0 0 4px rgba(225, 29, 72, 0.18) !important;
+        box-shadow: 0 4px 6px rgba(225, 29, 72, 0.1) !important;
     }
     
     div[data-testid="stTextInput"]:has([aria-label*="Identificación" i]) input {
         font-size: 1.08rem !important;
         font-weight: 800 !important;
-        color: #881337 !important;
+        color: #9f1239 !important;
         letter-spacing: 0.5px !important;
-    }
-    
-    div[data-testid="stTextInput"]:has([aria-label*="Identificación" i]) input::placeholder {
-        color: #be123c !important;
-        font-weight: 700 !important;
-        font-size: 0.96rem !important;
-        opacity: 1 !important;
-    }
-    
-    div[data-testid="stTextInput"]:has([aria-label*="Identificación" i]) div[data-baseweb="input"]:focus-within,
-    div[data-testid="stTextInput"]:has([aria-label*="Identificación" i]) div[data-baseweb="base-input"]:focus-within {
-        background-color: #ffffff !important;
-        border-color: #be123c !important;
-        box-shadow: 0 0 0 4px rgba(190, 18, 60, 0.3) !important;
     }
     
     /* Quitar bordes anidados en contenedores internos de Streamlit */
@@ -262,85 +363,15 @@ st.markdown("""
     div[data-baseweb="select"]:focus-within,
     div[data-baseweb="select"] > div:focus-within {
         background-color: #ffffff !important;
-        border-color: #1d4ed8 !important;
-        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.22) !important;
+        border-color: #3b82f6 !important;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25) !important;
     }
     
     /* Textos guía (placeholder) claros */
     input::placeholder {
-        color: #64748b !important;
-        opacity: 0.95 !important;
-        font-style: normal !important;
-        font-weight: 400 !important;
-    }
-    
-    /* Pestañas tipo "Toolbar / Ribbon" */
-    .stTabs [data-baseweb="tab-list"] {
-        gap: 2px;
-        background-color: #e2e8f0;
-        padding: 4px;
-        border-radius: 8px;
-        border: 1px solid #cbd5e1;
-        border-bottom: 2px solid #94a3b8;
-    }
-    .stTabs [data-baseweb="tab"] {
-        height: 36px;
-        border-radius: 6px;
-        font-weight: 600;
-        font-size: 0.84rem;
-        color: #334155;
-        padding: 0 16px;
-        border: none !important;
-    }
-    .stTabs [aria-selected="true"] {
-        background-color: #ffffff !important;
-        color: #0f4c81 !important;
-        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
-        border-bottom: 2px solid #0f4c81 !important;
-    }
-    
-    /* Títulos de Sección */
-    .section-title {
-        color: #0f172a;
-        font-size: 0.95rem;
-        font-weight: 700;
-        margin-top: 1.1rem;
-        margin-bottom: 0.7rem;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        border-left: 4px solid #0f4c81;
-        padding-left: 10px;
-        background-color: #eaf2f8;
-        padding-top: 6px;
-        padding-bottom: 6px;
-        border-radius: 0 4px 4px 0;
-        border-top: 1px solid #d0e1fd;
-        border-bottom: 1px solid #d0e1fd;
-        border-right: 1px solid #d0e1fd;
-    }
-    
-    /* Credencial de Operador Sidebar */
-    .sidebar-user-card {
-        background: #0f172a;
-        color: #f8fafc;
-        padding: 0.85rem;
-        border-radius: 6px;
-        margin-bottom: 1rem;
-        border: 1px solid #334155;
-    }
-    
-    /* Barra Superior */
-    .desktop-app-header {
-        background: #ffffff;
-        border-bottom: 2px solid #0f4c81;
-        padding: 0.6rem 1rem;
-        margin-bottom: 1rem;
-        border-radius: 6px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        color: #94a3b8 !important;
+        opacity: 1 !important;
+        font-weight: 500 !important;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -378,7 +409,6 @@ def normalizar_id(val):
     v_no_zeros = v.lstrip("0")
     return v_no_zeros if v_no_zeros != "" else v
 
-# --- MEJORA V4.5: DESTRUCTOR DE COMILLAS FANTASMAS EN EL UNICÓDIGO ---
 def limpiar_unicodigo(cod):
     if pd.isna(cod) or cod is None:
         return ""
@@ -546,35 +576,34 @@ if 'autenticado' not in st.session_state:
     st.session_state.last_checked_id = ""
 
 def login():
-    st.markdown("<br>", unsafe_allow_html=True)
-    col1, col2, col3 = st.columns([1.1, 1.3, 1.1])
+    # Estilos exclusivos de ocultamiento para login
+    st.markdown("""
+        <style>
+        [data-testid="collapsedControl"] { display: none !important; }
+        </style>
+    """, unsafe_allow_html=True)
+    
+    st.markdown("<br><br>", unsafe_allow_html=True)
+    col1, col2, col3 = st.columns([1, 1.4, 1])
+    
     with col2:
-        st.markdown("""
-            <div style='text-align: center; margin-bottom: 1.4rem;'>
-                <div style='background: #e2e8f0; color: #0f4c81; display: inline-block; padding: 4px 14px; border-radius: 4px; font-size: 0.75rem; font-weight: 700; margin-bottom: 8px; border: 1px solid #cbd5e1; text-transform: uppercase;'>
-                    Ministerio de Salud Pública del Ecuador
-                </div>
-                <h2 style='color: #0f172a; font-size: 1.6rem; font-weight: 800; margin-bottom: 0.2rem;'>
-                    SIEM - Software Institucional
-                </h2>
-                <p style='color: #475569; font-size: 0.88rem; margin-top: 2px;'>
-                    Dirección Provincial de Salud de Orellana
-                </p>
-            </div>
-        """, unsafe_allow_html=True)
-        
         with st.container(border=True):
             st.markdown("""
-                <div style='text-align: left; margin-bottom: 1rem; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px;'>
-                    <span style='color: #0f172a; font-weight: 700; font-size: 0.95rem;'>Acceso al Sistema Integrado</span>
+                <div style='text-align: center; margin-bottom: 2rem;'>
+                    <div class="login-tag">MSP Ecuador</div>
+                    <h2 class="login-title">SIEM Institucional</h2>
+                    <p class="login-subtitle">Dirección Provincial de Salud de Orellana</p>
+                </div>
+                <div style='margin-bottom: 1.2rem; color: #334155; font-weight: 700; font-size: 0.95rem; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px;'>
+                    🔒 Control de Acceso
                 </div>
             """, unsafe_allow_html=True)
             
-            usuario = st.text_input("👤 Credencial de Usuario", placeholder="Ingrese su nombre de usuario").strip()
-            contrasena = st.text_input("🔑 Contraseña Asignada", type="password", placeholder="Ingrese su contraseña asignada").strip()
+            usuario = st.text_input("👤 Credencial de Operador", placeholder="Ingrese su credencial").strip()
+            contrasena = st.text_input("🔑 Contraseña Asignada", type="password", placeholder="Ingrese su contraseña").strip()
             
             st.markdown("<br>", unsafe_allow_html=True)
-            if st.button("Iniciar Sesión en el Software", use_container_width=True):
+            if st.button("Ingresar al Sistema", use_container_width=True):
                 df_usuarios = cargar_usuarios()
                 if not df_usuarios.empty and "USUARIO" in df_usuarios.columns:
                     user_match = df_usuarios[(df_usuarios['USUARIO'] == usuario) & (df_usuarios['CONTRASENA'] == contrasena)]
@@ -592,11 +621,12 @@ def login():
                 else:
                     st.error("🔌 **FALLO DE CONEXIÓN:** El sistema no pudo comunicarse con la base de datos. Espere unos segundos y vuelva a intentarlo.")
 
-        st.markdown("""
-            <div style='text-align: center; margin-top: 1.2rem; color: #64748b; font-size: 0.78rem;'>
-                🏥 MSP Orellana | Entorno Informático de Escritorio V4.5
-            </div>
-        """, unsafe_allow_html=True)
+            st.markdown("""
+                <div style='text-align: center; margin-top: 2.5rem; color: #94a3b8; font-size: 0.75rem; font-weight: 500;'>
+                    © 2026 MSP Orellana | Entorno Informático V4.7<br>
+                    Plataforma de Emergencias Médicas
+                </div>
+            """, unsafe_allow_html=True)
 
 TIPOS_DOCUMENTO = ["CEDULA DE IDENTIDAD O CIUDADANÍA", "PASAPORTE", "VISA", "CARNE DE REFUGIADO", "SIN DOCUMENTO DE IDENTIFICACION"]
 SEXO_OPCIONES = ["HOMBRE", "MUJER", "INTERSEXUAL"]
@@ -1186,7 +1216,7 @@ def formulario_principal():
 
     df_global = cargar_tabla(HOJA_ATENCIONES)
 
-    # --- DASHBOARD GLOBAL (TOP 5 ENFERMEDADES) ---
+    # --- DASHBOARD GLOBAL (PARA TODOS LOS ROLES) ---
     st.markdown("<div class='section-title'>📊 Dashboard: Resumen Estadístico e Incidencias Médicas</div>", unsafe_allow_html=True)
     if not df_global.empty and "NOMBRE DEL ESTABLECIMIENTO DE SALUD" in df_global.columns:
         
@@ -1239,19 +1269,19 @@ def formulario_principal():
     # --- PESTAÑAS SEGÚN ROL ---
     if st.session_state.rol_actual == "ADMIN":
         tab1, tab2, tab3, tab4, tab5 = st.tabs([
-            "🔍 Auditoría y Control de Atenciones", 
-            "✏️ Catálogos: Pacientes y Médicos", 
-            "👥 Administración de Accesos", 
-            "⚙️ Mantenimiento y Purgas",
+            "🔍 Auditoría y Control", 
+            "✏️ Catálogos", 
+            "👥 Accesos", 
+            "⚙️ Mantenimiento",
             "📜 Historial de Auditoría"
         ])
     elif st.session_state.rol_actual == "SUPERVISOR":
         tab1, tab2 = st.tabs([
-            "🔍 Auditoría y Control de Atenciones", 
-            "✏️ Catálogos: Pacientes y Médicos"
+            "🔍 Auditoría y Control", 
+            "✏️ Catálogos"
         ])
     else:
-        tab1, tab2 = st.tabs(["📝 Registro de Nueva Atención Médica", "🔍 Búsqueda y Edición Local"])
+        tab1, tab2 = st.tabs(["📝 Registro de Nueva Atención", "🔍 Búsqueda y Edición"])
 
     # ========================== ROL USUARIO ==========================
     if st.session_state.rol_actual == "USUARIO":
