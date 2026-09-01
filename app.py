@@ -55,16 +55,16 @@ st.markdown("""
     /* Ocultar SOLO el pie de página nativo */
     footer {visibility: hidden;}
     
-    /* --- RESCATE V5.6: ESPACIO SUPERIOR DESPEJADO Y BOTÓN RESALTADO --- */
+    /* ESPACIO SUPERIOR DESPEJADO Y BOTÓN RESALTADO PARA EVITAR CIERRE DEL MENÚ */
     div.block-container {
-        padding-top: 3.5rem !important; /* <--- ESTO EVITA QUE LA PANTALLA TAPE LA FLECHA */
+        padding-top: 3.5rem !important; 
         padding-bottom: 1.5rem !important;
         padding-left: 1.8rem !important;
         padding-right: 1.8rem !important;
         max-width: 98% !important;
     }
     
-    /* Hacer que la flecha de abrir el menú sea un botón azul gigante e imposible de tapar */
+    /* Hacer que la flecha de abrir el menú sea un botón azul visible */
     [data-testid="collapsedControl"] {
         display: flex !important;
         visibility: visible !important;
@@ -554,11 +554,8 @@ if 'autenticado' not in st.session_state:
     st.session_state.usuario_actual = ""
     st.session_state.rol_actual = ""
     st.session_state.unicodigo_actual = ""
-    st.session_state.prefill_auto = {} 
-    st.session_state.last_checked_id = ""
 
 def login():
-    # --- RESCATE V5.6: ELIMINADO TOTALMENTE EL CÓDIGO QUE OCULTA MENÚS AQUÍ ---
     st.markdown("<br><br>", unsafe_allow_html=True)
     col1, col2, col3 = st.columns([1, 1.4, 1])
     
@@ -588,8 +585,6 @@ def login():
                         st.session_state.usuario_actual = user_match.iloc[0]['USUARIO']
                         st.session_state.rol_actual = user_match.iloc[0]['ROL']
                         st.session_state.unicodigo_actual = user_match.iloc[0]['UNICODIGO']
-                        st.session_state.prefill_auto = {}
-                        st.session_state.last_checked_id = ""
                         registrar_auditoria("INICIO DE SESIÓN", "El usuario accedió al sistema")
                         st.rerun()
                     else:
@@ -599,7 +594,7 @@ def login():
 
             st.markdown("""
                 <div style='text-align: center; margin-top: 2.5rem; color: #94a3b8; font-size: 0.75rem; font-weight: 500;'>
-                    © 2026 MSP Orellana | Entorno Informático V5.6<br>
+                    © 2026 MSP Orellana | Entorno Informático V5.7<br>
                     Plataforma de Emergencias Médicas
                 </div>
             """, unsafe_allow_html=True)
@@ -811,7 +806,6 @@ def modal_nuevo_profesional(cedula_prof):
 
 def renderizar_campos_paciente(fk, prefill=None, df_global=None):
     if prefill is None: prefill = {}
-    
     es_modo_edicion = bool(fk.startswith("edit") or fk.startswith("admin_edit"))
     
     id_pac_prefill = str(prefill.get("NUMERO DE IDENTIFICACION", "")).replace("'", "").strip()
@@ -822,7 +816,6 @@ def renderizar_campos_paciente(fk, prefill=None, df_global=None):
     with st.container(border=True):
         col_ser, col_doc1, col_doc2 = st.columns([1.0, 1.3, 1.7])
         numero_serie = col_ser.text_input("Número de Serie", value=prefill.get("NUMERO DE SERIE", ""), placeholder="Ingrese el número de serie", key=f"ser_{fk}", disabled=False)
-        
         tipo_doc = col_doc1.selectbox("Tipo de Documento", TIPOS_DOCUMENTO, index=safe_index(TIPOS_DOCUMENTO, prefill.get("TIPO DE DOCUMENTO DE IDENTIFICACION")), key=f"td_{fk}", disabled=es_modo_edicion)
         identificacion = col_doc2.text_input("Número de Identificación (Presione ENTER para verificar)", placeholder="Ingrese el número de cédula y presione ENTER", value=id_pac_prefill, key=f"id_{fk}", disabled=es_modo_edicion)
         
@@ -839,36 +832,31 @@ def renderizar_campos_paciente(fk, prefill=None, df_global=None):
                 id_valida = True
 
         current_id = identificacion_clean
+        paciente_encontrado = False
         
+        # --- RESCATE V5.7: EXTERMINADOR DE PACIENTES FANTASMAS ---
         if fk.startswith("nuevo") and current_id and id_valida:
-            if st.session_state.get("last_checked_id") != current_id:
-                match_row = {}
-                current_id_norm = normalizar_id(current_id) 
-                
-                df_loc = cargar_tabla(HOJA_PACIENTES)
-                if not df_loc.empty and "NUMERO DE IDENTIFICACION" in df_loc.columns:
-                    res_loc = df_loc[df_loc["NUMERO DE IDENTIFICACION"].apply(normalizar_id) == current_id_norm]
-                    if not res_loc.empty: match_row = res_loc.iloc[-1].to_dict()
-
-                if not match_row and df_global is not None and not df_global.empty and "NUMERO DE IDENTIFICACION" in df_global.columns:
-                    res_hist = df_global[df_global["NUMERO DE IDENTIFICACION"].apply(normalizar_id) == current_id_norm]
-                    if not res_hist.empty: match_row = res_hist.iloc[-1].to_dict()
-
-                st.session_state["prefill_auto"] = match_row
-                st.session_state["last_checked_id"] = current_id
-                st.session_state["rt"] = st.session_state.get("rt", 0) + 1
-
-        if fk.startswith("nuevo") and st.session_state.get("prefill_auto"):
-            prefill.update(st.session_state["prefill_auto"])
+            match_row = {}
+            current_id_norm = normalizar_id(current_id) 
             
-        rt = st.session_state.get("rt", 0)
-        dyn_k = f"_{st.session_state.get('last_checked_id', '')}_{rt}" if fk.startswith("nuevo") else ""
-        
-        paciente_encontrado = True if st.session_state.get("prefill_auto") else False
+            df_loc = cargar_tabla(HOJA_PACIENTES)
+            if not df_loc.empty and "NUMERO DE IDENTIFICACION" in df_loc.columns:
+                res_loc = df_loc[df_loc["NUMERO DE IDENTIFICACION"].apply(normalizar_id) == current_id_norm]
+                if not res_loc.empty: match_row = res_loc.iloc[-1].to_dict()
+
+            if not match_row and df_global is not None and not df_global.empty and "NUMERO DE IDENTIFICACION" in df_global.columns:
+                res_hist = df_global[df_global["NUMERO DE IDENTIFICACION"].apply(normalizar_id) == current_id_norm]
+                if not res_hist.empty: match_row = res_hist.iloc[-1].to_dict()
+
+            if match_row:
+                prefill.update(match_row)
+                paciente_encontrado = True
+
+        dyn_k = f"_{current_id}" if fk.startswith("nuevo") else ""
         bloquear_campos = True if (es_modo_edicion or (fk.startswith("nuevo") and st.session_state.rol_actual == "USUARIO" and paciente_encontrado)) else False
 
         if identificacion_clean and id_valida and fk.startswith("nuevo") and paciente_encontrado:
-            st.success("✅ **Ciudadano verificado:** Sus datos demográficos fueron cargados automáticamente.")
+            st.success("✅ **Ciudadano verificado:** Sus datos demográficos fueron cargados desde la base oficial.")
 
         if identificacion_clean and id_valida and fk.startswith("nuevo") and not paciente_encontrado:
             st.warning("⚠️ Ciudadano no registrado en el catálogo. Por favor ingrese su ficha demográfica:")
@@ -919,8 +907,6 @@ def renderizar_campos_paciente(fk, prefill=None, df_global=None):
                             }
                             try:
                                 agregar_fila_nube(HOJA_PACIENTES, payload_pac, COLS_PACIENTES_BD)
-                                st.session_state["prefill_auto"] = payload_pac
-                                st.session_state["rt"] = st.session_state.get("rt", 0) + 1
                                 mostrar_alerta_guardado("✅ Ficha demográfica almacenada correctamente.", "ok")
                             except Exception as e:
                                 st.error(f"Error al guardar ficha: {e}")
@@ -1184,12 +1170,18 @@ def formulario_principal():
         menu_sel = st.radio("Menú", opciones_menu, label_visibility="collapsed")
         
         st.markdown("<br>", unsafe_allow_html=True)
+        
+        # --- RESCATE V5.7: BOTÓN DE SINCRONIZACIÓN MAESTRA ---
+        if st.button("🔄 Sincronizar Servidor", use_container_width=True):
+            cargar_tabla.clear()
+            cargar_configuracion.clear()
+            st.rerun()
+            
         if st.button("🚪 Cerrar Sesión", use_container_width=True):
             st.session_state.autenticado = False
             st.session_state.usuario_actual = ""
             st.session_state.rol_actual = ""
             st.session_state.unicodigo_actual = ""
-            st.session_state.prefill_auto = {} 
             st.session_state.last_checked_id = ""
             st.rerun()
 
@@ -1308,7 +1300,6 @@ def formulario_principal():
                         agregar_fila_nube(HOJA_ATENCIONES, datos_nuevo, COLUMNAS_OFICIALES)
                         registrar_auditoria("NUEVO REGISTRO", f"Atención registrada para paciente CI: {datos_nuevo['NUMERO DE IDENTIFICACION']}")
                         
-                        st.session_state["prefill_auto"] = {}
                         st.session_state["last_checked_id"] = ""
                         st.session_state.form_key += 1
                         for key in list(st.session_state.keys()):
@@ -1464,7 +1455,10 @@ def formulario_principal():
                                 st.info("ℹ️ Paciente recuperado del historial de atenciones. Al guardar se restaurará en el catálogo oficial.")
                         
                         if not row_pac:
-                            st.warning("⚠️ El paciente no existe en el catálogo ni en el historial de atenciones.")
+                            st.warning("⚠️ El paciente no existe en la base de datos oficial. (Si lo acaba de ingresar, verifique haciendo clic en Sincronizar Servidor en el menú izquierdo).")
+                            if st.button("🔄 Forzar Sincronización en la Nube"):
+                                cargar_tabla.clear()
+                                st.rerun()
                         else:
                             with st.container(border=True):
                                 st.write(f"Editando ficha del paciente: **{row_pac.get('PRIMER NOMBRE','')} {row_pac.get('PRIMER APELLIDO','')}**")
@@ -1749,7 +1743,7 @@ def formulario_principal():
                 else:
                     st.dataframe(df_auditoria.iloc[::-1], use_container_width=True, hide_index=True)
 
-        # ------------------- MÓDULOS GLOBAL DE EXPORTACIÓN -------------------
+        # ------------------- MÓDULO GLOBAL DE EXPORTACIÓN -------------------
         if menu_sel == "📥 Exportar Matriz":
             st.markdown("<div class='section-title'>📥 Centro de Exportación de Datos Estadísticos</div>", unsafe_allow_html=True)
             if not df_global.empty and "FECHA DE ATENCION" in df_global.columns:
