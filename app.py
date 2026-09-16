@@ -67,41 +67,27 @@ st.markdown("""
         z-index: 999999 !important;
         box-shadow: 0 4px 6px rgba(0,0,0,0.3) !important;
     }
-    [data-testid="collapsedControl"] svg {
-        fill: white !important;
-        color: white !important;
-    }
+    [data-testid="collapsedControl"] svg { fill: white !important; color: white !important; }
     
     h1, h2, h3, h4 {
-        color: #0f172a;
-        font-weight: 800 !important;
-        letter-spacing: -0.01em;
-        margin-bottom: 0.4rem !important;
+        color: #0f172a; font-weight: 800 !important; letter-spacing: -0.01em; margin-bottom: 0.4rem !important;
     }
     
     div[data-testid="stWidgetLabel"] p, label p, label {
-        font-weight: 700 !important;
-        color: #0f172a !important;
-        font-size: 0.89rem !important;
+        font-weight: 700 !important; color: #0f172a !important; font-size: 0.89rem !important;
     }
     
     div[data-testid="stVerticalBlockBorderWrapper"]:has(.login-title) {
         background-color: rgba(255, 255, 255, 0.85) !important;
-        backdrop-filter: blur(16px);
-        border-radius: 20px !important;
-        padding: 3rem 2.5rem !important;
+        backdrop-filter: blur(16px); border-radius: 20px !important; padding: 3rem 2.5rem !important;
         box-shadow: 0 20px 40px rgba(15, 76, 129, 0.08), 0 1px 3px rgba(0,0,0,0.05) !important;
-        border: 1px solid rgba(255, 255, 255, 0.6) !important;
-        margin-top: 4vh;
+        border: 1px solid rgba(255, 255, 255, 0.6) !important; margin-top: 4vh;
     }
     
     div[data-testid="stVerticalBlockBorderWrapper"]:not(:has(.login-title)) {
-        background-color: #ffffff !important;
-        border: 1px solid #e2e8f0 !important;
-        border-radius: 12px !important;
+        background-color: #ffffff !important; border: 1px solid #e2e8f0 !important; border-radius: 12px !important;
         box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.02) !important;
-        padding: 1.5rem !important;
-        transition: all 0.3s ease;
+        padding: 1.5rem !important; transition: all 0.3s ease;
     }
     div[data-testid="stVerticalBlockBorderWrapper"]:not(:has(.login-title)):hover {
         box-shadow: 0 10px 15px -3px rgba(15, 76, 129, 0.08), 0 4px 6px -2px rgba(15, 76, 129, 0.04) !important;
@@ -109,141 +95,66 @@ st.markdown("""
     }
 
     .stButton > button {
-        background: linear-gradient(180deg, #0f4c81 0%, #0a355c 100%) !important;
-        color: white !important;
-        border: none !important;
-        padding: 0.6rem 1.2rem !important;
-        font-size: 0.95rem !important;
-        font-weight: 600 !important;
-        border-radius: 8px !important;
-        box-shadow: 0 4px 6px rgba(15, 76, 129, 0.2) !important;
-        transition: all 0.25s ease !important;
-        width: 100%;
+        background: linear-gradient(180deg, #0f4c81 0%, #0a355c 100%) !important; color: white !important;
+        border: none !important; padding: 0.6rem 1.2rem !important; font-size: 0.95rem !important;
+        font-weight: 600 !important; border-radius: 8px !important; box-shadow: 0 4px 6px rgba(15, 76, 129, 0.2) !important;
+        transition: all 0.25s ease !important; width: 100%;
     }
     .stButton > button:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 8px 15px rgba(15, 76, 129, 0.3) !important;
+        transform: translateY(-2px); box-shadow: 0 8px 15px rgba(15, 76, 129, 0.3) !important;
         background: linear-gradient(180deg, #115999 0%, #0d4273 100%) !important;
     }
     
     .login-tag {
-        background: linear-gradient(90deg, #0f4c81 0%, #1d4ed8 100%);
-        color: #ffffff;
-        display: inline-block;
-        padding: 6px 18px;
-        border-radius: 20px;
-        font-size: 0.75rem;
-        font-weight: 700;
-        margin-bottom: 16px;
-        letter-spacing: 0.8px;
-        text-transform: uppercase;
-        box-shadow: 0 2px 6px rgba(15, 76, 129, 0.25);
+        background: linear-gradient(90deg, #0f4c81 0%, #1d4ed8 100%); color: #ffffff; display: inline-block;
+        padding: 6px 18px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; margin-bottom: 16px;
+        letter-spacing: 0.8px; text-transform: uppercase; box-shadow: 0 2px 6px rgba(15, 76, 129, 0.25);
     }
-    .login-title {
-        color: #0f172a;
-        font-size: 1.85rem;
-        font-weight: 800;
-        margin-bottom: 0.3rem;
-        letter-spacing: -0.5px;
-    }
-    .login-subtitle {
-        color: #64748b;
-        font-size: 0.95rem;
-        font-weight: 500;
-    }
+    .login-title { color: #0f172a; font-size: 1.85rem; font-weight: 800; margin-bottom: 0.3rem; letter-spacing: -0.5px; }
+    .login-subtitle { color: #64748b; font-size: 0.95rem; font-weight: 500; }
     
     [data-testid="stSidebar"] [data-testid="stRadio"] div[role="radiogroup"] > label {
-        background-color: rgba(255, 255, 255, 0.05);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        padding: 10px 14px;
-        border-radius: 10px;
-        margin-bottom: 6px;
-        transition: all 0.2s ease;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.02);
-        cursor: pointer;
-        width: 100%;
-        align-items: center;
+        background-color: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1);
+        padding: 10px 14px; border-radius: 10px; margin-bottom: 6px; transition: all 0.2s ease;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.02); cursor: pointer; width: 100%; align-items: center;
     }
     [data-testid="stSidebar"] [data-testid="stRadio"] div[role="radiogroup"] > label:hover {
-        border-color: rgba(255, 255, 255, 0.3);
-        background-color: rgba(255, 255, 255, 0.1);
-        transform: translateX(4px);
+        border-color: rgba(255, 255, 255, 0.3); background-color: rgba(255, 255, 255, 0.1); transform: translateX(4px);
     }
     [data-testid="stSidebar"] [data-testid="stRadio"] div[role="radiogroup"] > label[data-checked="true"] {
-        background: linear-gradient(90deg, #3b82f6 0%, #1d4ed8 100%) !important;
-        border-color: transparent !important;
-        box-shadow: 0 4px 10px rgba(29, 78, 216, 0.4) !important;
+        background: linear-gradient(90deg, #3b82f6 0%, #1d4ed8 100%) !important; border-color: transparent !important; box-shadow: 0 4px 10px rgba(29, 78, 216, 0.4) !important;
     }
-    [data-testid="stSidebar"] [data-testid="stRadio"] div[role="radiogroup"] > label p {
-        font-weight: 700 !important;
-        color: #ffffff !important;
-        font-size: 0.92rem !important;
-    }
+    [data-testid="stSidebar"] [data-testid="stRadio"] div[role="radiogroup"] > label p { font-weight: 700 !important; color: #ffffff !important; font-size: 0.92rem !important; }
 
     .section-title {
-        color: #0f172a;
-        font-size: 1.1rem;
-        font-weight: 800;
-        margin-top: 1.2rem;
-        margin-bottom: 1.2rem;
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        border-left: 5px solid #1d4ed8;
-        padding-left: 15px;
-        background: linear-gradient(90deg, #f1f5f9 0%, transparent 100%);
-        padding-top: 10px;
-        padding-bottom: 10px;
-        border-radius: 0 8px 8px 0;
+        color: #0f172a; font-size: 1.1rem; font-weight: 800; margin-top: 1.2rem; margin-bottom: 1.2rem;
+        display: flex; align-items: center; gap: 12px; border-left: 5px solid #1d4ed8; padding-left: 15px;
+        background: linear-gradient(90deg, #f1f5f9 0%, transparent 100%); padding-top: 10px; padding-bottom: 10px; border-radius: 0 8px 8px 0;
     }
-    .dashboard-title {
-        color: #1e293b;
-        font-size: 1.15rem;
-        font-weight: 800;
-        margin-bottom: 1rem;
-        border-bottom: 2px solid #e2e8f0;
-        padding-bottom: 8px;
-    }
+    .dashboard-title { color: #1e293b; font-size: 1.15rem; font-weight: 800; margin-bottom: 1rem; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; }
     
-    [data-testid="stSidebar"] {
-        background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%) !important;
-    }
-    [data-testid="stSidebar"] * {
-        color: #f8fafc;
-    }
+    [data-testid="stSidebar"] { background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%) !important; }
+    [data-testid="stSidebar"] * { color: #f8fafc; }
     
     .sidebar-user-card {
-        background: rgba(255, 255, 255, 0.05);
-        color: #f8fafc;
-        padding: 1.25rem;
-        border-radius: 12px;
-        margin-bottom: 1.5rem;
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        box-shadow: 0 6px 12px rgba(0,0,0,0.15);
-        position: relative;
-        overflow: hidden;
+        background: rgba(255, 255, 255, 0.05); color: #f8fafc; padding: 1.25rem; border-radius: 12px;
+        margin-bottom: 1.5rem; border: 1px solid rgba(255, 255, 255, 0.1); box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+        position: relative; overflow: hidden;
     }
     .sidebar-user-card::before {
-        content: '';
-        position: absolute;
-        top: 0; left: 0; right: 0; height: 4px;
-        background: linear-gradient(90deg, #3b82f6, #06b6d4);
+        content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px; background: linear-gradient(90deg, #3b82f6, #06b6d4);
     }
     
     .desktop-app-header {
-        background: rgba(255, 255, 255, 0.95);
-        backdrop-filter: blur(10px);
-        border-bottom: 2px solid #0f4c81;
-        padding: 0.8rem 1.2rem;
-        margin-bottom: 1.5rem;
-        border-radius: 12px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.02);
-        border: 1px solid #e2e8f0;
+        background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); border-bottom: 2px solid #0f4c81;
+        padding: 0.8rem 1.2rem; margin-bottom: 1.5rem; border-radius: 12px; display: flex; justify-content: space-between;
+        align-items: center; box-shadow: 0 4px 6px rgba(0,0,0,0.02); border: 1px solid #e2e8f0;
     }
 
+    /* ESTILOS DE SELECTORES PARA NUEVOS CAMPOS PROV, CANT, PARR */
+    div[data-testid="stSelectbox"]:has([aria-label*="Provincia" i]) div[data-baseweb="select"], div[data-testid="stSelectbox"]:has([aria-label*="Provincia" i]) [role="combobox"],
+    div[data-testid="stSelectbox"]:has([aria-label*="Cantón" i]) div[data-baseweb="select"], div[data-testid="stSelectbox"]:has([aria-label*="Cantón" i]) [role="combobox"],
+    div[data-testid="stSelectbox"]:has([aria-label*="Parroquia" i]) div[data-baseweb="select"], div[data-testid="stSelectbox"]:has([aria-label*="Parroquia" i]) [role="combobox"],
     div[data-testid="stDateInput"] div[data-baseweb="input"], div[data-testid="stDateInput"] div[data-baseweb="base-input"],
     div[data-testid="stNumberInput"] div[data-baseweb="input"], div[data-testid="stNumberInput"] div[data-baseweb="base-input"],
     div[data-testid="stTextInput"]:has(input[aria-label*="Número de Serie" i]) div[data-baseweb="input"], div[data-testid="stTextInput"]:has(input[aria-label*="Número de Serie" i]) div[data-baseweb="base-input"],
@@ -261,53 +172,25 @@ st.markdown("""
     div[data-testid="stSelectbox"]:has([aria-label*="Causa" i]) div[data-baseweb="select"], div[data-testid="stSelectbox"]:has([aria-label*="Causa" i]) [role="combobox"],
     div[data-testid="stSelectbox"]:has([aria-label*="Hospital" i]) div[data-baseweb="select"], div[data-testid="stSelectbox"]:has([aria-label*="Hospital" i]) [role="combobox"],
     div[data-testid="stSelectbox"]:has([aria-label*="Establecimiento" i]) div[data-baseweb="select"], div[data-testid="stSelectbox"]:has([aria-label*="Establecimiento" i]) [role="combobox"] {
-        background-color: #f0f8ff !important;
-        border: 2px solid #bfdbfe !important;
-        border-radius: 8px !important;
-        min-height: 40px !important;
-        box-shadow: none !important;
-        transition: all 0.2s ease-in-out !important;
+        background-color: #f0f8ff !important; border: 2px solid #bfdbfe !important; border-radius: 8px !important;
+        min-height: 40px !important; box-shadow: none !important; transition: all 0.2s ease-in-out !important;
     }
     
     div[data-testid="stTextInput"]:has([placeholder*="cédula y presione" i]) div[data-baseweb="input"],
     div[data-testid="stTextInput"]:has([placeholder*="cédula y presione" i]) div[data-baseweb="base-input"] {
-        background-color: #fff1f2 !important;
-        border: 2px solid #e11d48 !important;
-        border-radius: 8px !important;
-        min-height: 44px !important;
-        box-shadow: 0 4px 6px rgba(225, 29, 72, 0.1) !important;
+        background-color: #fff1f2 !important; border: 2px solid #e11d48 !important; border-radius: 8px !important; min-height: 44px !important; box-shadow: 0 4px 6px rgba(225, 29, 72, 0.1) !important;
     }
+    div[data-testid="stTextInput"]:has([placeholder*="cédula y presione" i]) input { font-size: 1.08rem !important; font-weight: 800 !important; color: #9f1239 !important; letter-spacing: 0.5px !important; }
     
-    div[data-testid="stTextInput"]:has([placeholder*="cédula y presione" i]) input {
-        font-size: 1.08rem !important;
-        font-weight: 800 !important;
-        color: #9f1239 !important;
-        letter-spacing: 0.5px !important;
-    }
-    
-    div[data-baseweb="input"] > div, div[data-baseweb="base-input"] > div, div[data-baseweb="select"] > div {
-        border: none !important;
-        background-color: transparent !important;
-        box-shadow: none !important;
-    }
-    
+    div[data-baseweb="input"] > div, div[data-baseweb="base-input"] > div, div[data-baseweb="select"] > div { border: none !important; background-color: transparent !important; box-shadow: none !important; }
     div[data-testid="stTextInput"] input, div[data-testid="stNumberInput"] input, div[data-testid="stDateInput"] input, div[data-testid="stPasswordInput"] input, div[data-baseweb="input"] input, div[data-baseweb="base-input"] input, div[data-baseweb="select"] span, div[data-baseweb="select"] div {
-        background-color: transparent !important;
-        color: #0f172a !important;
-        font-weight: 600 !important;
+        background-color: transparent !important; color: #0f172a !important; font-weight: 600 !important;
     }
     
     div[data-baseweb="input"]:focus-within, div[data-baseweb="base-input"]:focus-within, div[data-baseweb="select"]:focus-within, div[data-baseweb="select"] > div:focus-within {
-        background-color: #ffffff !important;
-        border-color: #3b82f6 !important;
-        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25) !important;
+        background-color: #ffffff !important; border-color: #3b82f6 !important; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25) !important;
     }
-    
-    input::placeholder {
-        color: #94a3b8 !important;
-        opacity: 1 !important;
-        font-weight: 500 !important;
-    }
+    input::placeholder { color: #94a3b8 !important; opacity: 1 !important; font-weight: 500 !important; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -436,7 +319,7 @@ def guardar_tabla(hoja_nombre, df):
         st.error(f"Error guardando {hoja_nombre}: {e}")
 
 # ==============================================================================
-# GESTIÓN DE SESIÓN Y CATÁLOGOS
+# GESTIÓN DE SESIÓN Y CATÁLOGOS LOCALES (CIE10, BASE EST., DPA)
 # ==============================================================================
 def cargar_usuarios():
     df = cargar_tabla(HOJA_USUARIOS)
@@ -493,7 +376,7 @@ def login():
 
             st.markdown("""
                 <div style='text-align: center; margin-top: 2.5rem; color: #94a3b8; font-size: 0.75rem; font-weight: 500;'>
-                    © 2026 MSP Orellana | Entorno Informático V6.0<br>
+                    © 2026 MSP Orellana | Entorno Informático V6.1<br>
                     Plataforma de Emergencias Médicas
                 </div>
             """, unsafe_allow_html=True)
@@ -547,26 +430,32 @@ CIE10_SEC_OPCIONES = cargar_cie("CIE 10 secundarios.csv")
 @st.cache_data
 def cargar_base_establecimientos():
     archivo_excel = "BASE ESTABLECIMIENTOS.xlsx"
-    df = None
     if os.path.exists(archivo_excel):
         try:
             diccionario_hojas = pd.read_excel(archivo_excel, sheet_name=None, dtype=str)
             for nombre_hoja, df_hoja in diccionario_hojas.items():
                 df_hoja.columns = df_hoja.columns.astype(str).str.strip().str.upper().str.replace('Ó', 'O').str.replace('Í', 'I')
                 if any('UNICODIGO' in c or 'CODIGO' in c for c in df_hoja.columns):
-                    df = df_hoja
-                    break
+                    df_hoja.rename(columns={c: 'UNICODIGO' for c in df_hoja.columns if 'UNICODIGO' in c or 'CODIGO' in c}, inplace=True)
+                    return df_hoja.fillna("")
         except Exception: pass
-    if df is not None and not df.empty:
-        for col in df.columns:
-            if 'UNICODIGO' in col or 'CODIGO' in col:
-                df.rename(columns={col: 'UNICODIGO'}, inplace=True)
-                break
-        df.fillna("", inplace=True)
-        return df
     return None
-
 base_est = cargar_base_establecimientos()
+
+# --- CORRECCIÓN V6.1: CARGA DEL ARCHIVO DPA LOCAL PARA LISTAS CASCADA ---
+@st.cache_data
+def cargar_dpa():
+    archivo_dpa = "DPA_ECUADOR.xlsx"
+    if os.path.exists(archivo_dpa):
+        try:
+            df = pd.read_excel(archivo_dpa, dtype=str)
+            df.columns = df.columns.astype(str).str.strip().str.upper()
+            if all(col in df.columns for col in ["PROVINCIA", "CANTON", "PARROQUIA"]):
+                return df.fillna("")
+        except Exception: pass
+    return pd.DataFrame()
+df_dpa = cargar_dpa()
+# ------------------------------------------------------------------------
 
 def obtener_nombre_establecimiento(unicodigo):
     if not unicodigo or str(unicodigo).upper() == "TODOS": return "Todas las Unidades (Provincial)"
@@ -663,7 +552,6 @@ def modal_nuevo_profesional(cedula_prof):
 def renderizar_campos_paciente(fk, prefill=None, df_global=None):
     if prefill is None: prefill = {}
     
-    # --- CORRECCIÓN V6.0: Fechas desbloqueadas solo para 'admin_edit' ---
     es_modo_edicion = bool(fk.startswith("edit") or fk.startswith("admin_edit"))
     deshabilitar_fecha_hora = True if fk.startswith("edit_") else False 
     
@@ -734,17 +622,30 @@ def renderizar_campos_paciente(fk, prefill=None, df_global=None):
                 np_etn = c_np10.selectbox("Etnia", ETNIAS, key=f"np_et_{fk}")
                 np_gp = c_np11.selectbox("Grupo Prioritario", GRUPO_PRIORITARIO, key=f"np_gp_{fk}")
 
+                # --- CORRECCIÓN V6.1: DPA LISTA DESPLEGABLE EN NUEVO PACIENTE ---
                 c_np12, c_np13, c_np14, c_np15 = st.columns(4)
                 np_ts = c_np12.selectbox("Tipo de Seguro / Cobertura", TIPO_SEGURO, key=f"np_ts_{fk}")
-                np_pr = c_np13.text_input("Provincia de Residencia", placeholder="Ej: Orellana", key=f"np_pr_{fk}")
-                np_cr = c_np14.text_input("Cantón de Residencia", placeholder="Ej: Francisco de Orellana", key=f"np_cr_{fk}")
-                np_par = c_np15.text_input("Parroquia de Residencia", placeholder="Ej: Puerto Francisco de Orellana", key=f"np_par_{fk}")
+                
+                if not df_dpa.empty:
+                    l_prov_np = df_dpa["PROVINCIA"].dropna().unique().tolist()
+                    np_pr = c_np13.selectbox("Provincia de Residencia", l_prov_np, index=safe_index(l_prov_np, "ORELLANA"), key=f"np_pr_{fk}")
+                    l_cant_np = df_dpa[df_dpa["PROVINCIA"] == np_pr]["CANTON"].dropna().unique().tolist() if np_pr else []
+                    np_cr = c_np14.selectbox("Cantón de Residencia", l_cant_np, key=f"np_cr_{fk}")
+                    l_parr_np = df_dpa[(df_dpa["PROVINCIA"] == np_pr) & (df_dpa["CANTON"] == np_cr)]["PARROQUIA"].dropna().unique().tolist() if np_cr else []
+                    np_par = c_np15.selectbox("Parroquia de Residencia", l_parr_np, key=f"np_par_{fk}")
+                else:
+                    np_pr = c_np13.text_input("Provincia de Residencia", placeholder="Ej: Orellana", key=f"np_pr_{fk}")
+                    np_cr = c_np14.text_input("Cantón de Residencia", placeholder="Ej: Fco de Orellana", key=f"np_cr_{fk}")
+                    np_par = c_np15.text_input("Parroquia de Residencia", placeholder="Ej: Puerto San Francisco", key=f"np_par_{fk}")
+                # ------------------------------------------------------------------
 
                 col_btn_pac, _ = st.columns([1.2, 2])
                 with col_btn_pac:
                     if st.button("💾 Grabar Nueva Ficha en el Sistema", key=f"btn_save_pac_{fk}", use_container_width=True):
-                        if not np_pa.strip() or not np_sa.strip() or not np_pn.strip() or not np_sn.strip() or not np_fn or not np_pr.strip() or not np_cr.strip() or not np_par.strip():
-                            mostrar_alerta_guardado("❌ TODOS los campos demográficos son OBLIGATORIOS.", "error")
+                        # Validación del DPA para evitar vacíos
+                        v_np_pr, v_np_cr, v_np_par = limpiar_texto(np_pr), limpiar_texto(np_cr), limpiar_texto(np_par)
+                        if not np_pa.strip() or not np_sa.strip() or not np_pn.strip() or not np_sn.strip() or not np_fn or not v_np_pr or not v_np_cr or not v_np_par:
+                            mostrar_alerta_guardado("❌ TODOS los campos demográficos son OBLIGATORIOS (incluyendo Cantón y Parroquia).", "error")
                         elif np_gp == "EMBARAZADAS" and np_sexo == "HOMBRE":
                             mostrar_alerta_guardado("❌ Validación Estricta: Un hombre no puede ser registrado como mujer embarazada.", "error")
                         elif np_gp == "EMBARAZADAS" and (calc_cond_edad != "AÑO/S" or calc_edad < 10):
@@ -755,7 +656,7 @@ def renderizar_campos_paciente(fk, prefill=None, df_global=None):
                                 "PRIMER NOMBRE": limpiar_texto(np_pn), "SEGUNDO NOMBRE": limpiar_texto(np_sn), 
                                 "SEXO": np_sexo, "EDAD": str(calc_edad), "CONDICION DE LA EDAD": calc_cond_edad, 
                                 "NACIONALIDAD": np_nac, "ETNIA": np_etn, "GRUPO PRIORITARIO": np_gp, "TIPO DE SEGURO": np_ts, 
-                                "PROV_RES": limpiar_texto(np_pr), "CANT_RES": limpiar_texto(np_cr), "PARR_RES": limpiar_texto(np_par),
+                                "PROV_RES": v_np_pr, "CANT_RES": v_np_cr, "PARR_RES": v_np_par,
                                 "FECHA DE NACIMIENTO DEL PACIENTE": np_fn.strftime("%d/%m/%Y")
                             }
                             try:
@@ -775,7 +676,6 @@ def renderizar_campos_paciente(fk, prefill=None, df_global=None):
         valor_fecha_atencion = safe_date(prefill.get("FECHA DE ATENCION", ""), default_today=False)
         min_calendario = valor_fecha_atencion if (valor_fecha_atencion and valor_fecha_atencion < limite_inferior) else limite_inferior
 
-        # --- CORRECCIÓN V6.0: Fechas editables para Admin ---
         fecha_atencion = col9.date_input("Fecha de Atención", value=valor_fecha_atencion, min_value=min_calendario, max_value=fecha_hoy, format="DD/MM/YYYY", key=f"fa_{fk}", disabled=deshabilitar_fecha_hora)
         hora_atencion = col10.text_input("Hora de Atención (HH:MM)", value=prefill.get("HORA ATENCION", ""), placeholder="Ej: 14:30", key=f"ha_{fk}", disabled=deshabilitar_fecha_hora)
         
@@ -819,7 +719,6 @@ def renderizar_campos_paciente(fk, prefill=None, df_global=None):
         grupo_prio = col23.selectbox("Grupo Prioritario", GRUPO_PRIORITARIO, index=safe_index(GRUPO_PRIORITARIO, prefill.get("GRUPO PRIORITARIO")), key=f"gp_{fk}{dyn_k}", disabled=bloquear_campos)
         tipo_seguro = col24.selectbox("Tipo de Seguro / Cobertura", TIPO_SEGURO, index=safe_index(TIPO_SEGURO, prefill.get("TIPO DE SEGURO")), key=f"ts_{fk}{dyn_k}", disabled=bloquear_campos)
 
-        # --- CORRECCIÓN V6.0: Algoritmo Validar Embarazos ---
         valido_embarazo = True
         if grupo_prio == "EMBARAZADAS":
             if sexo == "HOMBRE":
@@ -837,9 +736,24 @@ def renderizar_campos_paciente(fk, prefill=None, df_global=None):
     st.markdown("<div class='section-title'>📍 3. Información de Residencia del Ciudadano</div>", unsafe_allow_html=True)
     with st.container(border=True):
         col25, col26, col27 = st.columns(3)
-        prov_res = col25.text_input("Provincia de Residencia", value=limpiar_texto(prefill.get("PROV_RES", "ORELLANA")), placeholder="Ingrese la provincia", key=f"pr_{fk}{dyn_k}", disabled=bloquear_campos)
-        cant_res = col26.text_input("Cantón de Residencia", value=limpiar_texto(prefill.get("CANT_RES", "")), placeholder="Ingrese el cantón", key=f"cr_{fk}{dyn_k}", disabled=bloquear_campos)
-        parr_res = col27.text_input("Parroquia de Residencia", value=limpiar_texto(prefill.get("PARR_RES", "")), placeholder="Ingrese la parroquia", key=f"par_{fk}{dyn_k}", disabled=bloquear_campos)
+        
+        # --- CORRECCIÓN V6.1: DPA EN SECCIÓN DE RESIDENCIA (BLOQUEADA/DESBLOQUEADA) ---
+        v_pr = limpiar_texto(prefill.get("PROV_RES", "ORELLANA"))
+        v_cr = limpiar_texto(prefill.get("CANT_RES", ""))
+        v_par = limpiar_texto(prefill.get("PARR_RES", ""))
+        
+        if bloquear_campos or df_dpa.empty:
+            prov_res = col25.text_input("Provincia de Residencia", value=v_pr, key=f"pr_{fk}{dyn_k}", disabled=bloquear_campos)
+            cant_res = col26.text_input("Cantón de Residencia", value=v_cr, key=f"cr_{fk}{dyn_k}", disabled=bloquear_campos)
+            parr_res = col27.text_input("Parroquia de Residencia", value=v_par, key=f"par_{fk}{dyn_k}", disabled=bloquear_campos)
+        else:
+            l_prov = df_dpa["PROVINCIA"].dropna().unique().tolist()
+            prov_res = col25.selectbox("Provincia de Residencia", l_prov, index=safe_index(l_prov, v_pr), key=f"pr_{fk}{dyn_k}")
+            l_cant = df_dpa[df_dpa["PROVINCIA"] == prov_res]["CANTON"].dropna().unique().tolist() if prov_res else []
+            cant_res = col26.selectbox("Cantón de Residencia", l_cant, index=safe_index(l_cant, v_cr), key=f"cr_{fk}{dyn_k}")
+            l_parr = df_dpa[(df_dpa["PROVINCIA"] == prov_res) & (df_dpa["CANTON"] == cant_res)]["PARROQUIA"].dropna().unique().tolist() if cant_res else []
+            parr_res = col27.selectbox("Parroquia de Residencia", l_parr, index=safe_index(l_parr, v_par), key=f"par_{fk}{dyn_k}")
+        # ---------------------------------------------------------------------------------
 
     st.markdown("<div class='section-title'>🩺 4. Diagnóstico CIE-10 y Profesional Tratante</div>", unsafe_allow_html=True)
     with st.container(border=True):
@@ -1126,8 +1040,6 @@ def formulario_principal():
                         c_edad, c_cond = calcular_edad(ed_fn)
                         cp6.text_input("Edad Calculada", value=str(c_edad), disabled=True, key="ed_be_edad")
                         cp7.text_input("Condición de Edad", value=c_cond, disabled=True, key="ed_be_cond")
-                        
-                        # --- CORRECCIÓN V6.0: Permitir modificar el ID ---
                         ed_id = cp_ced.text_input("Cédula / Identificación", value=busqueda_norm, key="ed_be_id")
                         
                         cp8, cp9, cp10, cp11 = st.columns([1.0, 1.3, 1.3, 1.4])
@@ -1147,17 +1059,33 @@ def formulario_principal():
                             elif c_cond == "AÑO/S" and ((10 <= c_edad <= 17) or c_edad >= 45):
                                 conf_emb_demo = cp11.checkbox("Confirmo que es un embarazo real.", key="conf_emb_be_demo")
 
+                        # --- CORRECCIÓN V6.1: DPA EN BÚSQUEDA Y EDICIÓN ---
                         cp12, cp13, cp14, cp15 = st.columns(4)
                         ed_ts = cp12.selectbox("Tipo de Seguro", TIPO_SEGURO, index=safe_index(TIPO_SEGURO, row_pac_global.get("TIPO DE SEGURO")), key="ed_be_ts")
-                        ed_pr = cp13.text_input("Provincia", value=row_pac_global.get("PROV_RES",""), key="ed_be_pr")
-                        ed_cr = cp14.text_input("Cantón", value=row_pac_global.get("CANT_RES",""), key="ed_be_cr")
-                        ed_par = cp15.text_input("Parroquia", value=row_pac_global.get("PARR_RES",""), key="ed_be_par")
+                        
+                        v_pr_be = row_pac_global.get("PROV_RES","")
+                        v_cr_be = row_pac_global.get("CANT_RES","")
+                        v_par_be = row_pac_global.get("PARR_RES","")
+                        
+                        if not df_dpa.empty:
+                            l_prov_be = df_dpa["PROVINCIA"].dropna().unique().tolist()
+                            ed_pr = cp13.selectbox("Provincia", l_prov_be, index=safe_index(l_prov_be, v_pr_be), key="ed_be_pr")
+                            l_cant_be = df_dpa[df_dpa["PROVINCIA"] == ed_pr]["CANTON"].dropna().unique().tolist() if ed_pr else []
+                            ed_cr = cp14.selectbox("Cantón", l_cant_be, index=safe_index(l_cant_be, v_cr_be), key="ed_be_cr")
+                            l_parr_be = df_dpa[(df_dpa["PROVINCIA"] == ed_pr) & (df_dpa["CANTON"] == ed_cr)]["PARROQUIA"].dropna().unique().tolist() if ed_cr else []
+                            ed_par = cp15.selectbox("Parroquia", l_parr_be, index=safe_index(l_parr_be, v_par_be), key="ed_be_par")
+                        else:
+                            ed_pr = cp13.text_input("Provincia", value=v_pr_be, key="ed_be_pr")
+                            ed_cr = cp14.text_input("Cantón", value=v_cr_be, key="ed_be_cr")
+                            ed_par = cp15.text_input("Parroquia", value=v_par_be, key="ed_be_par")
+                        # --------------------------------------------------
                         
                         col_btn_be_demo, _ = st.columns([1.5, 4.5])
                         with col_btn_be_demo:
                             if st.button("💾 Guardar Corrección Demográfica", use_container_width=True, key="btn_save_demo_be"):
-                                if not ed_pa or not ed_pn or not ed_pr or not ed_id:
-                                    mostrar_alerta_guardado("❌ Apellidos, Nombres, ID y Residencia son obligatorios.", "error")
+                                v_ed_pr, v_ed_cr, v_ed_par = limpiar_texto(ed_pr), limpiar_texto(ed_cr), limpiar_texto(ed_par)
+                                if not ed_pa or not ed_pn or not v_ed_pr or not v_ed_cr or not v_ed_par or not ed_id:
+                                    mostrar_alerta_guardado("❌ Apellidos, Nombres, ID y Localización completa son obligatorios.", "error")
                                 elif not conf_emb_demo:
                                     mostrar_alerta_guardado("❌ Revise las alertas rojas del campo Grupo Prioritario (Embarazo Inválido).", "error")
                                 else:
@@ -1169,8 +1097,8 @@ def formulario_principal():
                                         "FECHA DE NACIMIENTO DEL PACIENTE": ed_fn.strftime("%d/%m/%Y"),
                                         "EDAD": str(c_edad), "CONDICION DE LA EDAD": c_cond, "SEXO": ed_sexo,
                                         "NACIONALIDAD": ed_nac, "ETNIA": ed_etn, "GRUPO PRIORITARIO": ed_gp,
-                                        "TIPO DE SEGURO": ed_ts, "PROV_RES": limpiar_texto(ed_pr),
-                                        "CANT_RES": limpiar_texto(ed_cr), "PARR_RES": limpiar_texto(ed_par)
+                                        "TIPO DE SEGURO": ed_ts, "PROV_RES": v_ed_pr,
+                                        "CANT_RES": v_ed_cr, "PARR_RES": v_ed_par
                                     }
                                     
                                     if idx_pac_global is not None:
@@ -1189,7 +1117,7 @@ def formulario_principal():
                                                 if k in df_global.columns: df_global.loc[mask_at, k] = str(val)
                                             guardar_tabla(HOJA_ATENCIONES, df_global)
 
-                                    registrar_auditoria("CATÁLOGO (EDITAR)", f"Demografía actualizada para paciente antiguo ID: {busqueda_norm} -> Nuevo ID: {ed_id_clean}")
+                                    registrar_auditoria("CATÁLOGO (EDITAR)", f"Demografía actualizada para paciente ID: {busqueda_norm} -> Nuevo ID: {ed_id_clean}")
                                     mostrar_alerta_guardado("✅ ¡Ficha del paciente actualizada en toda la provincia!", "ok")
                 else: st.warning("⚠️ El paciente no existe en los registros globales de la provincia.")
 
@@ -1310,8 +1238,6 @@ def formulario_principal():
                             c_edad, c_cond = calcular_edad(ed_fn)
                             cp6.text_input("Edad Calculada", value=str(c_edad), disabled=True, key="ed_pac_edad")
                             cp7.text_input("Condición de Edad", value=c_cond, disabled=True, key="ed_pac_cond")
-                            
-                            # --- CORRECCIÓN V6.0: Modificar la Cédula ---
                             ed_id = cp_ced.text_input("Cédula / Identificación", value=ced_norm_cat, key="ed_pac_id")
                             
                             cp8, cp9, cp10, cp11 = st.columns([1.0, 1.3, 1.3, 1.4])
@@ -1331,17 +1257,33 @@ def formulario_principal():
                                 elif c_cond == "AÑO/S" and ((10 <= c_edad <= 17) or c_edad >= 45):
                                     conf_emb_cat = cp11.checkbox("Confirmo que es un embarazo real.", key="conf_emb_be_cat")
 
+                            # --- CORRECCIÓN V6.1: DPA EN CATÁLOGO DE PACIENTES ---
                             cp12, cp13, cp14, cp15 = st.columns(4)
                             ed_ts = cp12.selectbox("Tipo de Seguro", TIPO_SEGURO, index=safe_index(TIPO_SEGURO, row_pac.get("TIPO DE SEGURO")), key="ed_pac_ts")
-                            ed_pr = cp13.text_input("Provincia", value=row_pac.get("PROV_RES",""), placeholder="Provincia de residencia", key="ed_pac_pr")
-                            ed_cr = cp14.text_input("Cantón", value=row_pac.get("CANT_RES",""), placeholder="Cantón de residencia", key="ed_pac_cr")
-                            ed_par = cp15.text_input("Parroquia", value=row_pac.get("PARR_RES",""), placeholder="Parroquia de residencia", key="ed_pac_par")
                             
+                            v_pr_cat = row_pac.get("PROV_RES","")
+                            v_cr_cat = row_pac.get("CANT_RES","")
+                            v_par_cat = row_pac.get("PARR_RES","")
+                            
+                            if not df_dpa.empty:
+                                l_prov_cat = df_dpa["PROVINCIA"].dropna().unique().tolist()
+                                ed_pr = cp13.selectbox("Provincia", l_prov_cat, index=safe_index(l_prov_cat, v_pr_cat), key="ed_pac_pr")
+                                l_cant_cat = df_dpa[df_dpa["PROVINCIA"] == ed_pr]["CANTON"].dropna().unique().tolist() if ed_pr else []
+                                ed_cr = cp14.selectbox("Cantón", l_cant_cat, index=safe_index(l_cant_cat, v_cr_cat), key="ed_pac_cr")
+                                l_parr_cat = df_dpa[(df_dpa["PROVINCIA"] == ed_pr) & (df_dpa["CANTON"] == ed_cr)]["PARROQUIA"].dropna().unique().tolist() if ed_cr else []
+                                ed_par = cp15.selectbox("Parroquia", l_parr_cat, index=safe_index(l_parr_cat, v_par_cat), key="ed_pac_par")
+                            else:
+                                ed_pr = cp13.text_input("Provincia", value=v_pr_cat, key="ed_pac_pr")
+                                ed_cr = cp14.text_input("Cantón", value=v_cr_cat, key="ed_pac_cr")
+                                ed_par = cp15.text_input("Parroquia", value=v_par_cat, key="ed_pac_par")
+                            # -----------------------------------------------------
+
                             col_btn_ep, _ = st.columns([1.5, 4.5])
                             with col_btn_ep:
                                 if st.button("💾 Guardar Actualización del Paciente", use_container_width=True, key="btn_save_edit_pac"):
-                                    if not ed_pa or not ed_pn or not ed_pr or not ed_id:
-                                        mostrar_alerta_guardado("❌ Apellidos, Nombres, ID y Residencia son obligatorios.", "error")
+                                    v_ed_pr, v_ed_cr, v_ed_par = limpiar_texto(ed_pr), limpiar_texto(ed_cr), limpiar_texto(ed_par)
+                                    if not ed_pa or not ed_pn or not v_ed_pr or not v_ed_cr or not v_ed_par or not ed_id:
+                                        mostrar_alerta_guardado("❌ Apellidos, Nombres, ID y Localización completa son obligatorios.", "error")
                                     elif not conf_emb_cat:
                                         mostrar_alerta_guardado("❌ Revise las alertas rojas del campo Grupo Prioritario (Embarazo Inválido).", "error")
                                     else:
@@ -1353,8 +1295,8 @@ def formulario_principal():
                                             "FECHA DE NACIMIENTO DEL PACIENTE": ed_fn.strftime("%d/%m/%Y"),
                                             "EDAD": str(c_edad), "CONDICION DE LA EDAD": c_cond, "SEXO": ed_sexo,
                                             "NACIONALIDAD": ed_nac, "ETNIA": ed_etn, "GRUPO PRIORITARIO": ed_gp,
-                                            "TIPO DE SEGURO": ed_ts, "PROV_RES": limpiar_texto(ed_pr),
-                                            "CANT_RES": limpiar_texto(ed_cr), "PARR_RES": limpiar_texto(ed_par)
+                                            "TIPO DE SEGURO": ed_ts, "PROV_RES": v_ed_pr,
+                                            "CANT_RES": v_ed_cr, "PARR_RES": v_ed_par
                                         }
                                         
                                         if paciente_en_catalogo:
@@ -1373,7 +1315,7 @@ def formulario_principal():
                                                     if k in df_global.columns: df_global.loc[mask_at, k] = str(val)
                                                 guardar_tabla(HOJA_ATENCIONES, df_global)
 
-                                        registrar_auditoria("CATÁLOGO (EDITAR)", f"Demografía actualizada paciente antiguo ID: {ced_norm_cat} -> Nuevo ID: {ed_id_clean}")
+                                        registrar_auditoria("CATÁLOGO (EDITAR)", f"Demografía actualizada paciente ID: {ced_norm_cat} -> Nuevo ID: {ed_id_clean}")
                                         mostrar_alerta_guardado("✅ ¡Ficha del paciente actualizada en el catálogo y en el historial!", "ok")
 
             with subtab_med:
@@ -1422,7 +1364,6 @@ def formulario_principal():
                                         registrar_auditoria("CATÁLOGO (EDITAR)", f"Datos actualizados para profesional CI: {ced_norm_med}")
                                         mostrar_alerta_guardado("✅ ¡Nombre del profesional actualizado en el catálogo y en todas sus atenciones registradas!", "ok")
                                         
-                            # --- CORRECCIÓN V6.0: Eliminar Profesional ---
                             st.markdown("---")
                             st.markdown("#### 🗑️ Eliminar Profesional")
                             conf_del_med = st.checkbox("Habilitar eliminación de este profesional", key="chk_del_med")
